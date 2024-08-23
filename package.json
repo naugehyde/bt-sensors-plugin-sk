@@ -1,0 +1,22 @@
+{
+  "name": "bt-sensors-plugin-sk",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/naugehyde/bt-sensors-plugin-sk.git"
+  },
+  "keywords": [
+    "signalk-node-server-plugin", "signalk-category-hardware"
+  ],
+  "author": "Andrew Gerngross",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/naugehyde/bt-sensors-plugin-sk/issues"
+  },
+  "homepage": "https://github.com/naugehyde/bt-sensors-plugin-sk#readme"
+}

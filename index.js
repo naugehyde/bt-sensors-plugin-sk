@@ -47,24 +47,25 @@ module.exports =  function (app) {
   	const classMap = loadSubclasses(path.join(__dirname, 'sensor_classes'))
 
   	plugin.start =  async function (options, restartPlugin) {
-
-    app.debug('Plugin started');
-	adapter = await	bluetooth.getAdapter(options.adapter) 
+		peripherals = options.peripherals
+		app.debug('Plugin started');
+		adapter = await	bluetooth.getAdapter(options.adapter) 
+		
+		app.debug("Starting scan...");
+		await adapter.startDiscovery();
+		await sleep(options.discoveryTimeout*1000);
+		
+		devices= await adapter.devices()
+		app.debug(`Found: ${util.inspect(devices)}`)
 	
-	app.debug("Starting scan...");
-	await adapter.startDiscovery();
-	await sleep(options.discoveryTimeout*1000);
-	
-	devices= await adapter.devices()
-	app.debug(`Found: ${util.inspect(devices)}`)
-	if(options.peripherals)
-		for (const peripheral of options.peripherals)
-			if (!devices.find(({ mac }) => mac === peripheral.mac_address))
-				devices.push(peripheral.mac_address)
+		if(options.peripherals)
+			for (const peripheral of options.peripherals)
+				if (!devices.find(({ mac }) => mac === peripheral.mac_address))
+					devices.push(peripheral.mac_address)
 		
 	
-	plugin.schema.properties.peripherals =  
-	{ type: "array", title: "Sensors", items:{
+		plugin.schema.properties.peripherals =  
+		{ type: "array", title: "Sensors", items:{
 			title: "", type: "object",
 			properties:{
 				mac_address: {title: "MAC Address", enum: devices, type: "string" },
@@ -80,63 +81,63 @@ module.exports =  function (app) {
 				}}
 			}
 		}
-	}
-
-	adapter.keepScanning = false
-	if (options.peripherals){
-    	for (const peripheral of options.peripherals) {
-			if (peripheral.active) {
-				createPaths(peripheral.paths)
-				app.debug("Looking for device: "+peripheral.mac_address)
-				adapter.waitDevice(peripheral.mac_address,1000*peripheral.discoveryTimeout)
-				.then((device)=>{
-					device.getName().then(name=>
-						app.debug("Found device "+name))
-					var deviceClass = classMap.get(peripheral.BT_class)
-					if (!deviceClass){
-						throw new Error(`File for Class ${peripheral.BT_class} not found. `)
-					}
-					adapter.keepScanning ||= deviceClass.needsScannerOn()
-					peripheral.sensor = new deviceClass(device);
-
-					for (const path of peripheral.paths){
-						peripheral.sensor.on(path.id, (val)=>{
-							updatePath(path,val)
-						})
-					}
-					peripheral.sensor.connect();				
-				})
-				.catch (e =>
-					app.debug("Unable to initialize device " + peripheral.mac_address +". Reason: "+ e.message )		
-				)
-				}
 		}
-		
-	}
-	if (!adapter.keepScanning) {
-		try{
-			app.debug("Stopping scan");
-			adapter.stopDiscovery()
-		} catch(e) {
-			app.debug(e.message)
+
+		adapter.keepScanning = false
+		if (options.peripherals){
+			for (const peripheral of options.peripherals) {
+				if (peripheral.active) {
+					createPaths(peripheral.paths)
+					app.debug("Looking for device: "+peripheral.mac_address)
+					adapter.waitDevice(peripheral.mac_address,1000*peripheral.discoveryTimeout)
+					.then((device)=>{
+						device.getName().then(name=>
+							app.debug("Found device "+name))
+						var deviceClass = classMap.get(peripheral.BT_class)
+						if (!deviceClass){
+							throw new Error(`File for Class ${peripheral.BT_class} not found. `)
+						}
+						adapter.keepScanning ||= deviceClass.needsScannerOn()
+						peripheral.sensor = new deviceClass(device);
+
+						for (const path of peripheral.paths){
+							peripheral.sensor.on(path.id, (val)=>{
+								updatePath(path,val)
+							})
+						}
+						peripheral.sensor.connect();				
+					})
+					.catch (e =>
+						app.debug("Unable to initialize device " + peripheral.mac_address +". Reason: "+ e.message )		
+					)
+					}
+			}
+			
 		}
-	}
+		if (!adapter.keepScanning) {
+			try{
+				app.debug("Stopping scan");
+				adapter.stopDiscovery()
+			} catch(e) {
+				app.debug(e.message)
+			}
+		}
 	} 
 	plugin.stop = async function () {
 
-			if (adapter && await adapter.isDiscovering()){
-				try{await adapter.stopDiscovery()} catch (e){
-					app.debug(e.message)
-				}
+		if (adapter && await adapter.isDiscovering()){
+			try{await adapter.stopDiscovery()} catch (e){
+				app.debug(e.message)
 			}
-			if (options.peripherals){
-				for (p of options.peripherals) {
-					if (!(typeof p.sensor == 'undefined') )
-						p.sensor.disconnect()
-				} 
-			}
-			destroy();
-			app.debug('BT Sensors plugin stopped');
 		}
+		if (options.peripherals){
+			for (p of options.peripherals) {
+				if (p.sensor) 
+					p.sensor.disconnect()
+			} 
+		}
+		destroy();
+		app.debug('BT Sensors plugin stopped');
+	}
 	return plugin;
 }

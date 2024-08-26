@@ -1,7 +1,10 @@
 const BTSensor = require("../BTSensor");
 
 class SmartShunt_GATT extends BTSensor{
-
+    
+    static needsScannerOn(){
+        return false
+    } 
     constructor(device){
         super(device)
     }
@@ -37,6 +40,7 @@ class SmartShunt_GATT extends BTSensor{
     }
 
     async connect() {
+        //TBD implement async version with error-checking
         await this.device.connect()
         const gattServer = await this.device.gatt()
 		const gattService = await gattServer.getPrimaryService("65970000-4bda-4c1e-af4b-551c4cf74769")

@@ -1,21 +1,51 @@
 const EventEmitter = require('node:events');
-const { threadId } = require('node:worker_threads');
 
+/**
+ * @classdesc Abstract class that all sensor classes should inherit from. Sensor subclasses monitor a 
+ * BT peripheral and emit changes in the sensors's value like "temp" or "humidity"
+ * @class BTSensor
+ * @see EventEmitter, node-ble/Device
+ */
 class BTSensor {
+
     constructor(device) {
         this.device=device    
         this.eventEmitter = new EventEmitter();
     }
+/**
+ * tells plugin if the class needs to keep the scanner running.
+ * defaults to [true]. 
+ * If any loaded instance of a sensor needs the scanner, it stays on for all.
+ * @static 
+ * @returns boolean 
+ */
+    static needsScannerOn(){
+        return true
+    } 
+  /**
+   *  Connect to sensor.
+   *  This is where the logic for connecting to sensor, listening for changes in values and emitting those values go
+   * @throws Error if unimplemented by subclass
+   */
 
     connect(){
         throw new Error("connect() member function must be implemented by subclass")
     }
+  /**
+   *  Discconnect from sensor.
+   *  Implemented by subclass if additional behavior necessary (like disconnect from device's GattServer etc.)
+   */
 
     disconnect(){
         this.eventEmitter.removeAllListeners()
     }
 
-    //Pass through on(evenName, ...args) to EventEmitter
+   /**
+   *  Convenience method for emitting value changes.
+   *  Just passes on(evenName, ...args) through to EventEmitter instance
+   */
+
+
     on(eventName, ...args){
         this.eventEmitter.on(eventName, ...args)
     }

@@ -1,15 +1,16 @@
 const BTSensor = require("../BTSensor");
 
-class HQ2204C2GHD extends BTSensor{
+class SmartShunt extends BTSensor{
     constructor(device){
         super(device)
     }
     connect() {
+        //TBD: Implement AES-Ctr decryption of ManufacturerData per https://github.com/keshavdv/victron-ble
         const cb = async (propertiesChanged) => {
 
             this.device.getManufacturerData().then((data)=>{
-            
-                this.eventEmitter.emit("house_voltage", 14.0);
+                //TBD get shunt data and emit
+                this.eventEmitter.emit("voltage", 14.0);
 
             }
             )
@@ -19,4 +20,4 @@ class HQ2204C2GHD extends BTSensor{
     }
     
 }
-module.exports=HQ2204C2GHD
+module.exports=SmartShunt

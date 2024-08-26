@@ -130,8 +130,8 @@ module.exports =  function (app) {
 				app.debug(e.message)
 			}
 		}
-		if (options.peripherals){
-			for (p of options.peripherals) {
+		if (peripherals){
+			for (p of peripherals) {
 				if (p.sensor) 
 					p.sensor.disconnect()
 			} 

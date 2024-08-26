@@ -33,7 +33,14 @@ module.exports =  function (app) {
   plugin.id = 'bt-sensors-plugin-sk';
   plugin.name = 'BT Sensors plugin';
   plugin.description = 'Plugin to communicate with and update paths to BLE Sensors in Signalk';
-    
+  plugin.schema = {			
+	type: "object",
+	description: "",
+	properties: {
+		adapter: {title: "Bluetooth Adapter", type: "string",default:'hci0' },
+		discoveryTimeout: {title: "Initial scan timeout (in seconds)", type: "number",default: 45 }
+	}
+  }
   var adapter;
   var devices = []
 
@@ -52,13 +59,8 @@ module.exports =  function (app) {
 	
 	devices= await adapter.devices()
 	app.debug(`Found: ${util.inspect(devices)}`)
-	plugin.schema = {			
-		type: "object",
-		description: "",
-		properties: {
-			adapter: {title: "Bluetooth Adapter", type: "string",default:'hci0' },
-			discoveryTimeout: {title: "Initial scan timeout (in seconds)", type: "number",default: 45 },
-			peripherals: { type: "array", title: "Sensors", items:{
+	plugin.schema.properties.peripherals =  
+		{ type: "array", title: "Sensors", items:{
 				title: "", type: "object",
 				properties:{
 					mac_address: {title: "MAC Address", enum: devices, type: "string" },
@@ -73,9 +75,8 @@ module.exports =  function (app) {
 						}
 					}}
 				}
-			}}
+			}
 		}
-	}
 
 	adapter.keepScanning = false
 

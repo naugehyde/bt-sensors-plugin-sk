@@ -1,1 +1,1 @@
-# pbl-sensors-plugin_sk
+# bt-sensors-plugin_sk

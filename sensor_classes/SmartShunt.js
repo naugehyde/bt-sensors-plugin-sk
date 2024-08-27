@@ -4,6 +4,10 @@ class SmartShunt extends BTSensor{
     constructor(device){
         super(device)
     }
+    static events(){
+        return ["current", "power", "voltage","starterVoltage","consumed","soc","ttg"  ]
+    }
+ 
     connect() {
         //TBD: Implement AES-Ctr decryption of ManufacturerData per https://github.com/keshavdv/victron-ble
         const cb = async (propertiesChanged) => {

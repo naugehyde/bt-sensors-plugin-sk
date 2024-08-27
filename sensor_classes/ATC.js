@@ -6,6 +6,10 @@ class ATC extends BTSensor{
         super(device)
     }
 
+    static events(){
+        return ["temp", "humidity", "voltage" ]
+    }
+
     connect() {
         const cb = async (propertiesChanged) => {
             this.device.getServiceData().then((data)=>{             

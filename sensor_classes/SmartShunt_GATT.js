@@ -5,6 +5,11 @@ class SmartShunt_GATT extends BTSensor{
     static needsScannerOn(){
         return false
     } 
+
+    static events(){
+        return ["current", "power", "voltage","starterVoltage","consumed","soc","ttg"  ]
+    }
+    
     constructor(device){
         super(device)
     }

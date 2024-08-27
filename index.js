@@ -88,31 +88,33 @@ module.exports =  function (app) {
 			for (const peripheral of options.peripherals) {
 				if (peripheral.active) {
 					createPaths(peripheral.paths)
-					app.debug("Looking for device: "+peripheral.mac_address)
-					adapter.waitDevice(peripheral.mac_address,1000*peripheral.discoveryTimeout)
-					.then((device)=>{
-						device.getName().then(name=>
-							app.debug("Found device "+name))
+					try {
+						var device = await adapter.waitDevice(peripheral.mac_address,1000*peripheral.discoveryTimeout)
 						var deviceClass = classMap.get(peripheral.BT_class)
 						if (!deviceClass){
-							throw new Error(`File for Class ${peripheral.BT_class} not found. `)
+							throw new Error(`File for Class ${peripheral.BT_class} not found.`)
 						}
 						adapter.keepScanning ||= deviceClass.needsScannerOn()
 						peripheral.sensor = new deviceClass(device);
-
+						
 						for (const path of peripheral.paths){
+							if (!deviceClass.events().find((e) => e == path.id))
+								throw new Error(`Invalid path configuration. \'${path.id}\' not handled, must be one of ${deviceClass.events()} `)
 							peripheral.sensor.on(path.id, (val)=>{
 								updatePath(path,val)
 							})
 						}
 						peripheral.sensor.connect();				
-					})
-					.catch (e =>
-						app.debug("Unable to initialize device " + peripheral.mac_address +". Reason: "+ e.message )		
-					)
+						app.debug('Device: '+peripheral.mac_address+' connected.')
+							
+					} catch (e) {
+						if (peripheral.sensor)
+							peripheral.sensor.disconnect()
+						
+						app.debug("Unable to initialize device " + peripheral.mac_address +". Reason: "+ e.message )								
 					}
+				}
 			}
-			
 		}
 		if (!adapter.keepScanning) {
 			try{

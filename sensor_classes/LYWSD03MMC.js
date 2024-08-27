@@ -5,6 +5,9 @@ class LYWSD03MMC extends BTSensor{
     static needsScannerOn(){
         return false
     }
+    static events(){
+        return ["temp", "humidity", "voltage"  ]
+    }
     
     constructor(device){
         super(device)
@@ -20,7 +23,7 @@ class LYWSD03MMC extends BTSensor{
         //TBD implement async version with error-checking
         await this.device.connect()
         var gattServer = await this.device.gatt()
-		var gattService = await gattServer.getPrimaryService("ebe0ccb0-7a0a-4b0c-8a1a-6ff2997da3a6")
+        var gattService = await gattServer.getPrimaryService("ebe0ccb0-7a0a-4b0c-8a1a-6ff2997da3a6")
         var gattCharacteristic = await gattService.getCharacteristic("ebe0ccc1-7a0a-4b0c-8a1a-6ff2997da3a6")
         this.emitValues(await gattCharacteristic.readValue())
         await gattCharacteristic.startNotifications();	

@@ -5,7 +5,10 @@ class TPS extends BTSensor{
     constructor(device){
         super(device)
     }
-
+    static events(){
+        return ["temp"  ]
+    }
+ 
     connect() {
         //TBD figure out what the heck this device is actually broadcasting
         //For now it appears the current temp is in the key of the data but there are multiple keys

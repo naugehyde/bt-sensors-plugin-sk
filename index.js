@@ -53,8 +53,10 @@ module.exports =  function (app) {
 		
 		app.debug("Starting scan...");
 		await adapter.startDiscovery();
-		await sleep(options.discoveryTimeout*1000);
-		
+		for (let i = options.discoveryTimeout; i>0; i--){
+			app.setPluginStatus(`Scanning for devices... ${i}`);
+			await sleep(1000);
+		}
 		devices= await adapter.devices()
 		app.debug(`Found: ${util.inspect(devices)}`)
 	
@@ -83,18 +85,21 @@ module.exports =  function (app) {
 		}
 		}
 
-		adapter.keepScanning = false
+		var keepScanning = false
+		var found = 0
 		if (options.peripherals){
 			for (const peripheral of options.peripherals) {
 				if (peripheral.active) {
 					createPaths(peripheral.paths)
 					try {
+						app.setPluginStatus(`Waiting on ${peripheral.mac_address}`);
+
 						var device = await adapter.waitDevice(peripheral.mac_address,1000*peripheral.discoveryTimeout)
 						var deviceClass = classMap.get(peripheral.BT_class)
 						if (!deviceClass){
 							throw new Error(`File for Class ${peripheral.BT_class} not found.`)
 						}
-						adapter.keepScanning ||= deviceClass.needsScannerOn()
+						keepScanning ||= deviceClass.needsScannerOn()
 						peripheral.sensor = new deviceClass(device);
 						
 						for (const path of peripheral.paths){
@@ -106,17 +111,18 @@ module.exports =  function (app) {
 						}
 						peripheral.sensor.connect();				
 						app.debug('Device: '+peripheral.mac_address+' connected.')
+						found++
 							
 					} catch (e) {
 						if (peripheral.sensor)
 							peripheral.sensor.disconnect()
-						
+
 						app.debug("Unable to initialize device " + peripheral.mac_address +". Reason: "+ e.message )								
 					}
 				}
 			}
 		}
-		if (!adapter.keepScanning) {
+		if (!keepScanning) {
 			try{
 				app.debug("Stopping scan");
 				await adapter.stopDiscovery()
@@ -124,6 +130,8 @@ module.exports =  function (app) {
 				app.debug(e.message)
 			}
 		}
+		app.setPluginStatus(`Connected to ${found} sensors.`);
+
 	} 
 	plugin.stop = async function () {
 

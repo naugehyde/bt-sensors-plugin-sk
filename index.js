@@ -117,7 +117,7 @@ module.exports =  function (app) {
 		if (!adapter.keepScanning) {
 			try{
 				app.debug("Stopping scan");
-				adapter.stopDiscovery()
+				await adapter.stopDiscovery()
 			} catch(e) {
 				app.debug(e.message)
 			}
@@ -136,7 +136,7 @@ module.exports =  function (app) {
 					p.sensor.disconnect()
 			} 
 		}
-		destroy();
+		//destroy();
 		app.debug('BT Sensors plugin stopped');
 	}
 	return plugin;

@@ -68,7 +68,7 @@ class SmartShunt_GATT extends BTSensor{
     }
     async disconnect(){
         super.disconnect()
-        this.device.disconnect()
+        await this.device.disconnect()
     }
 }
 module.exports=SmartShunt_GATT

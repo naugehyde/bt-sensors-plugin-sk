@@ -30,7 +30,7 @@ class LYWSD03MMC extends BTSensor{
     }
     async disconnect(){
         super.disconnect()
-        this.device.disconnect()
+        await this.device.disconnect()
     }
 }
 module.exports=LYWSD03MMC

@@ -22,6 +22,13 @@ class BTSensor {
     static needsScannerOn(){
         return true
     } 
+/**
+ * 
+ * @returns empty array
+ */
+    static events() {
+        throw new Error("events() static function must be implemented by subclass")
+    }
   /**
    *  Connect to sensor.
    *  This is where the logic for connecting to sensor, listening for changes in values and emitting those values go
@@ -42,7 +49,7 @@ class BTSensor {
 
    /**
    *  Convenience method for emitting value changes.
-   *  Just passes on(evenName, ...args) through to EventEmitter instance
+   *  Just passes on(eventName, ...args) through to EventEmitter instance
    */
 
 

@@ -7,15 +7,8 @@ const {bluetooth, destroy} = createBluetooth()
 const {loadSubclasses} = require ('./ClassLoader.js')
 const BTSensor = require('./BTSensor.js')
 
-function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-
 module.exports =  function (app) {
-	var plugin = {};
-  	var peripherals;
-
-  	function createPaths(paths){
+	function createPaths(paths){
 		for (const path of paths) {
 			app.handleMessage(plugin.id, 
 		  	{
@@ -29,7 +22,15 @@ module.exports =  function (app) {
 	function updatePath(path, val){
 		app.handleMessage(plugin.id, {updates: [ { values: [ {path: path.sk_path, value: val }] } ] })
   	}  
- 
+
+	app.debug('Loading plugin')
+	
+	const discoveryTimeout = 30
+	const adapterID = 'hci0'
+	const classMap = loadSubclasses(path.join(__dirname, 'sensor_classes'))
+	
+	var plugin = {};
+
 	plugin.id = 'bt-sensors-plugin-sk';
 	plugin.name = 'BT Sensors plugin';
 	plugin.description = 'Plugin to communicate with and update paths to BLE Sensors in Signalk';
@@ -38,102 +39,96 @@ module.exports =  function (app) {
 		description: "",
 		properties: {
 			adapter: {title: "Bluetooth Adapter", type: "string",default:'hci0' },
-			discoveryTimeout: {title: "Initial scan timeout (in seconds)", type: "number",default: 45 }
-		}
-	}
-	var adapter;
-	var devices = []
-
-  	const classMap = loadSubclasses(path.join(__dirname, 'sensor_classes'))
-
-  	plugin.start =  async function (options, restartPlugin) {
-		peripherals = options.peripherals
-		app.debug('Plugin started');
-		adapter = await	bluetooth.getAdapter(options.adapter) 
-		
-		app.debug("Starting scan...");
-		await adapter.startDiscovery();
-		for (let i = options.discoveryTimeout; i>0; i--){
-			app.setPluginStatus(`Scanning for devices... ${i}`);
-			await sleep(1000);
-		}
-		devices= await adapter.devices()
-		app.debug(`Found: ${util.inspect(devices)}`)
-	
-		if(options.peripherals)
-			for (const peripheral of options.peripherals)
-				if (!devices.find(({ mac }) => mac === peripheral.mac_address))
-					devices.push(peripheral.mac_address)
-		
-	
-		plugin.schema.properties.peripherals =  
-		{ type: "array", title: "Sensors", items:{
-			title: "", type: "object",
-			properties:{
-				mac_address: {title: "MAC Address", enum: devices, type: "string" },
-				BT_class:  {title: "Bluetooth sensor class", type: "string", enum: [...classMap.keys()]},
-				discoveryTimeout: {title: "Discovery timeout (in seconds)", type: "number", default:30},
-				active: {title: "Active", type: "boolean", default: true },
-				paths: {type: "array", title: "", items: { 
-					title: "Paths", type: "object", properties:{
-						id: {title: "ID", type: "string", default: true },
-						sk_path: {title: "Signalk K Path", type: "string" },
-						sk_data_type : {title:"Signal K Type", type:"string"  }
-					}
-				}}
-			}
-		}
-		}
-
-		var keepScanning = false
-		var found = 0
-		if (options.peripherals){
-			for (const peripheral of options.peripherals) {
-				if (peripheral.active) {
-					createPaths(peripheral.paths)
-					try {
-						app.setPluginStatus(`Waiting on ${peripheral.mac_address}`);
-
-						var device = await adapter.waitDevice(peripheral.mac_address,1000*peripheral.discoveryTimeout)
-						var deviceClass = classMap.get(peripheral.BT_class)
-						if (!deviceClass){
-							throw new Error(`File for Class ${peripheral.BT_class} not found.`)
-						}
-						keepScanning ||= deviceClass.needsScannerOn()
-						peripheral.sensor = new deviceClass(device);
-						
-						for (const path of peripheral.paths){
-							if (!deviceClass.events().find((e) => e == path.id))
-								throw new Error(`Invalid path configuration. \'${path.id}\' not handled, must be one of ${deviceClass.events()} `)
-							peripheral.sensor.on(path.id, (val)=>{
-								updatePath(path,val)
-							})
-						}
-						peripheral.sensor.connect();				
-						app.debug('Device: '+peripheral.mac_address+' connected.')
-						found++
-							
-					} catch (e) {
-						if (peripheral.sensor)
-							peripheral.sensor.disconnect()
-
-						app.debug("Unable to initialize device " + peripheral.mac_address +". Reason: "+ e.message )								
+			discoveryTimeout: {title: "Initial scan timeout (in seconds)", type: "number",default: 45 },
+			peripherals:  
+				{ type: "array", title: "Sensors", items:{
+					title: "", type: "object",
+					properties:{
+						mac_address: {title: "MAC Address", enum: [], type: "string" },
+						BT_class:  {title: "Bluetooth sensor class", type: "string", enum: [...classMap.keys()]},
+						discoveryTimeout: {title: "Discovery timeout (in seconds)", type: "number", default:30},
+						active: {title: "Active", type: "boolean", default: true },
+						paths: {type: "array", title: "", items: { 
+							title: "Paths", type: "object", properties:{
+								id: {title: "ID", type: "string", default: true },
+								sk_path: {title: "Signalk K Path", type: "string" },
+								sk_data_type : {title:"Signal K Type", type:"string"  }
+							}
+						}}
 					}
 				}
 			}
 		}
-		if (!keepScanning) {
-			try{
-				app.debug("Stopping scan");
-				await adapter.stopDiscovery()
-			} catch(e) {
-				app.debug(e.message)
+	}
+	
+	function addDeviceToList( device ){
+		const deviceSet = new Set( plugin.schema.properties.peripherals.items.properties.
+			mac_address.enum)
+
+		deviceSet.add( device )
+		plugin.schema.properties.peripherals.items.properties.
+		mac_address.enum = Array.from(deviceSet.values())
+	}
+
+	bluetooth.getAdapter(app.settings?.btAdapter??adapterID).then((adapter) => {
+		app.debug("Starting scan...");
+		adapter.startDiscovery().then(() => {
+			setTimeout(() => {
+				adapter.devices().then((devices) => {
+					devices.forEach(device => {
+						addDeviceToList(device)
+					})
+					app.debug(`Found: ${util.inspect(devices)}`)
+				})
+			}, app.settings?.btDiscoveryTimeout ?? discoveryTimeout * 1000)
+		})
+	})
+	
+	
+	plugin.start = async function (options, restartPlugin) {
+		app.debug('Plugin started');
+
+		const adapter = await bluetooth.getAdapter(options?.adapter??app.settings?.btAdapter??adapterID)
+
+		if (options.peripherals){
+			var found = 0
+			for (const peripheral of options.peripherals) {
+				addDeviceToList(peripheral.mac_address)
+				if (!peripheral.active) continue;
+				createPaths(peripheral.paths)
+				app.setPluginStatus(`Connecting to ${peripheral.mac_address}`);
+
+				adapter.waitDevice(peripheral.mac_address,1000*peripheral.discoveryTimeout).then((device)=>
+				{
+					var deviceClass = classMap.get(peripheral.BT_class)
+					if (!deviceClass)
+						throw new Error(`File for Class ${peripheral.BT_class} not found.`)
+					
+					peripheral.sensor = new deviceClass(device);
+					peripheral.sensor.connect();		
+					for (const path of peripheral.paths){
+						if (!deviceClass.events().find((e) => e == path.id))
+							throw new Error(`Invalid path configuration. \'${path.id}\' not handled, must be one of ${peripheral.deviceClass.events()} `)
+						peripheral.sensor.on(path.id, (val)=>{
+							updatePath(path,val)
+						})
+					}
+					app.debug('Device: '+peripheral.mac_address+' connected.')
+					app.setPluginStatus(`Connected to ${found++} sensors.`);
+				})
+				.catch ((e)=> {
+					if (peripheral.sensor)
+							peripheral.sensor.disconnect()		
+						app.debug("Unable to connect to device " + peripheral.mac_address +". Reason: "+ e.message )								
+					})
+				.finally( ()=>{
+					app.setPluginStatus(`Connected to ${found} sensors.`);				
+				})
 			}
 		}
-		app.setPluginStatus(`Connected to ${found} sensors.`);
-
 	} 
 	plugin.stop = async function () {
+		var adapter = await bluetooth.getAdapter(app.settings?.btAdapter??adapterID)
 
 		if (adapter && await adapter.isDiscovering()){
 			try{await adapter.stopDiscovery()} catch (e){
@@ -149,5 +144,6 @@ module.exports =  function (app) {
 		//destroy();
 		app.debug('BT Sensors plugin stopped');
 	}
+	
 	return plugin;
 }

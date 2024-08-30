@@ -76,5 +76,32 @@ Select the Mac Address of your sensor (NOTE: this part of the process will be ma
 
 <img width="1106" alt="Screenshot 2024-08-30 at 11 32 56 AM" src="https://github.com/user-attachments/assets/5faa58b4-2f23-4367-a9a8-3f06f02c9727"><br><br>
 
-Then select the class of bluetooth device. (NOTE: This will be largely automated in the future. A more comprehensive set of BT sensors will be available, too.)  
+Then select the class of bluetooth device. (NOTE: This will be largely automated in the future with the arrival of the new React webapp configuration page that gives us more control over the config UI. A more comprehensive set of BT sensors will be available, too.)  <br><br>
+
+<img width="1107" alt="Screenshot 2024-08-30 at 12 15 30 PM" src="https://github.com/user-attachments/assets/5f9b3061-84c4-4a53-906d-0c2a68a05629"><br><br>
+
+THEN you get to the fun bit (OK, "fun" is subjective). Now you can add the SK paths that connect the data the sensor is producing to the SK Path.<br><br>
+
+In the absence of the fancy-dancy webapp config screen you're going to have to do a little work but it's pretty straightforward. 
+
+Each class of BT Sensor has its own set of data IDs. For example, the LYWSD03MMC and ATC classes expose three data IDs: "temp", "humidity" and "voltage" (the battery voltage of the device). <br><br>
+
+All you gotta do is add a path with one of the classes data IDs, and the Signalk path you want to update with the sensor's data and then the Signalk Data type.<br><br>
+
+<img width="1101" alt="Screenshot 2024-08-30 at 12 26 44 PM" src="https://github.com/user-attachments/assets/e1e73c11-c0bf-4d5a-b49d-9d02619db4dd"><br><br>
+
+NOTE: Both the Data ID and the Signalk Data Type fields will be automatically determined by the really amazing and soon-to-be available Webapp configuration. Swear.<br><br>
+
+For a list of a class's available data IDs check out the class file itself. They're listed in the Plugin's install directory (usually ~/.signalk/node_modules/bt-sensors-plugin-sk/) in the sensor_classes subdirectory. For historical reasons that date back as much as a week ago, the Data IDs are referred to as "Events." Sorry about that.<br><br>
+
+## FURTHER DEVELOPMENT
+
+* Webapp configuration
+* more Bluetooth classes 
+
+
+
+
+
+
 

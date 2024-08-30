@@ -6,7 +6,8 @@ const {bluetooth, destroy} = createBluetooth()
 
 const {loadSubclasses} = require ('./ClassLoader.js')
 const BTSensor = require('./BTSensor.js')
-
+const { setInterval } = require('timers/promises')
+var peripherals=[]
 module.exports =  function (app) {
 	function createPaths(paths){
 		for (const path of paths) {
@@ -48,9 +49,9 @@ module.exports =  function (app) {
 						BT_class:  {title: "Bluetooth sensor class", type: "string", enum: [...classMap.keys()]},
 						discoveryTimeout: {title: "Discovery timeout (in seconds)", type: "number", default:30},
 						active: {title: "Active", type: "boolean", default: true },
-						paths: {type: "array", title: "", items: { 
-							title: "Paths", type: "object", properties:{
-								id: {title: "ID", type: "string", default: true },
+						paths: {type: "array", title: "Signalk Paths", items: { 
+							title: "", type: "object", properties:{
+								id: {title: "ID", type: "string" },
 								sk_path: {title: "Signalk K Path", type: "string" },
 								sk_data_type : {title:"Signal K Type", type:"string"  }
 							}
@@ -70,18 +71,23 @@ module.exports =  function (app) {
 		mac_address.enum = Array.from(deviceSet.values())
 	}
 
-	bluetooth.getAdapter(app.settings?.btAdapter??adapterID).then((adapter) => {
+	bluetooth.getAdapter(app.settings?.btAdapter??adapterID).then(async (adapter) => {
 		app.debug("Starting scan...");
-		adapter.startDiscovery().then(() => {
-			setTimeout(() => {
-				adapter.devices().then((devices) => {
-					devices.forEach(device => {
-						addDeviceToList(device)
-					})
-					app.debug(`Found: ${util.inspect(devices)}`)
+		try { 
+			await adapter.startDiscovery()
+		}
+		catch (error) {
+		}
+		plugin.schema.description='Scanning for Bluetooth devices...'	
+		setTimeout(() => {
+			adapter.devices().then((devices) => {
+				devices.forEach(device => {
+					addDeviceToList(device)
 				})
-			}, app.settings?.btDiscoveryTimeout ?? discoveryTimeout * 1000)
-		})
+				app.debug(`Found: ${util.inspect(devices)}`)
+				plugin.schema.description=`Scan complete. Found ${devices.length} Bluetooth devices.`
+			})
+		}, app.settings?.btDiscoveryTimeout ?? discoveryTimeout * 1000)
 	})
 	
 	
@@ -89,10 +95,10 @@ module.exports =  function (app) {
 		app.debug('Plugin started');
 
 		const adapter = await bluetooth.getAdapter(options?.adapter??app.settings?.btAdapter??adapterID)
-
-		if (options.peripherals){
+		peripherals=options.peripherals
+		if (!(peripherals===undefined)){
 			var found = 0
-			for (const peripheral of options.peripherals) {
+			for (const peripheral of peripherals) {
 				addDeviceToList(peripheral.mac_address)
 				if (!peripheral.active) continue;
 				createPaths(peripheral.paths)
@@ -107,7 +113,7 @@ module.exports =  function (app) {
 					peripheral.sensor = new deviceClass(device);
 					peripheral.sensor.connect();		
 					for (const path of peripheral.paths){
-						if (!deviceClass.events().find((e) => e == path.id))
+						if (!deviceClass.hasDataID(path.id))
 							throw new Error(`Invalid path configuration. \'${path.id}\' not handled, must be one of ${peripheral.deviceClass.events()} `)
 						peripheral.sensor.on(path.id, (val)=>{
 							updatePath(path,val)
@@ -135,9 +141,9 @@ module.exports =  function (app) {
 				app.debug(e.message)
 			}
 		}
-		if (peripherals){
+		if (!(peripherals === undefined)){
 			for (p of peripherals) {
-				if (p.sensor) 
+				if (!p.sensor===undefined) 
 					p.sensor.disconnect()
 			} 
 		}

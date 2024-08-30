@@ -5,18 +5,19 @@ class LYWSD03MMC extends BTSensor{
     static needsScannerOn(){
         return false
     }
-    static events(){
-        return ["temp", "humidity", "voltage"  ]
-    }
-    
+    static data = new Map()
+                    .set('temp',{unit:'K', description: 'Current temperature'})
+                    .set('humidity',{unit:'ratio', description: 'Current humidity'})
+                    .set('voltage',{unit:'V', description: 'The sensor\'s battery voltage'})
+
     constructor(device){
         super(device)
     }
 
     emitValues(buffer){
-        this.eventEmitter.emit("temp",((buffer.readInt16LE(0))/100) + 273.1);
-        this.eventEmitter.emit("humidity",buffer.readUInt8(2)/100);
-        this.eventEmitter.emit("voltage",buffer.readUInt16LE(3)/1000);
+        this.emit("temp",((buffer.readInt16LE(0))/100) + 273.1);
+        this.emit("humidity",buffer.readUInt8(2)/100);
+        this.emit("voltage",buffer.readUInt16LE(3)/1000);
     }
 
     async connect() {

@@ -9,7 +9,7 @@ const EventEmitter = require('node:events');
 class BTSensor {
 
     constructor(device) {
-        this.device=device    
+        this.device=device
         this.eventEmitter = new EventEmitter();
     }
 /**
@@ -28,6 +28,14 @@ class BTSensor {
  */
     static events() {
         throw new Error("events() static function must be implemented by subclass")
+    }
+
+    static hasDataID(id) {
+        return this.data.has(id)
+    }
+
+    static unitFor(id){
+        return this.data.get(id)?.unit
     }
   /**
    *  Connect to sensor.
@@ -55,6 +63,9 @@ class BTSensor {
 
     on(eventName, ...args){
         this.eventEmitter.on(eventName, ...args)
+    }
+    emit(eventName, value){
+        this.eventEmitter.emit(eventName,value);
     }
 
 }

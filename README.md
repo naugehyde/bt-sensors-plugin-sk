@@ -29,9 +29,12 @@ The key advantages of an MQTT setup is comprehensive support for BT devices and 
 
 ## REQUIREMENTS
 
-* Signalk boat-puter running under Linux
+* A  Linux Signalk boat-puter with System-D
+  ** NOTE: Most Linux installations will support System-D
+* A Bluetooth adapter
+* [Bluez](https://www.bluez.org) installed
+  ** Go here for [Snap installation instructions](https://snapcraft.io/bluez)
 * [Node-ble](https://www.npmjs.com/package/node-ble) (installs automatically)
-* A supported Bluetooth sensor
 
 ## INSTALLATION
 ### Signalk Appstore
@@ -55,5 +58,23 @@ Finally, restart SK. Plugin should appear in your server plugins list.<br>
 
 ## CONFIGURATION
 
-After installing and restarting Signalk you should see
+NOTE: Simpler and easier configuration instructions will come with a Webapp configuration screen that hasn't been completed. Okay, not yet started. But that'll change.
+
+After installing and restarting Signalk you should see a "BT Sensors Plugin" option in the Signalk->Server->Plugin Config page.<br><br>
+
+<img width="1133" alt="Screenshot 2024-08-30 at 11 20 11 AM" src="https://github.com/user-attachments/assets/824b1b0b-cf51-4dc4-be64-4a1fa3e29eb3"><br><br>
+
+On initial configuration, wait 45 seconds (default) for the Bluetooth device to complete its scan of nearby devices. When the scan is complete your screen should look something like this:<br><br>
+
+<img width="378" alt="Screenshot 2024-08-30 at 11 21 39 AM" src="https://github.com/user-attachments/assets/6e24b880-7ee7-4deb-9608-fb42d9db74f7"><br><br>
+
+Press + to add a new Sensor.<br><br>
+
+<img width="1129" alt="Screenshot 2024-08-30 at 11 24 27 AM" src="https://github.com/user-attachments/assets/9007adf7-529f-4842-b717-ccc39a2c3499"><br><br>
+
+Select the Mac Address of your sensor (NOTE: this part of the process will be made a LOT easier with the fancy Webapp configuration screen. But that's not gonna happen until I learn React programming. Which at my age takes time.)<br><br>
+
+<img width="1106" alt="Screenshot 2024-08-30 at 11 32 56 AM" src="https://github.com/user-attachments/assets/5faa58b4-2f23-4367-a9a8-3f06f02c9727"><br><br>
+
+Then select the class of bluetooth device. (NOTE: This will be largely automated in the future. A more comprehensive set of BT sensors will be available, too.)  
 

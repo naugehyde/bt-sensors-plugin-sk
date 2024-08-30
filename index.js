@@ -9,12 +9,12 @@ const BTSensor = require('./BTSensor.js')
 const { setInterval } = require('timers/promises')
 var peripherals=[]
 module.exports =  function (app) {
-	function createPaths(paths){
+	function createPaths(sensorClass, paths){
 		for (const path of paths) {
 			app.handleMessage(plugin.id, 
 		  	{
 		   	updates: [{ meta: [{path: path.sk_path, 
-							  value: { units: path.sk_data_type }}]}]
+							  value: { units: sensorClass.unitFor(path.id) }}]}]
 		  	}
 			)
 		}
@@ -49,11 +49,10 @@ module.exports =  function (app) {
 						BT_class:  {title: "Bluetooth sensor class", type: "string", enum: [...classMap.keys()]},
 						discoveryTimeout: {title: "Discovery timeout (in seconds)", type: "number", default:30},
 						active: {title: "Active", type: "boolean", default: true },
-						paths: {type: "array", title: "Signalk Paths", items: { 
+						paths: {type: "array", title: "Signalk Paths (see Class files for valid IDs)", items: { 
 							title: "", type: "object", properties:{
 								id: {title: "ID", type: "string" },
-								sk_path: {title: "Signalk K Path", type: "string" },
-								sk_data_type : {title:"Signal K Type", type:"string"  }
+								sk_path: {title: "Signalk K Path", type: "string" }
 							}
 						}}
 					}
@@ -101,20 +100,21 @@ module.exports =  function (app) {
 			for (const peripheral of peripherals) {
 				addDeviceToList(peripheral.mac_address)
 				if (!peripheral.active) continue;
-				createPaths(peripheral.paths)
 				app.setPluginStatus(`Connecting to ${peripheral.mac_address}`);
 
 				adapter.waitDevice(peripheral.mac_address,1000*peripheral.discoveryTimeout).then((device)=>
 				{
-					var deviceClass = classMap.get(peripheral.BT_class)
-					if (!deviceClass)
+					var sensorClass = classMap.get(peripheral.BT_class)
+					if (!sensorClass)
 						throw new Error(`File for Class ${peripheral.BT_class} not found.`)
-					
-					peripheral.sensor = new deviceClass(device);
+	
+					createPaths(sensorClass, peripheral.paths)
+	
+					peripheral.sensor = new sensorClass(device);
 					peripheral.sensor.connect();		
 					for (const path of peripheral.paths){
-						if (!deviceClass.hasDataID(path.id))
-							throw new Error(`Invalid path configuration. \'${path.id}\' not handled, must be one of ${peripheral.deviceClass.events()} `)
+						if (!sensorClass.hasDataID(path.id))
+							throw new Error(`Invalid path configuration. \'${path.id}\' not handled, must be one of ${sensorClass.data.keys()} `)
 						peripheral.sensor.on(path.id, (val)=>{
 							updatePath(path,val)
 						})

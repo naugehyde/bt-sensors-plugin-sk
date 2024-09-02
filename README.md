@@ -251,7 +251,7 @@ The big difference here is in the connect() method. All it does is wait on prope
 
 ## LET US KNOW
 
-When you're done with your class. Once you're satisified that it's working, commit and and request a merge (more git talk).<br>
+When you're done with your class and satisified that it's working, commit and request a merge (more git talk).<br>
 
 We love to see new sensor classes!
 

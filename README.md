@@ -31,11 +31,10 @@ The key advantages of an MQTT setup is comprehensive support for BT devices and 
 
 ## REQUIREMENTS
 
-* A  Linux Signalk boat-puter with System-D
-  ** NOTE: Most Linux installations will support System-D
+* A  Linux Signalk boat-puter with System-D (NOTE: Most Linux installations support System-D)
 * A Bluetooth adapter
 * [Bluez](https://www.bluez.org) installed
-  ** Go here for [Snap installation instructions](https://snapcraft.io/bluez)
+(Go here for [Snap installation instructions](https://snapcraft.io/bluez))
 * [Node-ble](https://www.npmjs.com/package/node-ble) (installs with the plugin)
 
 ## INSTALLATION

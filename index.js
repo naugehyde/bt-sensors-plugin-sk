@@ -30,7 +30,7 @@ module.exports =  function (app) {
   	}  
 
 	function loadClassMap() {
-		classMap = utilities_sk.loadSubclasses(path.join(__dirname, 'sensor_classes'))
+		classMap = utilities_sk.loadClasses(path.join(__dirname, 'sensor_classes'))
 	}
 
 	app.debug('Loading plugin')
@@ -39,7 +39,12 @@ module.exports =  function (app) {
 	const adapterID = 'hci0'
 	var classMap
 	var plugin = {};
-
+	plugin.uiSchema = {
+		peripherals: {
+		 	  'ui:disabled': true
+		}
+	}
+	
 	plugin.id = 'bt-sensors-plugin-sk';
 	plugin.name = 'BT Sensors plugin';
 	plugin.description = 'Plugin to communicate with and update paths to BLE Sensors in Signalk';
@@ -65,12 +70,12 @@ module.exports =  function (app) {
 	}
 	
 	function setDeviceNameInList(device,name){
-		const deviceNames = plugin.schema.properties.peripherals.items.properties.
+		const deviceNamesList = plugin.schema.properties.peripherals.items.properties.
 		mac_address.enumNames
-		const devices = plugin.schema.properties.peripherals.items.properties.
+		const deviceList = plugin.schema.properties.peripherals.items.properties.
 		mac_address.enum
 
-		deviceNames[devices.indexOf(device)]=`${name} (${device})` 
+		deviceNamesList[deviceList.indexOf(device)]=`${name} (${device})` 
 	}
 
 	function addDeviceToList( device, name ){
@@ -126,9 +131,13 @@ module.exports =  function (app) {
 								addDeviceToList(device, dn )
 							})
 						})
+						.catch ((e)=> {
+							app.debug(e)
+						})
 					})
 					plugin.schema.description=`Scan complete. Found ${devices.length} Bluetooth devices.`
 				})
+				plugin.uiSchema.peripherals['ui:disabled']=false			
 			}, app.settings?.btDiscoveryTimeout ?? discoveryTimeout * 1000)
 		})
 	}
@@ -139,6 +148,7 @@ module.exports =  function (app) {
 	plugin.start = async function (options, restartPlugin) {
 		if (starts>0){
 			app.debug('Plugin restarted');
+			plugin.uiSchema.peripherals['ui:disabled']=true			
 			loadClassMap()
 			updateClassProperties()
 			startScanner()
@@ -203,7 +213,7 @@ module.exports =  function (app) {
 		}
 		if (!(peripherals === undefined)){
 			for (p of peripherals) {
-				if (!p.sensor===undefined) 
+				if (p.sensor) 
 					p.sensor.disconnect()
 			} 
 		}

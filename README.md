@@ -63,11 +63,11 @@ After installing and restarting Signalk you should see a "BT Sensors Plugin" opt
 
 <img width="1135" alt="Screenshot 2024-09-01 at 8 35 34 PM" src="https://github.com/user-attachments/assets/7e5b7d87-92e3-4fcd-8971-95ef6799c62f"><br><br>
 
-On initial configuration, wait 45 seconds (by default) for the Bluetooth device to complete its scan of nearby devices. When the scan is complete your screen should look something like this:<br><br>
+On initial configuration, wait 45 seconds (by default) for the Bluetooth device to complete its scan of nearby devices. Until the scan is complete, the Sensors section will be disabled. When the scan is complete your screen should look something like this:<br><br>
 
 <img width="378" alt="Screenshot 2024-08-30 at 11 21 39 AM" src="https://github.com/user-attachments/assets/6e24b880-7ee7-4deb-9608-fb42d9db74f7"><br><br>
 
-> TIP: If you don't see "Scan completed. Found x Bluetooth devices." atop the config screen, close and re-open the config screen to refresh the screen.<br><br>
+> TIP: If after 45 seconds (or whatever your Initial Scan Timeout is set to) you don't see "Scan completed. Found x Bluetooth devices." atop the config screen and the Sensors section is still disabled, close and re-open the config screen to refresh the screen. The config screen isn't as <i>reactive</i> as it oughtta be.<br><br>
 
 Then press the + button to add a sensor. Your screen should look like this:<br><br>
 

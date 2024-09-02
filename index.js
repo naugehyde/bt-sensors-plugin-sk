@@ -7,8 +7,11 @@ const {bluetooth, destroy} = createBluetooth()
 const {loadSubclasses} = require ('./ClassLoader.js')
 const BTSensor = require('./BTSensor.js')
 const { setInterval } = require('timers/promises')
-var peripherals=[]
+
 module.exports =  function (app) {
+	var peripherals=[]
+	var starts=0
+
 	function createPaths(sensorClass, peripheral){
 
 		for (const tag of sensorClass.metadataTags()) {
@@ -27,12 +30,15 @@ module.exports =  function (app) {
 		app.handleMessage(plugin.id, {updates: [ { values: [ {path: path, value: val }] } ] })
   	}  
 
+	function loadClassMap() {
+		classMap = loadSubclasses(path.join(__dirname, 'sensor_classes'))
+	}
+
 	app.debug('Loading plugin')
 	
 	const discoveryTimeout = 30
 	const adapterID = 'hci0'
-	const classMap = loadSubclasses(path.join(__dirname, 'sensor_classes'))
-	
+	var classMap
 	var plugin = {};
 
 	plugin.id = 'bt-sensors-plugin-sk';
@@ -42,7 +48,7 @@ module.exports =  function (app) {
 		type: "object",
 		description: "",
 		properties: {
-			adapter: {title: "Bluetooth Adapter", type: "string",default:'hci0' },
+			adapter: {title: "Bluetooth Adapter", type: "string", enum:[], default:'hci0' },
 			discoveryTimeout: {title: "Initial scan timeout (in seconds)", type: "number",default: 45 },
 			peripherals:
 				{ type: "array", title: "Sensors", items:{
@@ -50,7 +56,7 @@ module.exports =  function (app) {
 					properties:{
 						active: {title: "Active", type: "boolean", default: true },
 						mac_address: {title: "Bluetooth Device", enum: [], enumNames:[], type: "string" },
-						BT_class:  {title: "Bluetooth sensor class", type: "string", enum: [...classMap.keys()]},
+						BT_class:  {title: "Bluetooth sensor class", type: "string", enum: []},
 						discoveryTimeout: {title: "Discovery timeout (in seconds)", type: "number", default:30},
 					}, dependencies:{BT_class:{oneOf:[]}}
 					
@@ -83,58 +89,72 @@ module.exports =  function (app) {
 		try{
 			dn = await device.getName()
 		}
-		catch (error) { 
-			dn = "UNKNOWN"
-		}
+		catch (error) {}
 		return dn
 	}
 
-	classMap.forEach(( cls, className )=>{
-		var oneOf = {properties:{BT_class:{enum:[className]}}}
-		cls.metadata.forEach((metadatum,tag)=>{
-			oneOf.properties[tag]={type:'string', title: "Path for "+metadatum.description}
+	function updateAdapters(){
+		bluetooth.adapters().then((adapters)=>
+			{plugin.schema.properties.adapter.enum = adapters} 
+		)
+	}
+	function updateClassProperties(){ 
+		plugin.schema.properties.peripherals.items.properties.BT_class.enum=[...classMap.keys()]
+		classMap.forEach(( cls, className )=>{
+			var oneOf = {properties:{BT_class:{enum:[className]}}}
+			cls.metadata.forEach((metadatum,tag)=>{
+				oneOf.properties[tag]={type:'string', title: "Path for "+metadatum.description}
+			})
+
+			plugin.schema.properties.peripherals.items.dependencies.BT_class.oneOf.push(oneOf)
 		})
-
-		plugin.schema.properties.peripherals.items.dependencies.BT_class.oneOf.push(oneOf)
-	})
-
-	bluetooth.getAdapter(app.settings?.btAdapter??adapterID).then(async (adapter) => {
-		app.debug("Starting scan...");
-		try { 
-			await adapter.startDiscovery()
-		}
-		catch (error) {
-		}
-		plugin.schema.description='Scanning for Bluetooth devices...'	
-		setTimeout( () => {
-			adapter.devices().then((devices)=>{
-				app.debug(`Found: ${util.inspect(devices)}`)
-				devices.forEach( (device) => {
-					adapter.waitDevice(device,discoveryTimeout*1000).then((d)=>{
-						getDeviceName(d).then((dn)=>{
-							addDeviceToList(device, dn )
+	}
+	function startScanner(){
+		bluetooth.getAdapter(app.settings?.btAdapter??adapterID).then(async (adapter) => {
+			app.debug("Starting scan...");
+			try { 
+				await adapter.startDiscovery()
+			}
+			catch (error) {
+			}
+			plugin.schema.description='Scanning for Bluetooth devices...'	
+			setTimeout( () => {
+				adapter.devices().then((devices)=>{
+					app.debug(`Found: ${util.inspect(devices)}`)
+					devices.forEach( (device) => {
+						adapter.waitDevice(device,discoveryTimeout*1000).then((d)=>{
+							getDeviceName(d).then((dn)=>{
+								addDeviceToList(device, dn )
+							})
 						})
 					})
+					plugin.schema.description=`Scan complete. Found ${devices.length} Bluetooth devices.`
 				})
-				plugin.schema.description=`Scan complete. Found ${devices.length} Bluetooth devices.`
-			})
-		}, app.settings?.btDiscoveryTimeout ?? discoveryTimeout * 1000)
-	})
-	
-	
+			}, app.settings?.btDiscoveryTimeout ?? discoveryTimeout * 1000)
+		})
+	}
+	loadClassMap()
+	updateAdapters()
+	updateClassProperties()
+	startScanner()
 	plugin.start = async function (options, restartPlugin) {
-		app.debug('Plugin started');
-
+		if (starts>0){
+			app.debug('Plugin restarted');
+			loadClassMap()
+			updateClassProperties()
+			startScanner()
+		} else {
+			app.debug('Plugin started');
+		}
+		starts++
 		const adapter = await bluetooth.getAdapter(options?.adapter??app.settings?.btAdapter??adapterID)
 		peripherals=options.peripherals
 		if (!(peripherals===undefined)){
 			var found = 0
 			for (const peripheral of peripherals) {
 				
-				addDeviceToList(peripheral.mac_address)
-				
+				addDeviceToList(peripheral.mac_address)				
 				app.setPluginStatus(`Waiting on ${peripheral.mac_address}`);
-
 				adapter.waitDevice(peripheral.mac_address,1000*peripheral.discoveryTimeout).then(async (device)=>
 				{
 
@@ -172,6 +192,7 @@ module.exports =  function (app) {
 				)
 			}
 		}
+
 	} 
 	plugin.stop = async function () {
 		var adapter = await bluetooth.getAdapter(app.settings?.btAdapter??adapterID)

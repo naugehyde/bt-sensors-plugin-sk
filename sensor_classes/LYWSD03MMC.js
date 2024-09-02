@@ -21,7 +21,6 @@ class LYWSD03MMC extends BTSensor{
     }
 
     async connect() {
-        //TBD implement async version with error-checking
         await this.device.connect()
         var gattServer = await this.device.gatt()
         var gattService = await gattServer.getPrimaryService("ebe0ccb0-7a0a-4b0c-8a1a-6ff2997da3a6")

@@ -36,6 +36,7 @@ The key advantages of an MQTT setup is comprehensive support for BT devices and 
 * [Bluez](https://www.bluez.org) installed
 (Go here for [Snap installation instructions](https://snapcraft.io/bluez))
 * [Node-ble](https://www.npmjs.com/package/node-ble) (installs with the plugin)
+* [utilities-sk](https://github.com/naugehyde/utilities-sk)
 
 ## INSTALLATION
 ### Signalk Appstore

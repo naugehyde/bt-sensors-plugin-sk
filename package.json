@@ -1,7 +1,7 @@
 {
   "name": "bt-sensors-plugin-sk",
   "version": "1.0.0",
-  "description": "",
+  "description": "Bluetooth Sensors for Signalk",
   "main": "index.js",
   "dependencies": {
     "dbus-next": "^0.10.2",

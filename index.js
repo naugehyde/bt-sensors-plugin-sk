@@ -23,7 +23,7 @@ module.exports =  function (app) {
 	//But there's a fail safe because I'm a reasonable man.
 
 	try{
-		utilities_sk = require('../_utilities-sk/utilities.js')
+		utilities_sk = require('../utilities-sk/utilities.js')
 	}
 	catch (error){
 		try {

@@ -130,8 +130,17 @@ With these tools you can see what data your device advertises, and what data it 
 
 ### Coding
 
+#### Get the code
+
+To get the code you'll first need to clone this repository then create a branch. That's git talk. Google it if you don't know what that means.<br>
+
+Once you've done that you're ready for...
+
+#### Actual coding
+
 Below is a simple Device class for the Xiaomi thermometer with stock firmware. The code demonstrates the core responsibilities of a Bluetooth sensor device class in the BT-Sensor-plugin's framework:
 
+* resides in the sensor_classes subdirectory
 * extends the BTSensor class
 * provides metadata for the device's various data points (the static metadata class member)
 * overrides the BTSensor::connect() and disconnect() methods
@@ -201,7 +210,7 @@ Then it gets the device's gattServer and primary service:
         this.emit("voltage",buffer.readUInt16LE(3)/1000);
    }
   </pre>
-
+NOTE: If you guessed that the plugin listens to changes to device objects and then publishes the deltas, you guessed right.
  
 ### All that said
 The problem with Gatt Server devices is they stay connected and eat up a lot of energy, draining your device's batteries. You can deactivate the device from the config screen when it's not in use or in this case you can flash the device with custom firmware that changes the device to a broadcast device that advertises its data obviating the need for a battery-draining connection. In the case of Xiaomi LYWSD03MMC you can flash it with some very useful software called [ATC](https://github.com/atc1441/ATC_MiThermometer?tab=readme-ov-file) </pre>
@@ -241,7 +250,11 @@ module.exports=ATC</pre>
 
 The big difference here is in the connect() method. All it does is wait on propertiesChanged and when that event occurs, the device object parses the buffer and emits the data. NOTE: Both classes have the same metadata, so the ATC class "borrows" the metadata from the LYWSD03MMC class.<br>
 
+## LET US KNOW
 
+When you're done with your class and it's working, commit and and request a merge (more git talk).<br>
+
+We love to see new sensor classes!
 
   
   

@@ -4,9 +4,8 @@ const path = require('path')
 const {createBluetooth} = require('node-ble')
 const {bluetooth, destroy} = createBluetooth()
 
-const {loadSubclasses} = require ('./ClassLoader.js')
 const BTSensor = require('./BTSensor.js')
-const { setInterval } = require('timers/promises')
+const utilities_sk = require('../utilities-sk/utilities.js')
 
 module.exports =  function (app) {
 	var peripherals=[]
@@ -31,7 +30,7 @@ module.exports =  function (app) {
   	}  
 
 	function loadClassMap() {
-		classMap = loadSubclasses(path.join(__dirname, 'sensor_classes'))
+		classMap = utilities_sk.loadSubclasses(path.join(__dirname, 'sensor_classes'))
 	}
 
 	app.debug('Loading plugin')

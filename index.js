@@ -5,12 +5,48 @@ const {createBluetooth} = require('node-ble')
 const {bluetooth, destroy} = createBluetooth()
 
 const BTSensor = require('./BTSensor.js')
-const utilities_sk = require('../utilities-sk/utilities.js')
-
 module.exports =  function (app) {
+	const discoveryTimeout = 30
+	const adapterID = 'hci0'
+	
 	var peripherals=[]
 	var starts=0
+	var classMap
+	var utilities_sk
+	
+	var plugin = {};
+	plugin.id = 'bt-sensors-plugin-sk';
+	plugin.name = 'BT Sensors plugin';
+	plugin.description = 'Plugin to communicate with and update paths to BLE Sensors in Signalk';
 
+	//Try and load utilities-sk NOTE: should be installed from App Store-- 
+	//But there's a fail safe because I'm a reasonable man.
+
+	try{
+		utilities_sk = require('../_utilities-sk/utilities.js')
+	}
+	catch (error){
+		try {
+			utilities_sk = require('utilities-sk/utilities.js')
+		} catch(error){
+			console.log(`${plugin.id} Plugin utilities-sk not found. Please install.`)
+			utilities_sk = {
+				loadClasses: function(dir, ext='.js')
+				{
+					const classMap = new Map()
+					const classFiles = fs.readdirSync(dir)
+					.filter(file => file.endsWith(ext));
+				
+					classFiles.forEach(file => {
+						const filePath = path.join(dir, file);
+						const cls = require(filePath);
+						classMap.set(cls.name, cls);
+					})
+					return classMap
+				}
+			 }
+		}
+	}
 	function createPaths(sensorClass, peripheral){
 
 		for (const tag of sensorClass.metadataTags()) {
@@ -35,19 +71,12 @@ module.exports =  function (app) {
 
 	app.debug('Loading plugin')
 	
-	const discoveryTimeout = 30
-	const adapterID = 'hci0'
-	var classMap
-	var plugin = {};
 	plugin.uiSchema = {
 		peripherals: {
 		 	  'ui:disabled': true
 		}
 	}
 	
-	plugin.id = 'bt-sensors-plugin-sk';
-	plugin.name = 'BT Sensors plugin';
-	plugin.description = 'Plugin to communicate with and update paths to BLE Sensors in Signalk';
 	plugin.schema = {			
 		type: "object",
 		description: "",

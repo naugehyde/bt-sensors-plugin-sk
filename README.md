@@ -11,7 +11,7 @@ The reported temperature can then be displayed on a Signalk app like Kip or, wit
 
 The Plugin currently supports the Xiaomi LYWSD03MMC, [ATC](https://github.com/atc1441/ATC_MiThermometer) flashed LYWSD03MMCs, Victron SmartShunt and the Inkbird IBS-TH2 thermometer.
 
-Sounds like meager offerings but it's pretty easy to write and deploy your own sensor class for any currently unsupported sensor. More on that below.
+Sounds like meager offerings but it's pretty easy to write and deploy your own sensor class for any currently unsupported sensor. More on that in [the development section](#development).
 
 ## WHO IS IT FOR
 
@@ -82,7 +82,7 @@ Then select the sensor you want to connect to from the drop down.<br>
 <img width="1109" alt="Screenshot 2024-09-01 at 8 48 04 PM" src="https://github.com/user-attachments/assets/264a8737-8c0e-4b34-a737-e0d834b54b99">
 <br><br>
 
-Then select the class of bluetooth device. The class should have a similar name to the device. If you don't see the class for your device, you can develop your own (see below). <br><br>
+Then select the class of bluetooth device. The class should have a similar name to the device. If you don't see the class for your device, you can develop your own (check out [the development section](#development).). <br><br>
 
 <img width="1104" alt="Screenshot 2024-09-01 at 8 48 19 PM" src="https://github.com/user-attachments/assets/b55ac065-6c57-48eb-8321-e40138d1ca99"><br><br>
 
@@ -102,18 +102,18 @@ You should see data appear in your data browser. Here's a screenshot of Signalk 
 
 You can now take the data and display it using Kip, or route it to NMEA-2K and display it on a N2K MFD, or use it to create and respond to alerts in Node-Red. Life is good. So good.
 
-# BLUETOOTH SENSOR CLASS DEVELOPMENT
+# <a name="development"></a>BLUETOOTH SENSOR CLASS DEVELOPMENT
 
 The goal of this project is to support as many mariner-useful sensors as possible. If there's anything we can do to make sensor class development easier, please let us know.<br><br>
 
-## Requirements
+## REQUIREMENTS
 
 * programming knowledge, preferably class programming in Nodejs
 * familiarity with [Node-ble](https://www.npmjs.com/package/node-ble) 
 * ideally, the device manufacturer's specification for their bluetooth API
 * failing the above, a willingness to hack or at the very least google aggressively
 
-## Process
+## PROGRAMMING PROCESS
 
 ### Discovery
 
@@ -128,7 +128,7 @@ If you're still coming up empty, there are any number of tools you can use to ex
 
 With these tools you can see what data your device advertises, and what data it provides via a connection to its GATT Server. <br><br>
 
-### Programming
+### Coding
 
 Below is a simple Device class for the Xiaomi thermometer with stock firmware. The code demonstrates the core responsibilities of a Bluetooth sensor device class in the BT-Sensor-plugin's framework:
 

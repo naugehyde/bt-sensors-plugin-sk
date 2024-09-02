@@ -3,13 +3,15 @@
 
 ## WHAT IT IS
 
-BT Sensors Plugin for Signalk is a lightweight BLE (Bluetooth Low Energy) framework for connecting to Bluetooth sensors on your boat and updating Signalk paths with the values the sensors reports. <br>
+BT Sensors Plugin for Signalk is a lightweight BLE (Bluetooth Low Energy) framework for connecting to Bluetooth sensors on your boat and sending deltas to Signalk paths with the values the sensors reports. <br>
 
-A typical use case is a Bluetooth thermometer like the Xiaomi LYWSD03MMC, an inexpensive Bluetooth thermometer that runs on a 1.5v watch battery that can report the current temperature and humidity in your refrigerator or cabin or wherever you want to stick it (no judgement.) <br>
+A typical use case is a Bluetooth thermometer like the Xiaomi LYWSD03MMC, an inexpensive Bluetooth thermometer that runs on a 3v watch battery that can report the current temperature and humidity in your refrigerator or cabin or wherever you want to stick it (no judgement.) <br>
 
 The reported temperature can then be displayed on a Signalk app like Kip or, with appropiate mapping to NMEA-2000, a NMEA 2000 Multi-function display. 
 
 The Plugin currently supports the Xiaomi LYWSD03MMC, [ATC](https://github.com/atc1441/ATC_MiThermometer) flashed LYWSD03MMCs, Victron SmartShunt and the Inkbird IBS-TH2 thermometer.
+
+Sounds like meager offerings but it's pretty easy to add write and add your own sensor class for your currently unsupported sensor. More on that below.
 
 ## WHO IS IT FOR
 
@@ -57,8 +59,6 @@ Finally, restart SK. Plugin should appear in your server plugins list.<br>
 > getting permissions errors executing npm link, try executing "npm link" under sudo.
 
 ## CONFIGURATION
-
-NOTE: Simpler and easier configuration instructions will come with a Webapp configuration screen that hasn't been completed. Okay, not yet started. But that'll change.
 
 After installing and restarting Signalk you should see a "BT Sensors Plugin" option in the Signalk->Server->Plugin Config page.<br><br>
 

@@ -9,19 +9,22 @@ const BTSensor = require('./BTSensor.js')
 const { setInterval } = require('timers/promises')
 var peripherals=[]
 module.exports =  function (app) {
-	function createPaths(sensorClass, paths){
-		for (const path of paths) {
-			app.handleMessage(plugin.id, 
-		  	{
-		   	updates: [{ meta: [{path: path.sk_path, 
-							  value: { units: sensorClass.unitFor(path.id) }}]}]
-		  	}
+	function createPaths(sensorClass, peripheral){
+
+		for (const tag of sensorClass.metadataTags()) {
+			const path = peripheral[tag]
+			if (!(path===undefined))
+				app.handleMessage(plugin.id, 
+				{
+				updates: 
+					[{ meta: [{path: path, value: { units: sensorClass.unitFor(tag) }}]}]
+				}
 			)
 		}
   	}
 
 	function updatePath(path, val){
-		app.handleMessage(plugin.id, {updates: [ { values: [ {path: path.sk_path, value: val }] } ] })
+		app.handleMessage(plugin.id, {updates: [ { values: [ {path: path, value: val }] } ] })
   	}  
 
 	app.debug('Loading plugin')
@@ -41,34 +44,59 @@ module.exports =  function (app) {
 		properties: {
 			adapter: {title: "Bluetooth Adapter", type: "string",default:'hci0' },
 			discoveryTimeout: {title: "Initial scan timeout (in seconds)", type: "number",default: 45 },
-			peripherals:  
+			peripherals:
 				{ type: "array", title: "Sensors", items:{
-					title: "", type: "object",
+					title: "", type: "object", 
 					properties:{
-						mac_address: {title: "MAC Address", enum: [], type: "string" },
+						active: {title: "Active", type: "boolean", default: true },
+						mac_address: {title: "Bluetooth Device", enum: [], enumNames:[], type: "string" },
 						BT_class:  {title: "Bluetooth sensor class", type: "string", enum: [...classMap.keys()]},
 						discoveryTimeout: {title: "Discovery timeout (in seconds)", type: "number", default:30},
-						active: {title: "Active", type: "boolean", default: true },
-						paths: {type: "array", title: "Signalk Paths (see Class files for valid IDs)", items: { 
-							title: "", type: "object", properties:{
-								id: {title: "ID", type: "string" },
-								sk_path: {title: "Signalk K Path", type: "string" }
-							}
-						}}
-					}
+					}, dependencies:{BT_class:{oneOf:[]}}
+					
 				}
 			}
 		}
 	}
 	
-	function addDeviceToList( device ){
-		const deviceSet = new Set( plugin.schema.properties.peripherals.items.properties.
-			mac_address.enum)
+	function setDeviceNameInList(device,name){
+		const deviceNames = plugin.schema.properties.peripherals.items.properties.
+		mac_address.enumNames
+		const devices = plugin.schema.properties.peripherals.items.properties.
+		mac_address.enum
 
-		deviceSet.add( device )
-		plugin.schema.properties.peripherals.items.properties.
-		mac_address.enum = Array.from(deviceSet.values())
+		deviceNames[devices.indexOf(device)]=`${name} (${device})` 
 	}
+
+	function addDeviceToList( device, name ){
+		const devices = plugin.schema.properties.peripherals.items.properties.
+		mac_address.enum
+
+		if (!devices.includes(device)) {
+			devices.push(device)
+			if (!(name===undefined))
+				setDeviceNameInList(device,name)
+		}
+	}
+	async function getDeviceName(device){
+		var dn = "UNKNOWN"
+		try{
+			dn = await device.getName()
+		}
+		catch (error) { 
+			dn = "UNKNOWN"
+		}
+		return dn
+	}
+
+	classMap.forEach(( cls, className )=>{
+		var oneOf = {properties:{BT_class:{enum:[className]}}}
+		cls.metadata.forEach((metadatum,tag)=>{
+			oneOf.properties[tag]={type:'string', title: "Path for "+metadatum.description}
+		})
+
+		plugin.schema.properties.peripherals.items.dependencies.BT_class.oneOf.push(oneOf)
+	})
 
 	bluetooth.getAdapter(app.settings?.btAdapter??adapterID).then(async (adapter) => {
 		app.debug("Starting scan...");
@@ -78,12 +106,16 @@ module.exports =  function (app) {
 		catch (error) {
 		}
 		plugin.schema.description='Scanning for Bluetooth devices...'	
-		setTimeout(() => {
-			adapter.devices().then((devices) => {
-				devices.forEach(device => {
-					addDeviceToList(device)
-				})
+		setTimeout( () => {
+			adapter.devices().then((devices)=>{
 				app.debug(`Found: ${util.inspect(devices)}`)
+				devices.forEach( (device) => {
+					adapter.waitDevice(device,discoveryTimeout*1000).then((d)=>{
+						getDeviceName(d).then((dn)=>{
+							addDeviceToList(device, dn )
+						})
+					})
+				})
 				plugin.schema.description=`Scan complete. Found ${devices.length} Bluetooth devices.`
 			})
 		}, app.settings?.btDiscoveryTimeout ?? discoveryTimeout * 1000)
@@ -98,29 +130,36 @@ module.exports =  function (app) {
 		if (!(peripherals===undefined)){
 			var found = 0
 			for (const peripheral of peripherals) {
+				
 				addDeviceToList(peripheral.mac_address)
-				if (!peripheral.active) continue;
-				app.setPluginStatus(`Connecting to ${peripheral.mac_address}`);
+				
+				app.setPluginStatus(`Waiting on ${peripheral.mac_address}`);
 
-				adapter.waitDevice(peripheral.mac_address,1000*peripheral.discoveryTimeout).then((device)=>
+				adapter.waitDevice(peripheral.mac_address,1000*peripheral.discoveryTimeout).then(async (device)=>
 				{
-					var sensorClass = classMap.get(peripheral.BT_class)
-					if (!sensorClass)
-						throw new Error(`File for Class ${peripheral.BT_class} not found.`)
-	
-					createPaths(sensorClass, peripheral.paths)
-	
-					peripheral.sensor = new sensorClass(device);
-					peripheral.sensor.connect();		
-					for (const path of peripheral.paths){
-						if (!sensorClass.hasDataID(path.id))
-							throw new Error(`Invalid path configuration. \'${path.id}\' not handled, must be one of ${sensorClass.data.keys()} `)
-						peripheral.sensor.on(path.id, (val)=>{
-							updatePath(path,val)
-						})
+
+					setDeviceNameInList(peripheral.mac_address, await getDeviceName(device))
+
+					if (peripheral.active) {
+
+						var sensorClass = classMap.get(peripheral.BT_class)
+						if (!sensorClass)
+							throw new Error(`File for Class ${peripheral.BT_class} not found.`)
+						createPaths(sensorClass, peripheral)
+
+		
+						peripheral.sensor = new sensorClass(device);
+						await peripheral.sensor.connect();		
+						for (const tag of sensorClass.metadataTags()){
+							const path = peripheral[tag];
+							if (!(path === undefined))
+								peripheral.sensor.on(tag, (val)=>{
+									updatePath(path,val)
+							})
+						}
+						app.debug('Device: '+peripheral.mac_address+' connected.')
+						app.setPluginStatus(`Connected to ${found++} sensors.`);
 					}
-					app.debug('Device: '+peripheral.mac_address+' connected.')
-					app.setPluginStatus(`Connected to ${found++} sensors.`);
 				})
 				.catch ((e)=> {
 					if (peripheral.sensor)
@@ -129,7 +168,8 @@ module.exports =  function (app) {
 					})
 				.finally( ()=>{
 					app.setPluginStatus(`Connected to ${found} sensors.`);				
-				})
+				}
+				)
 			}
 		}
 	} 

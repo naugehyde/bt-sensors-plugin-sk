@@ -30,12 +30,16 @@ class BTSensor {
         throw new Error("events() static function must be implemented by subclass")
     }
 
-    static hasDataID(id) {
-        return this.data.has(id)
+    static metadataTags() {
+        return this.metadata.keys()
+    }
+    
+    static hasMetaData(id) {
+        return this.metadata.has(id)
     }
 
     static unitFor(id){
-        return this.data.get(id)?.unit
+        return this.metadata.get(id)?.unit
     }
   /**
    *  Connect to sensor.

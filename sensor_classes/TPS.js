@@ -5,8 +5,8 @@ class TPS extends BTSensor{
     constructor(device){
         super(device)
     }
-    static data = new Map()
-                    .set('temp',{unit:'K', description: 'Current temperature'})
+    static metadata = new Map()
+                    .set('temp',{unit:'K', description: 'temperature'})
     connect() {
         //TBD figure out what the heck this device is actually broadcasting
         //For now it appears the current temp is in the key of the data but there are multiple keys

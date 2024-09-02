@@ -4,15 +4,15 @@ class SmartShunt extends BTSensor{
     constructor(device){
         super(device)
     }
-    static data = new Map()
-                    .set('current',{unit:'A', description: 'Current temperature'})
-                    .set('power',{unit:'W', description: 'Current humidity'})
-                    .set('voltage',{unit:'V', description: 'The sensor\'s battery voltage'})
-                    .set('starterVoltage',{unit:'V', description: 'The sensor\'s battery voltage'})
-                    .set('consumed',{unit:'', description: 'The sensor\'s battery voltage'})
-                    .set('soc',{unit:'', description: 'State of Charge'})    
-                    .set('ttg',{unit:'s', description: 'Time to go'})    
-    connect() {
+    static metadata = new Map()
+    .set('current',{unit:'A', description: 'house battery amperage'})
+    .set('power',{unit:'W', description: 'house battery wattage'})
+    .set('voltage',{unit:'V', description: 'house battery voltage'})
+    .set('starterVoltage',{unit:'V', description: 'starter battery voltage'})
+    .set('consumed',{unit:'', description: 'amp-hours consumed'})
+    .set('soc',{unit:'', description: 'state of charge'})    
+    .set('ttg',{unit:'s', description: 'time to go'})    
+connect() {
         //TBD: Implement AES-Ctr decryption of ManufacturerData per https://github.com/keshavdv/victron-ble
         const cb = async (propertiesChanged) => {
 

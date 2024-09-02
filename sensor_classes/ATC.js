@@ -6,7 +6,7 @@ class ATC extends BTSensor{
         super(device)
     }
 
-    static data = LYWSD03MMC.data
+    static metadata = LYWSD03MMC.metadata
     
     connect() {
         const cb = async (propertiesChanged) => {

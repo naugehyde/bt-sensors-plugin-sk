@@ -5,10 +5,10 @@ class LYWSD03MMC extends BTSensor{
     static needsScannerOn(){
         return false
     }
-    static data = new Map()
-                    .set('temp',{unit:'K', description: 'Current temperature'})
-                    .set('humidity',{unit:'ratio', description: 'Current humidity'})
-                    .set('voltage',{unit:'V', description: 'The sensor\'s battery voltage'})
+    static metadata = new Map()
+                    .set('temp',{unit:'K', description: 'temperature'})
+                    .set('humidity',{unit:'ratio', description: 'humidity'})
+                    .set('voltage',{unit:'V', description: 'sensor battery voltage'})
 
     constructor(device){
         super(device)

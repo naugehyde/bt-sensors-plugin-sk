@@ -5,6 +5,13 @@ const {createBluetooth} = require('node-ble')
 const {bluetooth, destroy} = createBluetooth()
 
 const BTSensor = require('./BTSensor.js')
+
+const Device = require('./node_modules/node-ble/src/Device.js')
+
+Device.prototype.getUUIDs=async function() {
+	return this.helper.prop('UUIDs')
+}
+
 module.exports =  function (app) {
 	const discoveryTimeout = 30
 	const adapterID = 'hci0'
@@ -67,6 +74,7 @@ module.exports =  function (app) {
 
 	function loadClassMap() {
 		classMap = utilities_sk.loadClasses(path.join(__dirname, 'sensor_classes'))
+
 	}
 
 	app.debug('Loading plugin')
@@ -133,6 +141,7 @@ module.exports =  function (app) {
 	}
 	function updateClassProperties(){ 
 		plugin.schema.properties.peripherals.items.properties.BT_class.enum=[...classMap.keys()]
+		plugin.schema.properties.peripherals.items.dependencies.BT_class.oneOf=[]
 		classMap.forEach(( cls, className )=>{
 			var oneOf = {properties:{BT_class:{enum:[className]}}}
 			cls.metadata.forEach((metadatum,tag)=>{
@@ -205,7 +214,6 @@ module.exports =  function (app) {
 							throw new Error(`File for Class ${peripheral.BT_class} not found.`)
 						createPaths(sensorClass, peripheral)
 
-		
 						peripheral.sensor = new sensorClass(device);
 						await peripheral.sensor.connect();		
 						for (const tag of sensorClass.metadataTags()){

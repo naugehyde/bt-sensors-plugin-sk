@@ -22,10 +22,7 @@ class BTSensor {
     static needsScannerOn(){
         return true
     } 
-/**
- * 
- * @returns empty array
- */
+
     static events() {
         throw new Error("events() static function must be implemented by subclass")
     }
@@ -41,6 +38,11 @@ class BTSensor {
     static unitFor(id){
         return this.metadata.get(id)?.unit
     }
+
+    static instantiable(){
+        return true;
+    }
+
   /**
    *  Connect to sensor.
    *  This is where the logic for connecting to sensor, listening for changes in values and emitting those values go

@@ -43,6 +43,17 @@ class BTSensor {
         return true;
     }
 
+    getMetadata(){
+        return this.constructor.metadata
+    }
+
+    async getDisplayName(){
+        return `${await this.device.getNameSafe()} (${await this.getMacAddress()})`
+    }
+
+    async getMacAddress(){
+        return this.device.getAddress()
+    }
   /**
    *  Connect to sensor.
    *  This is where the logic for connecting to sensor, listening for changes in values and emitting those values go

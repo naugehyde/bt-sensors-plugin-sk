@@ -8,9 +8,9 @@ class TPS extends BTSensor{
 
     static async identify(device){
         try{
-            const uuids = await device.getUUIDs()
-            if (await device.getName() == 'tps' || await device.getAlias() == 'tps' || 
-            uuids.length > 0 && uuids[0] == '0000fff0-0000-1000-8000-00805f9b34fb'){
+            const uuids = await device.helper.prop('UUIDs')
+            if (await device.getNameSafe() == 'tps' || await device.getAliasSafe() == 'tps' || 
+            (uuids.length > 0 && uuids[0] == '0000fff0-0000-1000-8000-00805f9b34fb')){
                 return this
             }
         } catch (e){

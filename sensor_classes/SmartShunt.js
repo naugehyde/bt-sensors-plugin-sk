@@ -269,10 +269,26 @@ Remember: This conversion is based on assumptions about your existing JavaScript
 
 Let me know if you have any questions or need help with specific parts of the conversion!
 */
+
 class SmartShunt extends BTSensor{
     constructor(device){
         super(device)
     }
+    static async identify(device){
+        try{
+            const name = await device.getNameSafe() 
+            const alias = await device.getAliasSafe()
+            if ((name == 'SmartShunt HQ2204C2GHD' || alias == 'SmartShunt HQ2204C2GHD')
+             && !(await device.isPaired()) ){
+                return this
+            }
+        } catch (e){
+            console.log(e)
+            return null
+        }
+        return null
+    }
+
     static metadata = new Map()
     .set('current',{unit:'A', description: 'house battery amperage'})
     .set('power',{unit:'W', description: 'house battery wattage'})

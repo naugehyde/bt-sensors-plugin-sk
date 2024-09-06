@@ -5,6 +5,18 @@ class SmartShunt_GATT extends BTSensor{
     static needsScannerOn(){
         return false
     } 
+    static async identify(device){
+        try{
+            if ((await device.getNameSafe() == 'SmartShunt HQ2204C2GHD' || await device.getAliasSafe() == 'SmartShunt HQ2204C2GHD')
+             && await device.isPaired() ){
+                return this
+            }
+        } catch (e){
+            console.log(e)
+            return null
+        }
+        return null
+    }
     static metadata = new Map()
                     .set('current',{unit:'A', description: 'house battery amperage', 
                         gatt: '6597ed8c-4bda-4c1e-af4b-551c4cf74769',
@@ -33,7 +45,8 @@ class SmartShunt_GATT extends BTSensor{
         super(device)
     }
 
-   
+    characteristics=[]
+
     async connect() {
         //TBD implement async version with error-checking
         const paired = await this.device.isPaired()
@@ -53,11 +66,15 @@ class SmartShunt_GATT extends BTSensor{
             c.on('valuechanged', buffer => {
                 this.emit(id, datum.read(buffer))
             })
+            this.characteristics.push(c)
         });
 
     }
     async disconnect(){
         super.disconnect()
+        this.characteristics.forEach((c)=>
+            {c.stopNotifications()}
+        )
         await this.device.disconnect()
     }
 }

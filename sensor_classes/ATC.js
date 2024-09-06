@@ -5,7 +5,20 @@ class ATC extends BTSensor{
     constructor(device){
         super(device)
     }
-
+    static async identify(device){
+        try{
+            const regex = /^ATC_[A-Fa-f0-9]{6}$/
+            const name = await device.getNameSafe()
+            const alias = await device.getAliasSafe()
+            if (name.match(regex) || (alias).match(regex)){
+                return this
+            }
+        } catch (e){
+//            console.log(e)
+            return null
+        }
+        return null
+    }
     static metadata = LYWSD03MMC.metadata
     
     connect() {

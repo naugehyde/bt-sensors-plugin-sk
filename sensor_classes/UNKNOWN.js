@@ -12,7 +12,8 @@ class UNKNOWN extends BTSensor{
     getMetadata() { 
         return new Map()
     }
-    connect() {
+    async connect() {
+        return this
     }
 }
 module.exports=UNKNOWN

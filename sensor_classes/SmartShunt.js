@@ -310,6 +310,7 @@ connect() {
         }
         cb();
         device.helper.on('PropertiesChanged', cb)
+        return this
     }
     
 }

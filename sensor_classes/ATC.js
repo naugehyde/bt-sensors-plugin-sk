@@ -20,9 +20,10 @@ class ATC extends BTSensor{
         return null
     }
     static metadata = LYWSD03MMC.metadata
-    
-    connect() {
-        const cb = async (propertiesChanged) => {
+
+
+    async connect() {
+        this.cb = (propertiesChanged) => {
             try{
                 this.device.getServiceData().then((data)=>{             
                     //TBD Check if the service ID is universal across ATC variants
@@ -36,8 +37,14 @@ class ATC extends BTSensor{
                 throw new Error(`Unable to read data from ${util.inspect(device)}: ${error}` )
             }
         }
-        cb();
-        this.device.helper.on('PropertiesChanged', cb)
+        this.cb()
+        this.device.helper.on('PropertiesChanged', this.cb)
+        return this
+    }
+    disconnect(){
+        super.disconnect()
+        if (this.cb)
+            this.device.helper.removeListener('PropertiesChanged',this.cb)
     }
 }
 module.exports=ATC

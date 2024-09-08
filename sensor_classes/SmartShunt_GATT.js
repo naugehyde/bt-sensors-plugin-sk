@@ -62,20 +62,24 @@ class SmartShunt_GATT extends BTSensor{
             c.readValue().then( buffer =>
                 this.emit(id, datum.read(buffer))
             )
-            c.startNotifications();	
+            await c.startNotifications();	
             c.on('valuechanged', buffer => {
                 this.emit(id, datum.read(buffer))
             })
             this.characteristics.push(c)
         });
+        return this
 
     }
     async disconnect(){
         super.disconnect()
-        this.characteristics.forEach((c)=>
-            {c.stopNotifications()}
-        )
-        await this.device.disconnect()
+        for (var c of this.characteristics){
+            await c.stopNotifications()
+        }
+        if (await this.device.isConnected()){
+            console.log(`Disconnecting from ${await this.device.getAddress()}`)
+            await this.device.disconnect()
+        }
     }
 }
 module.exports=SmartShunt_GATT

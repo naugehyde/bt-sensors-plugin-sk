@@ -81,11 +81,13 @@ module.exports =  function (app) {
 	  }
 	async function  instantiateSensor(device){
 //		app.debug(`instantiating ${await device.getAddress()}`)
-
+		try{
 		for (var [clsName, cls] of classMap) {
 			const c = await cls.identify(device)
 			if (c)
 				return new c(device)		
+		}} catch(error){
+			app.debug(`Unable to instantiate ${await device.getAddress()}: ${error.message} `)
 		}
 		return new (classMap.get('UNKNOWN'))(device)
 	}
@@ -192,8 +194,12 @@ module.exports =  function (app) {
 	async function startScanner(){
 		bluetooth.getAdapter(app.settings?.btAdapter??adapterID).then(async (adapter) => {
 			app.debug("Starting scan...");
-			await kickScanner(adapter)
-			if (!adapter.isDiscovering()) 
+			try{ await adapter.stopDiscovery() } catch(error){}
+			try{ await adapter.startDiscovery() } catch(error){}
+			//await adapter.helper.callMethod('StopDiscovery')
+			//await adapter.helper.callMethod('StartDiscovery')
+			//await kickScanner(adapter)
+			if (!(await adapter.isDiscovering())) 
 				throw new Error  ("Could not start scan: Aborting")
 			plugin.schema.description='Scanning for Bluetooth devices...'	
 			setTimeout( async () => {

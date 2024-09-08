@@ -280,7 +280,7 @@ class SmartShunt extends BTSensor{
             const alias = await device.getAliasSafe()
             if ((name == 'SmartShunt HQ2204C2GHD' || alias == 'SmartShunt HQ2204C2GHD')
              && !(await device.isPaired()) ){
-                return this
+                return null
             }
         } catch (e){
             console.log(e)

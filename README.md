@@ -46,12 +46,12 @@ This will be the recommended installation when the code is ready for wider shari
 From a command prompt:<br>
 
 <pre>  cd ~/[some_dir]
-  git clone https://github.com/naugehyde/ping-ac-outlet-plugin-sk
-  cd ping_ac_outlet_plugin_sk
+  git clone https://github.com/naugehyde/bt-sensors-plugin-sk
+  cd bt-sensors-plugin-sk
   npm i
   [sudo] npm link
   cd [signalk_home] 
-  npm link ping-ac-outlet-plugin-sk</pre>
+  npm link bt-sensors-plugin-sk</pre>
 
 Finally, restart SK. Plugin should appear in your server plugins list.<br>
 

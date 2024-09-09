@@ -196,9 +196,6 @@ module.exports =  function (app) {
 			app.debug("Starting scan...");
 			try{ await adapter.stopDiscovery() } catch(error){}
 			try{ await adapter.startDiscovery() } catch(error){}
-			//await adapter.helper.callMethod('StopDiscovery')
-			//await adapter.helper.callMethod('StartDiscovery')
-			//await kickScanner(adapter)
 			if (!(await adapter.isDiscovering())) 
 				throw new Error  ("Could not start scan: Aborting")
 			plugin.schema.description='Scanning for Bluetooth devices...'	
@@ -259,12 +256,14 @@ module.exports =  function (app) {
 											updatePath(path,val)
 									})
 								})
-								found++}
+								app.setPluginStatus(`Connected to ${++found} sensors.`);
+							}
 							})
 						}
 					}
 				})
-				app.setPluginStatus(`Connected to ${found} sensors.`);
+				.catch((error)=>
+					{app.debug(`Unable to connect to ${peripheral.mac_address}. Reason: ${error.message}`)	})
 			}
 			peripherals=options.peripherals
 		}
@@ -283,7 +282,6 @@ module.exports =  function (app) {
 			for (var p of peripherals) {
 				if (p.sensor !== undefined) {
 					try{
-						app.debug(`Disconnecting from ${p.mac_address}`)
 						await p.sensor.disconnect()
 						app.debug(`Disconnected from ${p.mac_address}`)
 					}

@@ -41,7 +41,7 @@ class ATC extends BTSensor{
         this.device.helper.on('PropertiesChanged', this.cb)
         return this
     }
-    disconnect(){
+    async disconnect(){
         super.disconnect()
         if (this.cb)
             this.device.helper.removeListener('PropertiesChanged',this.cb)

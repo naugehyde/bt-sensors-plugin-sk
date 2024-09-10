@@ -6,7 +6,12 @@ const {bluetooth, destroy} = createBluetooth()
 
 const BTSensor = require('./BTSensor.js')
 
-const Device = require('../node-ble/src/Device.js')
+try {
+	var Device = require('../node-ble/src/Device.js')
+	if (Device == undefined) throw new Error('')
+} catch (error) {
+	Device = require('./node_modules/node-ble/src/Device.js')	
+}
 const { Variant } = require('dbus-next')
 
 Device.prototype.getUUIDs=async function() {
@@ -14,7 +19,6 @@ Device.prototype.getUUIDs=async function() {
 }
 
 Device.prototype.getProp=async function(propName) {
-	
 	const props = await this.helper.props()
 			if (props[propName])
 				return props[propName]
@@ -240,6 +244,7 @@ module.exports =  function (app) {
 				then((sensor)=>{
 					if (sensor==null) {
 						app.debug(`Unable to contact ${peripheral.mac_address}`)
+						//put paths in oneof based on options (which should exist)
 					}
 					else {
 						app.debug(`Got info for ${peripheral.mac_address} `)

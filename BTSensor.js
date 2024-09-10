@@ -39,10 +39,6 @@ class BTSensor {
         return this.metadata.get(id)?.unit
     }
 
-    static instantiable(){
-        return true;
-    }
-
     getMetadata(){
         return this.constructor.metadata
     }

@@ -6,7 +6,7 @@ const {bluetooth, destroy} = createBluetooth()
 
 const BTSensor = require('./BTSensor.js')
 
-const Device = require('./node_modules/node-ble/src/Device.js')
+const Device = require('../node-ble/src/Device.js')
 const { Variant } = require('dbus-next')
 
 Device.prototype.getUUIDs=async function() {
@@ -175,7 +175,7 @@ module.exports =  function (app) {
 		catch (e) {
 			if (s)
 				s.disconnect()		
-				app.debug("Unable to connect to device " + mac +". Reason: "+ e.message )	
+			app.debug("Unable to connect to device " + mac +". Reason: "+ e.message )	
 			return null							
 		}
 	}

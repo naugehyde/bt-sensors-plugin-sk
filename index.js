@@ -6,7 +6,7 @@ const {bluetooth, destroy} = createBluetooth()
 
 const BTSensor = require('./BTSensor.js')
 
-const Device = require('./node_modules/node-ble/src/Device.js')
+const Device = require('../node-ble/src/Device.js')
 
 Device.prototype.getUUIDs=async function() {
 	return this.helper.prop('UUIDs')

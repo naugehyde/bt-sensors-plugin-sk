@@ -22,8 +22,8 @@ class LYWSD03MMC extends BTSensor{
                     .set('humidity',{unit:'ratio', description: 'humidity'})
                     .set('voltage',{unit:'V', description: 'sensor battery voltage'})
 
-    constructor(device){
-        super(device)
+    constructor(device,params){
+        super(device, params)
     }
 
     emitValues(buffer){

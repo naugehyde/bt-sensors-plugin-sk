@@ -8,7 +8,7 @@ const EventEmitter = require('node:events');
  */
 class BTSensor {
 
-    constructor(device) {
+    constructor(device,params=null) {
         this.device=device
         this.eventEmitter = new EventEmitter();
     }
@@ -28,20 +28,34 @@ class BTSensor {
     }
 
     static metadataTags() {
-        return this.metadata.keys()
+        return this.getMetadata().keys()
     }
     
     static hasMetaData(id) {
-        return this.metadata.has(id)
+        return this.getMetadata().has(id)
     }
 
     static unitFor(id){
-        return this.metadata.get(id)?.unit
+        return this.getMetadata().get(id)?.unit
+    }
+    
+    static getMetadata(){
+        return this.metadata
+    }
+    
+    static getInstantiationParameters(){
+        return new Map(
+            [...this.getMetadata().entries()].filter(([key,value]) => value?.isParam??false)
+          )
     }
 
-    getMetadata(){
-        return this.constructor.metadata
+    init(){
+
     }
+    getMetadata(){
+        return this.constructor.getMetadata()
+    }
+
 
     async getDisplayName(){
         return `${await this.device.getNameSafe()} (${await this.getMacAddress()})`

@@ -1,8 +1,8 @@
 const BTSensor = require("../BTSensor");
 class UNKNOWN extends BTSensor{
 
-    constructor(device){
-        super(device)
+    constructor(device, params){
+        super(device, params)
     }
 
 

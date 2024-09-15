@@ -40,7 +40,7 @@ module.exports =  function (app) {
 	var peripherals
 	var starts=0
 	var classMap
-
+	
 	var utilities_sk
 	
 	var plugin = {};
@@ -83,13 +83,17 @@ module.exports =  function (app) {
 		  }, x);
 		});
 	  }
-	async function  instantiateSensor(device){
+	async function  instantiateSensor(device,params){
 //		app.debug(`instantiating ${await device.getAddress()}`)
 		try{
 		for (var [clsName, cls] of classMap) {
 			const c = await cls.identify(device)
-			if (c)
-				return new c(device)		
+			if (c) {
+				if (c.name.startsWith("_")) continue
+				const d = new c(device,params)	
+				await d.init()
+				return d
+			}
 		}} catch(error){
 			app.debug(`Unable to instantiate ${await device.getAddress()}: ${error.message} `)
 		}
@@ -98,14 +102,17 @@ module.exports =  function (app) {
 
 	function createPaths(peripheral_config){
 		peripheral_config.sensor.getMetadata().forEach((metadatum, tag)=>{
-			const path = peripheral_config[tag]
-			if (!(path===undefined))
-				app.handleMessage(plugin.id, 
-				{
-				updates: 
-					[{ meta: [{path: path, value: { units: metadatum?.unit }}]}]
-				})
-		})
+			if ((!(metadatum?.isParam)??false)){
+				
+				const path = peripheral_config[tag]
+				if (!(path===undefined))
+					app.handleMessage(plugin.id, 
+					{
+					updates: 
+						[{ meta: [{path: path, value: { units: metadatum?.unit }}]}]
+					})
+			}
+			})
 	}
 
 	function updatePath(path, val){
@@ -153,7 +160,7 @@ module.exports =  function (app) {
 		}
 		var oneOf = {properties:{mac_address:{enum:[mac_address]}}}
 		sensor.getMetadata().forEach((metadatum,tag)=>{
-				oneOf.properties[tag]={type:'string', title: "Path for "+metadatum.description}
+				oneOf.properties[tag]={type:metadatum?.type??'string', title: metadatum.description}
 		})
 		plugin.schema.properties.peripherals.items.dependencies.mac_address.oneOf.push(oneOf)
 
@@ -165,37 +172,28 @@ module.exports =  function (app) {
 		)
 	}
 
-	async function createSensor(adapter, mac, timeout=discoveryTimeout) {
+	async function createSensor(adapter, params) {
 		var s
-		if (sensorMap.has(mac)) 
-			return sensorMap.get(mac)
+		if (sensorMap.has(params.mac_address)) 
+			return sensorMap.get(params.mac_address)
 		try {
-			const device = await adapter.waitDevice(mac,timeout*1000)
-			s = await instantiateSensor(device) 
-			sensorMap.set(mac,s)
+			const device = await adapter.waitDevice(params.mac_address,params.discoveryTimeout*1000)
+			s = await instantiateSensor(device,params) 
+			sensorMap.set(params.mac_address,s)
 			addSensorToList(s)
 			return s
 		}
 		catch (e) {
 			if (s)
 				s.disconnect()		
-			app.debug("Unable to connect to device " + mac +". Reason: "+ e.message )	
+			app.debug("Unable to connect to device " + params.mac_address +". Reason: "+ e.message )	
 			return null							
 		}
 	}
-	async function kickScanner(adapter){
-		try { 
-			try {await adapter.helper.callMethod('StopDiscovery')} catch(e) {}
-			await adapter.helper.callMethod('SetDiscoveryFilter', {
-					Transport: new Variant('s', 'le')
-			})
-			await adapter.helper.callMethod('StartDiscovery')
-		}
-		catch (error) {
-			app.debug(`Error starting scanner: ${error.message}`)
-		}
-	}
+	
 	async function startScanner(){
+	
+
 		bluetooth.getAdapter(app.settings?.btAdapter??adapterID).then(async (adapter) => {
 			app.debug("Starting scan...");
 			try{ await adapter.stopDiscovery() } catch(error){}
@@ -204,11 +202,11 @@ module.exports =  function (app) {
 				throw new Error  ("Could not start scan: Aborting")
 			plugin.schema.description='Scanning for Bluetooth devices...'	
 			setTimeout( async () => {
-
 				adapter.devices().then( async (macs)=>{
 					app.debug(`Found: ${util.inspect(macs)}`)
 					for (var mac of macs) {	
-						 await createSensor(adapter,mac)						
+						await createSensor(adapter,
+							 {mac_address:mac, discoveryTimeout: discoveryTimeout})						
 					}
 					plugin.schema.description=`Scan complete. Found ${macs.length} Bluetooth devices.`
 				})
@@ -220,6 +218,7 @@ module.exports =  function (app) {
 	updateAdapters()
 	startScanner()
 	plugin.start = async function (options, restartPlugin) {
+
 		if (starts>0){
 			await sleep(10000) //Make sure plugin.stop() completes first
 			app.debug('Plugin restarted');
@@ -240,8 +239,9 @@ module.exports =  function (app) {
 			for (const peripheral of options.peripherals) {
 				app.debug(`Waiting on ${peripheral.mac_address}`);	
 				app.setPluginStatus(`Waiting on ${peripheral.mac_address}`);
-				createSensor(adapter, peripheral.mac_address, peripheral.discoveryTimeout).
-				then((sensor)=>{
+				const params = {}
+				
+				createSensor(adapter, peripheral).then((sensor)=>{
 					if (sensor==null) {
 						app.debug(`Unable to contact ${peripheral.mac_address}`)
 						//put paths in oneof based on options (which should exist)
@@ -250,9 +250,9 @@ module.exports =  function (app) {
 						app.debug(`Got info for ${peripheral.mac_address} `)
 						peripheral.sensor=sensor
 						if (peripheral.active) {
-							createPaths(peripheral)
 							peripheral.sensor.connect().then(async (sensor)=>{
 							if (sensor){ 
+								createPaths(peripheral)
 								app.debug(`Connected to ${peripheral.mac_address}`);
 								sensor.getMetadata().forEach((metadatum, tag)=>{
 									const path = peripheral[tag];

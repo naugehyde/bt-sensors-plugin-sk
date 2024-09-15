@@ -2,8 +2,8 @@ const BTSensor = require("../BTSensor");
 const LYWSD03MMC = require('./LYWSD03MMC.js')
 class ATC extends BTSensor{
 
-    constructor(device){
-        super(device)
+    constructor(device,params){
+        super(device,params)
     }
     static async identify(device){
         try{

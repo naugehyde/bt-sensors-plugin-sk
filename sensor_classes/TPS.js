@@ -2,8 +2,8 @@ const BTSensor = require("../BTSensor");
 
 class TPS extends BTSensor{
 
-    constructor(device){
-        super(device)
+    constructor(device, params){
+        super(device,params)
     }
 
     static async identify(device){

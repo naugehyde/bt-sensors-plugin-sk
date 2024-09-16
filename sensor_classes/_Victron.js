@@ -3,20 +3,20 @@ const crypto = require('node:crypto');
 
 
 AlarmReason={
-    LOW_VOLTAGE: 1,
-    HIGH_VOLTAGE : 2,
-    LOW_SOC :4,
-    LOW_STARTER_VOLTAGE : 8,
-    HIGH_STARTER_VOLTAGE : 16,
-    LOW_TEMPERATURE : 32,
-    HIGH_TEMPERATURE : 64,
-    MID_VOLTAGE : 128,
-    OVERLOAD : 256,
-    DC_RIPPLE : 512,
-    LOW_V_AC_OUT : 1024,
-    HIGH_V_AC_OUT : 2048,
-    SHORT_CIRCUIT : 4096,
-    BMS_LOCKOUT : 8192
+    1: "LOW_VOLTAGE",
+    2: "HIGH_VOLTAGE",
+    4: "LOW_SOC",
+    8: "LOW_STARTER_VOLTAGE",
+    16: "HIGH_STARTER_VOLTAGE",
+    32: "LOW_TEMPERATURE",
+    64: "HIGH_TEMPERATURE",
+    128: "MID_VOLTAGE",
+    256: "OVERLOAD",
+    512: "DC_RIPPLE",
+    1024: "LOW_V_AC_OUT",
+    2048: "HIGH_V_AC_OUT",
+    4096: "SHORT_CIRCUIT",
+    8192: "BMS_LOCKOUT"
 }
 MODEL_ID_MAP = {
     0x203: "BMV-700",
@@ -208,6 +208,15 @@ class _Victron extends BTSensor{
     
     async init(){
         super.init()
+        const md = await this.device.getProp('ManufacturerData')
+        if (!md) throw Error("Unable to get Manufacturer data")
+        this.model_id=md[0x2e1].value.readUInt16LE(2)
+    }
+    alarmReason(alarmValue){
+        return AlarmReason[alarmValue]
+    }
+    getModelName(){
+        return MODEL_ID_MAP[this.model_id]
     }
     decrypt(data){
         const encMethod = 'aes-128-ctr';
@@ -226,7 +235,10 @@ class _Victron extends BTSensor{
         return decData
         
     }
-    
+    async getName(){
+        return `Victron ${this.getModelName()}`
+    }
+   
     async connect() {
         if (this.advertisementKey){
             this.cb = (propertiesChanged) => {

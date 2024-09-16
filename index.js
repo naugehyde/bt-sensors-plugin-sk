@@ -192,7 +192,6 @@ module.exports =  function (app) {
 	}
 	
 	async function startScanner(){
-	
 
 		bluetooth.getAdapter(app.settings?.btAdapter??adapterID).then(async (adapter) => {
 			app.debug("Starting scan...");
@@ -220,8 +219,9 @@ module.exports =  function (app) {
 	plugin.start = async function (options, restartPlugin) {
 
 		if (starts>0){
+			app.debug('Plugin stopping...');
 			await sleep(10000) //Make sure plugin.stop() completes first
-			app.debug('Plugin restarted');
+			app.debug('Plugin restarting...');
 			plugin.schema.properties.peripherals.items.dependencies.mac_address.oneOf=[]
 			sensorMap.clear()
 			startScanner()
@@ -258,7 +258,16 @@ module.exports =  function (app) {
 									const path = peripheral[tag];
 									if (!(path === undefined))
 										sensor.on(tag, (val)=>{
-											updatePath(path,val)
+											if (metadatum.notify){
+												app.notify(
+													tag, 
+													val,
+													plugin.id
+												  )
+											} else {
+												updatePath(path,val)
+											}
+
 									})
 								})
 								app.setPluginStatus(`Connected to ${++found} sensors.`);

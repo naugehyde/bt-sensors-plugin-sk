@@ -12,20 +12,6 @@ class BTSensor {
         this.device=device
         this.eventEmitter = new EventEmitter();
     }
-/**
- * tells plugin if the class needs to keep the scanner running.
- * defaults to [true]. 
- * If any loaded instance of a sensor needs the scanner, it stays on for all.
- * @static 
- * @returns boolean 
- */
-    static needsScannerOn(){
-        return true
-    } 
-
-    static events() {
-        throw new Error("events() static function must be implemented by subclass")
-    }
 
     static metadataTags() {
         return this.getMetadata().keys()
@@ -56,9 +42,33 @@ class BTSensor {
         return this.constructor.getMetadata()
     }
 
+    async getSignalStrength(){
+        const rssi = await this.device.getProp("RSSI")
+        if (!rssi) return 0
+        return 150-(5/3*(Math.abs(rssi)))
+    }
 
+    async getBars(){
+        const ss = await this.getSignalStrength()
+        var bars = ""
+      
+        if (ss>=10)
+            bars+= '\u{2582} ' //;"▂ "
+        if (ss>=35) 
+            bars+= "\u{2584} " 
+        if (ss>=60)
+            bars+= "\u{2586} " 
+        if (ss > 85) 
+            bars+= "\u{2588}"
+        return bars 
+
+    }
+
+    async getName(){
+        return await this.device.getNameSafe()
+    }
     async getDisplayName(){
-        return `${await this.device.getNameSafe()} (${await this.getMacAddress()})`
+        return `${await this.getName()} (${await this.getMacAddress()}) ${await this.getBars()}`
     }
 
     async getMacAddress(){

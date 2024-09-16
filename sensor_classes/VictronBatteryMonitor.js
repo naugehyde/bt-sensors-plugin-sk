@@ -37,13 +37,13 @@ class VictronBatteryMonitor extends _Victron{
                     .set('voltage',{unit:'V', description: 'house battery voltage', 
                         gatt: '6597ed8d-4bda-4c1e-af4b-551c4cf74769',
                         read: (buff,offset=0)=>{return buff.readInt16LE(offset)/100}})
-                    .set('alarm',{unit:'', description: 'alarm', 
+                    .set('alarm',{unit:'', description: 'alarm', notify: true, 
                         //gatt: 'not supported',
                         read: (buff,offset=0)=>{return buff.readInt16LE(offset)}})
-                    .set('consumed',{unit:'', description: 'amp-hours consumed', 
+                    .set('consumed',{unit:'C', description: 'amp-hours consumed', 
                         gatt: '6597eeff-4bda-4c1e-af4b-551c4cf74769',
                         read: (buff,offset=0)=>{return buff.readInt32LE(offset)/10}})
-                    .set('soc',{unit:'', description: 'state of charge', 
+                    .set('soc',{unit:'ratio', description: 'state of charge', 
                         gatt: '65970fff-4bda-4c1e-af4b-551c4cf74769',
                         read: (buff,offset=0)=>{return buff.readUInt16LE(offset)/10000}})    
                     .set('ttg',{unit:'s', description: 'time to go', 
@@ -59,12 +59,8 @@ class VictronBatteryMonitor extends _Victron{
         if (this.advertisementKey) {
             const decData=this.decrypt(md[0x2e1].value)
             var current = int24.readInt24LE(decData,8)
-            this.auxMode = current & 0b11   
-        }
-
-    }
-     getMetadata(){
-                switch(this.auxMode){
+            this.auxMode = current & 0b11
+            switch(this.auxMode){
                 case AuxMode.STARTER_VOLTAGE:
                     this.constructor.metadata.set('starterVoltage',{unit:'V', description: 'starter battery voltage', 
                             gatt: '6597ed7d-4bda-4c1e-af4b-551c4cf74769',
@@ -84,15 +80,19 @@ class VictronBatteryMonitor extends _Victron{
                 default:
                     break
                 }
-            
-                return super.getMetadata()
-        
+        }
+
     }
 
     emitValuesFrom(decData){
         this.emit("ttg",this.getMetadata().get("ttg").read(decData,0))
         this.emit("voltage",this.getMetadata().get("voltage").read(decData,2));
-        this.emit("alarm",this.getMetadata().get("alarm").read(decData,4));
+        const alarm = this.getMetadata().get("alarm").read(decData,4)
+        if (alarm>0){
+            this.emit(
+                `ALARM #${alarm} from ${this.getDisplayName()})`, 
+                { message: alarmReason(alarm), state: 'alert'})
+        }
         
         var current = int24.readInt24LE(decData,8)
         this.emit("current", current>>2)/1000

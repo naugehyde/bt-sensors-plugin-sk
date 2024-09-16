@@ -12,6 +12,9 @@ class UNKNOWN extends BTSensor{
     getMetadata() { 
         return new Map()
     }
+    async getName(){
+        return "Unknown device"
+    }
     async connect() {
         return this
     }

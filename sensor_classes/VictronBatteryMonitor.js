@@ -1,24 +1,41 @@
 const BTSensor = require("../BTSensor");
-const int24 = require('int24')
 const _Victron = require("./_Victron");
 
- const AuxMode={
-    STARTER_VOLTAGE: 0,
-    MIDPOINT_VOLTAGE: 1,
-    TEMPERATURE: 2,
-    DISABLED: 3
- }
+
 class VictronBatteryMonitor extends _Victron{
+    static {
+        this.metadata = new Map(super.getMetadata())
+        this.addMetadatum('current', 'A', 'house battery amperage', 
+                (buff,offset=0)=>{return buff.readInt32LE(offset)/1000},
+                '6597ed8c-4bda-4c1e-af4b-551c4cf74769')
+        this.addMetadatum('power','W', 'house battery wattage',
+                (buff,offset=0)=>{return buff.readInt16LE(offset)},
+                '6597ed8e-4bda-4c1e-af4b-551c4cf74769')
+        this.addMetadatum('voltage','V',  'house battery voltage', 
+                (buff,offset=0)=>{return buff.readInt16LE(offset)/100},
+                '6597ed8d-4bda-4c1e-af4b-551c4cf74769',)
+        const alarmMD = this.addMetadatum('alarm','',  'alarm', 
+                (buff,offset=0)=>{return buff.readInt16LE(offset)})
+                alarmMD.notify=true
+
+        this.addMetadatum( 'consumed','C', 'amp-hours consumed', 
+                (buff,offset=0)=>{return buff.readInt32LE(offset)/10},
+                '6597eeff-4bda-4c1e-af4b-551c4cf74769',)
+
+        this.addMetadatum( 'soc','ratio', 'state of charge', 
+                (buff,offset=0)=>{return buff.readUInt16LE(offset)/10000},
+                '65970fff-4bda-4c1e-af4b-551c4cf74769')    
+
+        this.addMetadatum( 'ttg','s','time to go', 
+                (buff,offset=0)=>{return buff.readUInt16LE(offset)*60},
+                '65970ffe-4bda-4c1e-af4b-551c4cf74769')    
+    }
     static async identify(device){
 
         try{
             const isVictron = (super.identify(device)!=null)
             if (!isVictron) return null
-            
-            const md = await device.getProp('ManufacturerData')
-            if (!md) return null   
-            const data = md[0x2e1]
-            if (data && data.value.readUInt8(4)==0x02)
+            if (await this.getMode(device)==0x02)
                 return this
 
         } catch (e){
@@ -27,89 +44,59 @@ class VictronBatteryMonitor extends _Victron{
         }
         return null
     }
-    static metadata = new Map(super.metadata.entries())
-                    .set('current',{unit:'A', description: 'house battery amperage', 
-                        gatt: '6597ed8c-4bda-4c1e-af4b-551c4cf74769',
-                        read: (buff,offset=0)=>{return buff.readInt32LE(offset)/1000}})
-                   .set('power',{unit:'W', description: 'house battery wattage',
-                        gatt: '6597ed8e-4bda-4c1e-af4b-551c4cf74769',
-                        read: (buff,offset=0)=>{return buff.readInt16LE(offset)}})
-                    .set('voltage',{unit:'V', description: 'house battery voltage', 
-                        gatt: '6597ed8d-4bda-4c1e-af4b-551c4cf74769',
-                        read: (buff,offset=0)=>{return buff.readInt16LE(offset)/100}})
-                    .set('alarm',{unit:'', description: 'alarm', notify: true, 
-                        //gatt: 'not supported',
-                        read: (buff,offset=0)=>{return buff.readInt16LE(offset)}})
-                    .set('consumed',{unit:'C', description: 'amp-hours consumed', 
-                        gatt: '6597eeff-4bda-4c1e-af4b-551c4cf74769',
-                        read: (buff,offset=0)=>{return buff.readInt32LE(offset)/10}})
-                    .set('soc',{unit:'ratio', description: 'state of charge', 
-                        gatt: '65970fff-4bda-4c1e-af4b-551c4cf74769',
-                        read: (buff,offset=0)=>{return buff.readUInt16LE(offset)/10000}})    
-                    .set('ttg',{unit:'s', description: 'time to go', 
-                        gatt: '65970ffe-4bda-4c1e-af4b-551c4cf74769',
-                        read: (buff,offset=0)=>{return buff.readUInt16LE(offset)*60}})    
-
     characteristics=[]
     auxMode = -1
     async init(){
         super.init()
-        const md = await this.device.getProp('ManufacturerData')
-        if (!md) throw Error("Unable to get Manufacturer data")
-        if (this.advertisementKey) {
-            const decData=this.decrypt(md[0x2e1].value)
-            var current = int24.readInt24LE(decData,8)
-            this.auxMode = current & 0b11
-            switch(this.auxMode){
-                case AuxMode.STARTER_VOLTAGE:
-                    this.constructor.metadata.set('starterVoltage',{unit:'V', description: 'starter battery voltage', 
-                            gatt: '6597ed7d-4bda-4c1e-af4b-551c4cf74769',
-                            read: (buff,offset=0)=>{return buff.readInt16LE(offset)/100}})
-                            break;
-                case AuxMode.MIDPOINT_VOLTAGE:
-                    this.constructor.metadata.set('midpointVoltage',{unit:'V', description: 'midpoint battery voltage', 
-                        gatt: '6597ed7d-4bda-4c1e-af4b-551c4cf74769',
-                        read: (buff,offset=0)=>{return buff.readUInt16LE(offset)/100}})
-                        break;
+        const modecurrent = await this.getAuxModeAndCurrent()
+        this.auxMode= modecurrent.auxMode
+        switch(this.auxMode){
+            case this.constructor.AuxMode.STARTER_VOLTAGE:
+                this.addMetadatum('starterVoltage','V', 'starter battery voltage', 
+                    (buff,offset=0)=>{return buff.readInt16LE(offset)/100},
+                    '6597ed7d-4bda-4c1e-af4b-551c4cf74769')
+                break;
+            case this.constructor.AuxMode.MIDPOINT_VOLTAGE:
+                this.addMetadatum('midpointVoltage','V', 'midpoint battery voltage', 
+                    (buff,offset=0)=>{return buff.readInt16LE(offset)/100},
+                    '6597ed7d-4bda-4c1e-af4b-551c4cf74769')
+                break;
 
-                case AuxMode.TEMPERATURE:
-                    this.constructor.metadata.set('temperature',{unit:'K', description: 'House battery temperature', 
-                        gatt: '6597ed7d-4bda-4c1e-af4b-551c4cf74769',
-                        read: (buff,offset=0)=>{return buff.readUInt16LE(offset)/100}})
-                        break;
-                default:
-                    break
-                }
+            case this.constructor.AuxMode.TEMPERATURE:
+                this.addMetadatum('temperature','K', 'House battery temperature', 
+                    (buff,offset=0)=>{return buff.readInt16LE(offset)/100},
+                    '6597ed7d-4bda-4c1e-af4b-551c4cf74769')
+                break;
+            default:
+                break
         }
-
     }
 
-    emitValuesFrom(decData){
-        this.emit("ttg",this.getMetadata().get("ttg").read(decData,0))
-        this.emit("voltage",this.getMetadata().get("voltage").read(decData,2));
-        const alarm = this.getMetadata().get("alarm").read(decData,4)
+    async emitValuesFrom(decData){
+        this.emitData("ttg",decData,0)
+        this.emitData("voltage",decData,2);
+        const alarm = this.getMetadatum("alarm").read(decData,4)
         if (alarm>0){
             this.emit(
                 `ALARM #${alarm} from ${this.getDisplayName()})`, 
-                { message: alarmReason(alarm), state: 'alert'})
+                { message: AlarmReason.get(alarm), state: 'alert'})
         }
         
-        var current = int24.readInt24LE(decData,8)
-        this.emit("current", current>>2)/1000
+        this.emit("current", (await this.getAuxModeAndCurrent(8,decData)).current)
         switch(this.auxMode){
-        case AuxMode.STARTER_VOLTAGE:
-            this.emit("starterVoltage",this.getMetadata().get("starterVoltage").read(decData,6));
+        case this.constructor.AuxMode.STARTER_VOLTAGE:
+            this.emitData("starterVoltage",decData,6);
             break;
-        case AuxMode.MIDPOINT_VOLTAGE:
-            this.emit("midpointVoltage",this.getMetadata().get("midpointVoltage").read(decData,6));
+        case this.constructor.AuxMode.MIDPOINT_VOLTAGE:
+            this.emitData("midpointVoltage",decData,6);
             break;
-        case AuxMode.TEMPERATURE:
-            this.emit("temperature",this.getMetadata().get("tempurature").read(decData,6));
+        case this.constructor.AuxMode.TEMPERATURE:
+            this.emitData("temperature",decData,6);
             break;
         default:
             break
         }      
-        this.emit("consumed",decData.readUInt16LE(11));
+        this.emit("consumed",decData.readInt16LE(11) / 10 );
         var soc = decData.readUInt16LE(13)
         this.emit("soc", ((soc & 0x3FFF) >> 4) / 1000)
     }
@@ -125,13 +112,10 @@ class VictronBatteryMonitor extends _Victron{
 	    await keepAlive.writeValue(Buffer.from([0xFF,0xFF]), { offset: 0, type: 'request' })
         this.getMetadata().forEach(async (datum, id)=> {
             if ((!(datum?.isParam)??false) && (datum.gatt)){ 
-                const c = await gattService.getCharacteristic(datum.gatt)
-                c.readValue().then( buffer =>
-                    this.emit(id, datum.read(buffer))
-                )
+                const c = await emitGattData(id, gattService) 
                 await c.startNotifications();	
                 c.on('valuechanged', buffer => {
-                    this.emit(id, datum.read(buffer))
+                    this.emitGattData(id, null, c)
                 })
                 this.characteristics.push(c)
             } 

@@ -102,7 +102,9 @@ module.exports =  function (app) {
 
 	function createPaths(peripheral_config){
 		peripheral_config.sensor.getMetadata().forEach((metadatum, tag)=>{
-			if ((!(metadatum?.isParam)??false)){
+			if ((!(metadatum?.isParam)??false)){ //param metadata is passed to the sensor at 
+												 //create time through the constructor, and isn't a
+												 //a value you want to see in a path 
 				
 				const path = peripheral_config[tag]
 				if (!(path===undefined))

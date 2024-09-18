@@ -14,13 +14,16 @@ class ATC extends BTSensor{
                 return this
             }
         } catch (e){
-//            console.log(e)
             return null
         }
         return null
     }
-    static metadata = LYWSD03MMC.metadata
-
+  
+    static {
+        this.metadata = new Map( LYWSD03MMC.getMetadata())
+        this.addMetadatum('humidity','ratio', 'humidity',
+            (buff,offset)=>{return ((buff.readInt16LE(offset))/10000)})
+    }
 
     async connect() {
         this.cb = (propertiesChanged) => {
@@ -28,9 +31,9 @@ class ATC extends BTSensor{
                 this.device.getServiceData().then((data)=>{             
                     //TBD Check if the service ID is universal across ATC variants
                     const buff=data['0000181a-0000-1000-8000-00805f9b34fb'];
-                    this.emit("temp",((buff.readInt16LE(6))/100) + 273.1);
-                    this.emit("humidity",buff.readUInt16LE(8)/10000);
-                    this.emit("voltage",buff.readUInt16LE(10)/1000);
+                    this.emitData("temp", buff, 6)
+                    this.emitData("humidity", buff, 8)
+                    this.emitData("voltage", buff, 10)
                 })
             }
             catch (error) {

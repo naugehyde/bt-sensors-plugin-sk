@@ -7,28 +7,53 @@ const EventEmitter = require('node:events');
  * @see EventEmitter, node-ble/Device
  */
 class BTSensor {
-
+    static metadata=new Map()
     constructor(device,params=null) {
         this.device=device
         this.eventEmitter = new EventEmitter();
+        this.Metadatum = this.constructor.Metadatum
+        this.metadata = new Map(this.constructor.metadata)
     }
 
-    static metadataTags() {
-        return this.getMetadata().keys()
-    }
-    
-    static hasMetaData(id) {
-        return this.getMetadata().has(id)
-    }
+    static Metadatum = 
+        class Metadatum{
+        
+            constructor(tag, unit, description, 
+                read=()=>{return null}, gatt=null){
+                this.tag = tag
+                this.unit = unit
+                this.description = description
+                this.read = read
+                this.gatt = gatt
+           } 
 
-    static unitFor(id){
-        return this.getMetadata().get(id)?.unit
-    }
-    
+        }  
+
     static getMetadata(){
         return this.metadata
     }
-    
+
+    static addMetadatum(tag, ...args){
+        var metadatum = new this.Metadatum(tag, ...args)
+        this.getMetadata().set(tag,metadatum)
+        return metadatum
+    }
+
+    emitData(tag, buffer, ...args){
+        this.emit(tag, this.getMetadatum(tag).read(buffer, ...args))
+    }
+
+    async emitGattData(tag, gattService, gattCharacteristic=null, ...args) {
+        const datum = this.getMetadatum(tag)
+        if (gattCharacteristic==null)
+            gattCharacteristic = await gattService.getCharacteristic(datum.gatt)
+
+        gattCharacteristic.readValue().then( buffer =>
+            this.emitData(id, buffer, ...args)
+        )
+        return gattCharacteristic
+    }
+
     static getInstantiationParameters(){
         return new Map(
             [...this.getMetadata().entries()].filter(([key,value]) => value?.isParam??false)
@@ -38,8 +63,19 @@ class BTSensor {
     init(){
 
     }
+    addMetadatum(tag, ...args){
+        var metadatum = new this.Metadatum(tag, ...args)
+        this.getMetadata().set(tag, metadatum)
+        return metadatum
+    }
+
     getMetadata(){
-        return this.constructor.getMetadata()
+        if (this.metadata==undefined)
+            this.metadata= new Map(this.constructor.getMetadata())
+        return this.metadata
+    }
+    getMetadatum(tag){
+        return this.getMetadata().get(tag)
     }
 
     async getSignalStrength(){

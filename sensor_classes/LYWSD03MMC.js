@@ -2,9 +2,6 @@ const BTSensor = require("../BTSensor");
 
 class LYWSD03MMC extends BTSensor{
 
-    static needsScannerOn(){
-        return false
-    }
     static async identify(device){
         try{
             if (await device.getNameSafe() == 'LYWSD03MMC' || await device.getAliasSafe() == 'LYWSD03MMC') 
@@ -17,39 +14,32 @@ class LYWSD03MMC extends BTSensor{
         }
         return null
     }
-    static metadata = new Map()
-                    .set('temp',{unit:'K', description: 'temperature'})
-                    .set('humidity',{unit:'ratio', description: 'humidity'})
-                    .set('voltage',{unit:'V', description: 'sensor battery voltage'})
-
-    constructor(device,params){
-        super(device, params)
+    static {
+        this.metadata = new Map(super.getMetadata())
+        this.addMetadatum('temp','K', 'temperature',
+            (buff,offset)=>{return ((buff.readInt16LE(offset))/100) + 273.1})
+        this.addMetadatum('humidity','ratio', 'humidity',
+            (buff,offset)=>{return ((buff.readInt8(offset))/100)})
+        this.addMetadatum('voltage', 'V',  'sensor battery voltage',
+            (buff,offset)=>{return ((buff.readUInt16LE(offset))/1000)})
     }
 
     emitValues(buffer){
-        this.emit("temp",((buffer.readInt16LE(0))/100) + 273.1);
-        this.emit("humidity",buffer.readUInt8(2)/100);
-        this.emit("voltage",buffer.readUInt16LE(3)/1000);
+        this.emitData("temp", buffer, 0)
+        this.emitData("humidity", buffer,2)
+        this.emitData("voltage",buffer,3);
     }
 
     async connect() {
         try{
-            console.log(`${this.constructor.name} connecting`)
-            //await this.device.connect()
-            await this.device.helper.callMethod('Connect')
-            console.log(`${this.constructor.name} connected`)
+            await this.device.connect()
             var gattServer = await this.device.gatt()
-            console.log(`${this.constructor.name} got gatt server`)
             var gattService = await gattServer.getPrimaryService("ebe0ccb0-7a0a-4b0c-8a1a-6ff2997da3a6")
-            console.log(`${this.constructor.name} got gatt service`)
             this.gattCharacteristic = await gattService.getCharacteristic("ebe0ccc1-7a0a-4b0c-8a1a-6ff2997da3a6")
-            console.log(`${this.constructor.name} got gatt characteristic`)
             await this.gattCharacteristic.startNotifications();	
-            console.log(`${this.constructor.name} started notifications`)
-
+            
             this.emitValues(await this.gattCharacteristic.readValue())
-            console.log(`${this.constructor.name} read value`)
-
+            
             this.gattCharacteristic.on('valuechanged', buffer => {
                 this.emitValues(buffer)
             })

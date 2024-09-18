@@ -1,6 +1,5 @@
-const BTSensor = require("../BTSensor");
-const _Victron = require("./_Victron");
-
+const _Victron = require ("./Victron/_Victron.js") 
+const VC=require("./Victron/_VictronConstants.js")
 class VictronSolarCharger extends _Victron{
 
     static async identify(device){
@@ -22,10 +21,10 @@ class VictronSolarCharger extends _Victron{
         this.metadata = new Map(super.getMetadata())
 
         this.addMetadatum('chargeState','', 'charge state', 
-                        (buff)=>{return this.constructor.OperationMode(buff.readUInt8(0))})
+                        (buff)=>{return VC.OperationMode.get(buff.readUInt8(0))})
  
         this.addMetadatum('chargerError','', 'charger error',
-            (buff)=>{this.constructor.ChargerError.get(buff.readUInt8(1))})
+            (buff)=>{return VC.ChargerError.get(buff.readUInt8(1))})
         this.addMetadatum('voltage','V', 'charger battery voltage', 
             (buff)=>{return buff.readInt16LE(2)/100})
         this.addMetadatum('current','A','charger battery current', 
@@ -37,13 +36,6 @@ class VictronSolarCharger extends _Victron{
         this.addMetadatum('externalDeviceLoad','A', 'external device load', 
             (buff)=>{return buff.readUInt16LE(10)})    
         }
-
-    emitValuesFrom(decData){
-        this.getMetadata().forEach((datum, tag)=>{
-                this.emitData(tag, decData)
-        })
-    }
-    
 
 }
 module.exports=VictronSolarCharger 

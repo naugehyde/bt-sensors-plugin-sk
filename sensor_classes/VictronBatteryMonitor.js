@@ -1,6 +1,5 @@
-const BTSensor = require("../BTSensor");
-const _Victron = require("./_Victron");
-
+const _Victron = require("./Victron/_Victron.js");
+const VC=require("./Victron/_VictronConstants.js")
 
 class VictronBatteryMonitor extends _Victron{
     static {
@@ -51,18 +50,18 @@ class VictronBatteryMonitor extends _Victron{
         const modecurrent = await this.getAuxModeAndCurrent()
         this.auxMode= modecurrent.auxMode
         switch(this.auxMode){
-            case this.constructor.AuxMode.STARTER_VOLTAGE:
+            case VC.AuxMode.STARTER_VOLTAGE:
                 this.addMetadatum('starterVoltage','V', 'starter battery voltage', 
                     (buff,offset=0)=>{return buff.readInt16LE(offset)/100},
                     '6597ed7d-4bda-4c1e-af4b-551c4cf74769')
                 break;
-            case this.constructor.AuxMode.MIDPOINT_VOLTAGE:
+            case VC.AuxMode.MIDPOINT_VOLTAGE:
                 this.addMetadatum('midpointVoltage','V', 'midpoint battery voltage', 
                     (buff,offset=0)=>{return buff.readInt16LE(offset)/100},
                     '6597ed7d-4bda-4c1e-af4b-551c4cf74769')
                 break;
 
-            case this.constructor.AuxMode.TEMPERATURE:
+            case VC.AuxMode.TEMPERATURE:
                 this.addMetadatum('temperature','K', 'House battery temperature', 
                     (buff,offset=0)=>{return buff.readInt16LE(offset)/100},
                     '6597ed7d-4bda-4c1e-af4b-551c4cf74769')
@@ -84,13 +83,13 @@ class VictronBatteryMonitor extends _Victron{
         
         this.emit("current", (await this.getAuxModeAndCurrent(8,decData)).current)
         switch(this.auxMode){
-        case this.constructor.AuxMode.STARTER_VOLTAGE:
+        case VC.AuxMode.STARTER_VOLTAGE:
             this.emitData("starterVoltage",decData,6);
             break;
-        case this.constructor.AuxMode.MIDPOINT_VOLTAGE:
+        case VC.AuxMode.MIDPOINT_VOLTAGE:
             this.emitData("midpointVoltage",decData,6);
             break;
-        case this.constructor.AuxMode.TEMPERATURE:
+        case VC.AuxMode.TEMPERATURE:
             this.emitData("temperature",decData,6);
             break;
         default:

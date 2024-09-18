@@ -1,4 +1,4 @@
-const _Victron = require("./_Victron");
+const _Victron = require("./Victron/_Victron");
 
 class VictronDCDCConverter extends _Victron{
     

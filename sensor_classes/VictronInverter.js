@@ -1,4 +1,4 @@
-const _Victron = require("./_Victron");
+const _Victron = require("./Victron/_Victron");
 function toBinaryString(buff){
     return [...buff].map((b) => b.toString(2).padStart(8, "0")).join("");
     }

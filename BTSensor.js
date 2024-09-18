@@ -140,7 +140,12 @@ class BTSensor {
     emit(eventName, value){
         this.eventEmitter.emit(eventName,value);
     }
-
+    emitValuesFrom(buffer){
+        this.getMetadata().forEach((datum, tag)=>{
+            if (!(datum.isParam||datum.notify) && datum.read)
+            this.emit(tag, datum.read(buffer))
+        })
+    }
 }
 
 module.exports = BTSensor   

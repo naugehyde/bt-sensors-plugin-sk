@@ -112,10 +112,10 @@ class VictronBatteryMonitor extends _Victron{
 	    await keepAlive.writeValue(Buffer.from([0xFF,0xFF]), { offset: 0, type: 'request' })
         this.getMetadata().forEach(async (datum, id)=> {
             if ((!(datum?.isParam)??false) && (datum.gatt)){ 
-                const c = await emitGattData(id, gattService) 
+                const c = await this.emitGattData(datum.tag, gattService) 
                 await c.startNotifications();	
                 c.on('valuechanged', buffer => {
-                    this.emitGattData(id, null, c)
+                    this.emitGattData(datum.tag, null, c)
                 })
                 this.characteristics.push(c)
             } 

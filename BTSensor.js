@@ -49,7 +49,7 @@ class BTSensor {
             gattCharacteristic = await gattService.getCharacteristic(datum.gatt)
 
         gattCharacteristic.readValue().then( buffer =>
-            this.emitData(id, buffer, ...args)
+            this.emitData(tag, buffer, ...args)
         )
         return gattCharacteristic
     }

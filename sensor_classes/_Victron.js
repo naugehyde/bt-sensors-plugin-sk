@@ -1,7 +1,7 @@
 const BTSensor = require("../BTSensor");
 const crypto = require('node:crypto');
 const int24 = require('int24')
-
+const util = require('util')
 class _Victron extends BTSensor{
 
     constructor(device,params){
@@ -326,7 +326,10 @@ class _Victron extends BTSensor{
         if (decData==null){
             decData=await this.device.getProp('ManufacturerData')
             if (!decData) throw Error("Unable to get Manufacturer data")
-            decData=this.decrypt(decData[0x2e1].value)
+            if (this.advertisementKey)
+                decData=this.decrypt(decData[0x2e1].value)
+            else 
+                return {current:NaN, auxMode:NaN}
         } 
         const auxModeAndCurrent = int24.readInt24LE(decData,offset)
         return {

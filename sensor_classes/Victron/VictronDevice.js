@@ -2,9 +2,9 @@ const BTSensor = require("../../BTSensor.js");
 const crypto = require('node:crypto');
 const int24 = require('int24')
 const util = require('util')
-const VC=require('./_VictronConstants.js')
+const VC=require('./VictronConstants.js')
  
-  class _Victron extends BTSensor{
+  class VictronDevice extends BTSensor{
 
     constructor(device,params){
         super(device,params)
@@ -117,4 +117,4 @@ const VC=require('./_VictronConstants.js')
         throw new Error( "GATT Connection unimplemented")
     }
 }
-module.exports=_Victron
+module.exports=VictronDevice

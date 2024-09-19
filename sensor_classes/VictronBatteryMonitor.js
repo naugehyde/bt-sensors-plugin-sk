@@ -1,5 +1,5 @@
-const _Victron = require("./Victron/_Victron.js");
-const VC=require("./Victron/_VictronConstants.js")
+const _Victron = require("./Victron/VictronDevice.js");
+const VC=require("./Victron/VictronConstants.js")
 
 class VictronBatteryMonitor extends _Victron{
     static {

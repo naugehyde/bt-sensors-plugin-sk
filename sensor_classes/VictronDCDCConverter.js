@@ -1,6 +1,7 @@
-const _Victron = require("./Victron/_Victron");
+const VictronDevice = require("./Victron/VictronDevice");
+const VC=require("./Victron/VictronConstants.js")
 
-class VictronDCDCConverter extends _Victron{
+class VictronDCDCConverter extends VictronDevice{
     
     static async identify(device){
 
@@ -17,36 +18,13 @@ class VictronDCDCConverter extends _Victron{
         }
         return null
     }
-    async init(){
-        super.init()
-        const modeCurrent = await this.getAuxModeAndCurrent()
-        this.auxMode= modeCurrent.auxMode
-        switch(this.auxMode){
-            case AuxMode.STARTER_VOLTAGE:
-                this.constructor.metadata.set('starterVoltage',{unit:'V', description: 'starter battery voltage', 
-                        read: (buff,offset=0)=>{return buff.readInt16LE(offset)/100}})
-                        break;
-
-            case AuxMode.TEMPERATURE:
-                this.constructor.metadata.set('temperature',{unit:'K', description: 'House battery temperature', 
-                    read: (buff,offset=0)=>{
-                        const temp = buff.readUInt16LE(offset)
-                        if (temp==0xffff) 
-                            return null
-                        else 
-                            return temp / 100
-                    }})
-                    break;
-            default:
-                break
-        }
-    }
+   
     static {
         this.metadata= new Map(super.getMetadata())
         this.addMetadatum('chargeState','', 'device charge state', 
-                (buff)=>{return this.constructor.OperationMode.get(buff.readIntU8(0))})
+                (buff)=>{return VC.OperationMode.get(buff.readIntU8(0))})
         this.addMetadatum('chargerError','', 'charger error',
-                (buff)=>{return this.constructor.cChargerError(buff.readIntU8(1))})
+                (buff)=>{return VC.ChargerError.get(buff.readIntU8(1))})
         this.addMetadatum('inputVoltage','V', 'input voltage', 
                 (buff)=>{return buff.readUInt16LE(2)/100})
         this.addMetadatum('outputVoltage','V', 'output voltage', 
@@ -58,7 +36,7 @@ class VictronDCDCConverter extends _Victron{
            
                 })
         this.addMetadatum('offReason','', 'reason unit is off',
-                (buff)=>{return ChargerError.get(buff.readUInt32LE(6))})
+                (buff)=>{return VC.OffReasons.get(buff.readUInt32LE(6))})
                 
     }
     emitValuesFrom(decData){
@@ -67,6 +45,7 @@ class VictronDCDCConverter extends _Victron{
         this.emitData("inputVoltage",decData);
         this.emitData("outputVoltage",decData);
         this.emitData("offReason",decData);
+       
     }
     
 

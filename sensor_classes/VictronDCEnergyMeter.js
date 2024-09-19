@@ -1,4 +1,5 @@
-const _Victron = require("./Victron/_Victron");
+const _Victron = require("./Victron/VictronDevice");
+const VC=require("./Victron/VictronConstants.js")
 
 const MeterType = new Map([
     [-9, 'SOLAR_CHARGER'],
@@ -42,12 +43,12 @@ class VictronDCEnergyMeter extends _Victron{
         const modeCurrent = await this.getAuxModeAndCurrent()
         this.auxMode= modeCurrent.auxMode
         switch(this.auxMode){
-            case AuxMode.STARTER_VOLTAGE:
+            case VC.AuxMode.STARTER_VOLTAGE:
                 this.addMetadatum('starterVoltage','V',  'starter battery voltage', 
                         (buff,offset=0)=>{return buff.readInt16LE(offset)/100})
                         break;
 
-            case AuxMode.TEMPERATURE:
+            case VC.AuxMode.TEMPERATURE:
                 this.addMetadatum('temperature','K','House battery temperature', 
                     (buff,offset=0)=>{
                         const temp = buff.readUInt16LE(offset)
@@ -74,17 +75,17 @@ class VictronDCEnergyMeter extends _Victron{
     emitValuesFrom(decData){
         this.emitData("meterType",decData,0)
         this.emitData("voltage",decData,2);
-        const alarm = this.getMetadata().get("alarm").read(decData,4)
+        const alarm = this.getMetadatum("alarm").read(decData,4)
         if (alarm>0){
             this.emit(
                 `ALARM #${alarm} from ${this.getDisplayName()})`, 
                 { message: AlarmReason(alarm), state: 'alert'})
         }
         switch(this.auxMode){
-            case this.constructor.AuxMode.STARTER_VOLTAGE:
+            case VC.AuxMode.STARTER_VOLTAGE:
                 this.emitData("starterVoltage",decData,6);
                 break;
-            case this.constructor.AuxMode.TEMPERATURE:
+            case VC.AuxMode.TEMPERATURE:
                 this.emitData("temperature",decData,6);
                 break;
             default:

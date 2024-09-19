@@ -1,4 +1,6 @@
-const _Victron = require("./Victron/_Victron");
+const _Victron = require("./Victron/VictronDevice");
+const VC=require("./Victron/VictronConstants.js")
+
 function toBinaryString(buff){
     return [...buff].map((b) => b.toString(2).padStart(8, "0")).join("");
     }
@@ -24,9 +26,9 @@ class VictronInverter extends _Victron{
         var md
         this.metadata= new Map(super.getMetadata())
         this.addMetadatum('deviceState','', 'inverter device state', 
-                (buff)=>{return this.constructor.OperationMode.get(buff.readIntU8(0))})
+                (buff)=>{return VC.OperationMode.get(buff.readIntU8(0))})
         md = this.addMetadatum('alarmReason','', 'reason for alarm',
-                (buff)=>{return this.constructor.AlarmReason(buff.readIntU16LE(1))})
+                (buff)=>{return buff.readIntU16LE(1)})
         md.notify=true
 
         this.addMetadatum('batteryVoltage','V', 'battery voltage', 
@@ -54,11 +56,11 @@ class VictronInverter extends _Victron{
 
     emitValuesFrom(decData){
         super.emitValuesFrom(decData)
-        const alarm = this.getMetadata().get("alarmReason").read(decData)
+        const alarm = this.getMetadatum("alarmReason").read(decData)
         if (alarm>0){
             this.emit(
                 `ALARM #${alarm} from ${this.getDisplayName()})`, 
-                { message: AlarmReason(alarm), state: 'alert'})
+                { message: VC.AlarmReason.get(alarm), state: 'alert'})
         }
     }
     

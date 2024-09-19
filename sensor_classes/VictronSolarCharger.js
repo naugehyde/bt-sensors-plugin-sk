@@ -1,6 +1,6 @@
-const _Victron = require ("./Victron/_Victron.js") 
-const VC=require("./Victron/_VictronConstants.js")
-class VictronSolarCharger extends _Victron{
+const VictronDevice = require ("./Victron/VictronDevice.js") 
+const VC = require("./Victron/_VictronConstants.js")
+class VictronSolarCharger extends VictronDevice{
 
     static async identify(device){
 

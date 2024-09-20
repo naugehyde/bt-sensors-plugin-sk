@@ -1,22 +1,11 @@
 const VictronDevice = require ("./Victron/VictronDevice.js") 
-const VC = require("./Victron/_VictronConstants.js")
+const VC = require("./Victron/VictronConstants.js")
 class VictronSolarCharger extends VictronDevice{
 
     static async identify(device){
+        return await this.identifyMode(device, 0x01)
+    }   
 
-        try{
-            const isVictron = (super.identify(device)!=null)
-            if (!isVictron) return null
-            
-            if (await this.getMode(device)==0x01)
-                return this
-
-        } catch (e){
-            console.log(e)
-            return null
-        }
-        return null
-    }
     static {
         this.metadata = new Map(super.getMetadata())
 
@@ -29,7 +18,7 @@ class VictronSolarCharger extends VictronDevice{
             (buff)=>{return buff.readInt16LE(2)/100})
         this.addMetadatum('current','A','charger battery current', 
             (buff)=>{return buff.readInt16LE(4)/10})
-        this.addMetadatum('yield','Wh', 'yield today', 
+        this.addMetadatum('yield','KWh', 'yield today', 
             (buff)=>{return buff.readUInt16LE(6)*10})
         this.addMetadatum('solarPower','W', 'solar power', 
             (buff)=>{return buff.readUInt16LE(8)})    

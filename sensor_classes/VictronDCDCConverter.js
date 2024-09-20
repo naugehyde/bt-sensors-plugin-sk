@@ -4,19 +4,7 @@ const VC=require("./Victron/VictronConstants.js")
 class VictronDCDCConverter extends VictronDevice{
     
     static async identify(device){
-
-        try{
-            const isVictron = (super.identify(device)!=null)
-            if (!isVictron) return null
-            
-            if (await this.getMode(device)==0x04)
-                return this
-
-        } catch (e){
-            console.log(e)
-            return null
-        }
-        return null
+        return await this.identifyMode(device,0x04)
     }
    
     static {
@@ -38,16 +26,7 @@ class VictronDCDCConverter extends VictronDevice{
         this.addMetadatum('offReason','', 'reason unit is off',
                 (buff)=>{return VC.OffReasons.get(buff.readUInt32LE(6))})
                 
-    }
-    emitValuesFrom(decData){
-        this.emitData("chargeState",decData)
-        this.emitData("chargerError",decData)
-        this.emitData("inputVoltage",decData);
-        this.emitData("outputVoltage",decData);
-        this.emitData("offReason",decData);
-       
-    }
-    
+    }    
 
 }
 module.exports=VictronDCDCConverter 

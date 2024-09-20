@@ -2,7 +2,7 @@ const BTSensor = require("../../BTSensor.js");
 const crypto = require('node:crypto');
 const int24 = require('int24')
 const util = require('util')
-const VC=require('./VictronConstants.js')
+const VC = require('./VictronConstants.js')
  
   class VictronDevice extends BTSensor{
 
@@ -13,6 +13,22 @@ const VC=require('./VictronConstants.js')
    
     static {
         this.getMetadata().set('advertisementKey',{description: "Advertisement Key", isParam: true})
+    }
+
+    static async identifyMode(device, mode){
+
+        try{
+            if (VictronDevice.identify(device)==null)
+                return null
+            
+            if (await this.getMode(device)==mode)
+                return this
+
+        } catch (e){
+            console.log(e)
+            return null
+        }
+        return null
     }
     
     static async identify(device){

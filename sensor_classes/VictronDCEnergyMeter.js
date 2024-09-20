@@ -24,19 +24,7 @@ const MeterType = new Map([
 class VictronDCEnergyMeter extends _Victron{
     
     static async identify(device){
-
-        try{
-            const isVictron = (super.identify(device)!=null)
-            if (!isVictron) return null
-            
-            if (await this.getMode(device)==0x0D)
-                return this
-
-        } catch (e){
-            console.log(e)
-            return null
-        }
-        return null
+        return await this.identifyMode(device, 0x0D)
     }
     async init(){
         super.init()

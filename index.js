@@ -241,7 +241,6 @@ module.exports =  function (app) {
 			for (const peripheral of options.peripherals) {
 				app.debug(`Waiting on ${peripheral.mac_address}`);	
 				app.setPluginStatus(`Waiting on ${peripheral.mac_address}`);
-				const params = {}
 				
 				createSensor(adapter, peripheral).then((sensor)=>{
 					if (sensor==null) {
@@ -252,34 +251,27 @@ module.exports =  function (app) {
 						app.debug(`Got info for ${peripheral.mac_address} `)
 						peripheral.sensor=sensor
 						if (peripheral.active) {
-							peripheral.sensor.connect().then(async (sensor)=>{
-							if (sensor){ 
-								createPaths(peripheral)
-								app.debug(`Connected to ${peripheral.mac_address}`);
-								sensor.getMetadata().forEach((metadatum, tag)=>{
-									const path = peripheral[tag];
-									if (!(path === undefined))
-										sensor.on(tag, (val)=>{
-											if (metadatum.notify){
-												app.notify(
-													tag, 
-													val,
-													plugin.id
-												  )
-											} else {
-												updatePath(path,val)
-											}
-
-									})
+							app.debug(`Connected to ${peripheral.mac_address}`);
+							createPaths(peripheral)
+							sensor.getMetadata().forEach((metadatum, tag)=>{
+								const path = peripheral[tag];
+								if (!(path === undefined))
+									sensor.on(tag, (val)=>{
+										if (metadatum.notify){
+											app.notify(	tag, val, plugin.id )
+										} else {
+											updatePath(path,val)
+										}
 								})
+							})
+							peripheral.sensor.connect().then(async (sensor)=>{
 								app.setPluginStatus(`Connected to ${++found} sensors.`);
-							}
 							})
 						}
-					}
+					}	
 				})
 				.catch((error)=>
-					{app.debug(`Unable to connect to ${peripheral.mac_address}. Reason: ${error.message}`)	})
+					{app.debug(`Sensor at ${peripheral.mac_address} unavailable. Reason: ${error.message}`)	})
 			}
 			peripherals=options.peripherals
 		}
@@ -287,13 +279,7 @@ module.exports =  function (app) {
 	plugin.stop =  async function () {
 		app.debug("Stopping plugin")
 		var adapter = await bluetooth.getAdapter(app.settings?.btAdapter??adapterID)
-		if (await adapter.isDiscovering())
-			try{
-				await adapter.stopDiscovery()
-				app.debug('Scan stopped')
-			} catch (e){
-				app.debug(`Error stopping scan: ${e.message}`)
-			}
+
 		if ((peripherals)){
 			for (var p of peripherals) {
 				if (p.sensor !== undefined) {
@@ -308,43 +294,16 @@ module.exports =  function (app) {
 			}
 		}
 
+		if (await adapter.isDiscovering())
+			try{
+				await adapter.stopDiscovery()
+				app.debug('Scan stopped')
+			} catch (e){
+				app.debug(`Error stopping scan: ${e.message}`)
+			}
 		app.debug('BT Sensors plugin stopped')
 
 	}
-	plugin.stopAsync =  function () {
-		app.debug("Stopping plugin")
-		const promises = []
-		if ((peripherals)){
-			for (var p of peripherals) {
-				if (p.sensor !== undefined) {
-					var promise = new Promise( async function (resolve, reject) {
-						try{
-							app.debug(`Disconnecting from ${p.mac_address}`)
-							await p.sensor.disconnect()
-							app.debug(`Disconnected from ${p.mac_address}`)
-							resolve(p)
-						
-						}
-						catch (e){
-							app.debug(`Error disconnecting from ${p.mac_address}: ${e.message}`)
-							resolve(p)
-						}
-					})
-				}				
-				promises.push(promise)
-			}
-		}
-		promises.push(new Promise(async (resolve,reject)=>{
-			var adapter = await bluetooth.getAdapter(app.settings?.btAdapter??adapterID)
-			await adapter.stopDiscovery()
-			app.debug('Scan stopped')
-			resolve(adapter)
-		}))
-
-		Promise.allSettled(promises).then((resp)=>{
-			app.debug('BT Sensors plugin stopped')
-		})
-
-	}
+	
 	return plugin;
 }

@@ -23,7 +23,7 @@ class TPS extends BTSensor{
     static metadata = new Map()
                     .set('temp',{unit:'K', description: 'temperature'})
 
-    callback () {
+    async callback (propertiesChanged) {
         try {
             //console.log(propertiesChanged)
             //if (this.constructor.name==='TPS'){
@@ -42,29 +42,8 @@ class TPS extends BTSensor{
     }
                             
     async connect() {
-        //TBD figure out what the heck this device is actually broadcasting
-        //For now it appears the current temp is in the key of the data but there are multiple keys
-        //(async ()=>{ 
-            //const c= await this.constructor.identify(this.device)
-             //const c = await this.device.getUUIDs()//helper.prop('UUIDs')
-             //console.log( c )
-        //})()
-        this.cb = async (propertiesChanged) => {
-            try {
-                const md = await this.device.getProp('ManufacturerData')
-                if (!md){
-                    return
-                }
-                const keys = Object.keys(md) 
-                this.emit("temp", (parseInt(keys[keys.length-1])/100) + 273.1);
-                
-            }
-            catch (error) {
-                throw new Error(`Unable to read data}: ${error.message}` )
-            }
-        }
-        this.cb();
-        this.device.helper.on('PropertiesChanged', this.cb)
+        this.callback();
+        this.device.helper.on('PropertiesChanged', this.callback())
         return this
     }
     async disconnect(){

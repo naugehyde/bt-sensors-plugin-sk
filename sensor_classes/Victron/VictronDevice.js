@@ -117,10 +117,10 @@ const VC = require('./VictronConstants.js')
                     await this.device.getManufacturerData()             
                     const buff=data[0x2e1];
                     const decData=this.decrypt(buff)
-                    await this.emitValuesFrom(decData)
+                    this.emitValuesFrom(decData)
                 }
                 catch (error) {
-                    throw new Error(`Unable to read data from ${util.inspect(await this.getDisplayName())}: ${error}` )
+                    throw new Error(`Unable to read data from ${await this.getDisplayName()}: ${error}` )
                 }
             }
             this.cb()
@@ -132,5 +132,11 @@ const VC = require('./VictronConstants.js')
     gatt_connect(){
         throw new Error( "GATT Connection unimplemented")
     }
+    disconnect(){
+        super.disconnect()
+        if (this.cb)
+            this.device.helper.removeListener('PropertiesChanged',this.cb)
+    }
+
 }
 module.exports=VictronDevice

@@ -1,5 +1,4 @@
 const BTSensor = require("../BTSensor");
-const LYWSD03MMC = require('./LYWSD03MMC.js')
 class ATC extends BTSensor{
 
     constructor(device,params){
@@ -20,9 +19,13 @@ class ATC extends BTSensor{
     }
   
     static {
-        this.metadata = new Map( LYWSD03MMC.getMetadata())
+        this.metadata = new Map(super.getMetadata())
+        this.addMetadatum('temp','K', 'temperature',
+            (buff,offset)=>{return ((buff.readInt16LE(offset))/100) + 273.1})
         this.addMetadatum('humidity','ratio', 'humidity',
-            (buff,offset)=>{return ((buff.readInt16LE(offset))/10000)})
+            (buff,offset)=>{return ((buff.readUInt16LE(offset))/10000)})
+        this.addMetadatum('voltage', 'V',  'sensor battery voltage',
+            (buff,offset)=>{return ((buff.readUInt16LE(offset))/1000)})
     }
 
     async connect() {

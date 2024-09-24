@@ -18,12 +18,12 @@ class VictronSolarCharger extends VictronDevice{
             (buff)=>{return buff.readInt16LE(2)/100})
         this.addMetadatum('current','A','charger battery current', 
             (buff)=>{return buff.readInt16LE(4)/10})
-        this.addMetadatum('yield','KWh', 'yield today', 
+        this.addMetadatum('yield','Wh', 'yield today in Watt-hours', 
             (buff)=>{return buff.readUInt16LE(6)*10})
         this.addMetadatum('solarPower','W', 'solar power', 
             (buff)=>{return buff.readUInt16LE(8)})    
         this.addMetadatum('externalDeviceLoad','A', 'external device load', 
-            (buff)=>{return buff.readUInt16LE(10)})    
+            (buff)=>{return buff.readUInt8(10)})    
         }
 
 }

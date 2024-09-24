@@ -1,17 +1,18 @@
 const BTSensor = require("../BTSensor");
 
-class LYWSD03MMC extends BTSensor{
+class Xiaomi extends BTSensor{
     constructor(device,params){
         super(device,params)
         this.pollFreq = params?.pollFreq
+        this.bindKey = params?.bindKey
     }
 
     static async identify(device){
         try{
-            if (await device.getNameSafe() == 'LYWSD03MMC' || await device.getAliasSafe() == 'LYWSD03MMC') 
-            {
-                return this
-            }
+            const sd = await device.getProp('ServiceData')
+            if (sd == null || sd.length==0) return null
+            const keys = Object.keys(sd) 
+            if (parseInt(keys[0].substring(0,8),16)==0xFE95) return this
         } catch (e){
             console.log(e)
             return null
@@ -20,12 +21,17 @@ class LYWSD03MMC extends BTSensor{
     }
     static {
         this.metadata = new Map(super.getMetadata())
-        const md = this.addMetadatum("pollFreq", "s", "polling frequency in seconds")
+        var  md = this.addMetadatum("pollFreq", "s", "polling frequency in seconds")
+        md.isParam=true
+
+        //f8a49c8c7fe0df5a0028538ade2c3a16
+
+        md = this.addMetadatum("bindKey", "", "bindkey for decryption")
         md.isParam=true
         this.addMetadatum('temp','K', 'temperature',
             (buff,offset)=>{return ((buff.readInt16LE(offset))/100) + 273.1})
         this.addMetadatum('humidity','ratio', 'humidity',
-            (buff,offset)=>{return ((buff.readInt8(offset))/100)})
+            (buff,offset)=>{return ((buff.readUInt8(offset))/100)})
         this.addMetadatum('voltage', 'V',  'sensor battery voltage',
             (buff,offset)=>{return ((buff.readUInt16LE(offset))/1000)})
         
@@ -46,19 +52,18 @@ class LYWSD03MMC extends BTSensor{
         if (this.pollFreq){
             this.device.disconnect().then(()=>{
                 this.intervalID = setInterval( async () => {             
-                    await this.#connect()
-                    this.gattCharacteristic.readValue()
-                    .then((buffer)=>{
+                    try{
+                        await this.#connect()
+                        const buffer = await this.gattCharacteristic.readValue()
                         this.#emitValues(buffer)
-                    })
-                    .catch((error)=>{
+                    }
+                    catch{(error)
                         throw new Error(`unable to get values for device LYWSD03MMC:${error.message}`)
-                    })
-                    this.device.disconnect()
-                    .then(()=>{})
-                    .catch((error)=>{
+                    }
+                    try { await this.device.disconnect() }
+                    catch{(error)
                         console.log("Error disconnecting from LYWSD03MMC: "+error.message)
-                    })
+                    }
                     }, this.pollFreq*1000)
                 })
             }
@@ -97,4 +102,4 @@ class LYWSD03MMC extends BTSensor{
         }
     }
 }
-module.exports=LYWSD03MMC
+module.exports=Xiaomi

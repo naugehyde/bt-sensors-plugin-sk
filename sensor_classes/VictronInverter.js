@@ -30,12 +30,12 @@ class VictronInverter extends VictronDevice{
            
                 })
         this.addMetadatum('acVoltage','V','AC Voltage',  (buff)=>{
-            return parseInt(toBinaryString(buff.slice(7,4)).slice(0,15),2)/100
+            return parseInt(toBinaryString(buff.subarray(7,4)).subarray(0,15),2)/100
         })
 
         this.addMetadatum('acCurrent','A', 'AC Current',
             (buff)=>{
-                return parseInt(toBinaryString(buff.slice(7,4)).slice(15,27),2)/10
+                return parseInt(toBinaryString(buff.subarray(7,4)).subarray(15,27),2)/10
             }
         )
                 

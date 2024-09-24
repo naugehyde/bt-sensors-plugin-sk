@@ -188,7 +188,7 @@ module.exports =  function (app) {
 		catch (e) {
 			if (s)
 				s.disconnect()		
-			app.debug("Unable to connect to device " + params.mac_address +". Reason: "+ e.message )	
+			app.debug("Unable to communicate with device " + params.mac_address +". Reason: "+ e.message )	
 			return null							
 		}
 	}

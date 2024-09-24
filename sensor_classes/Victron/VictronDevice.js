@@ -12,7 +12,8 @@ const VC = require('./VictronConstants.js')
     }
    
     static {
-        this.getMetadata().set('advertisementKey',{description: "Advertisement Key", isParam: true})
+        this.metadata = new Map(super.getMetadata())
+        this.metadata.set('advertisementKey',{description: "Advertisement Key", isParam: true})
     }
 
     static async identifyMode(device, mode){
@@ -78,7 +79,6 @@ const VC = require('./VictronConstants.js')
         if (!md) throw Error("Unable to get Manufacturer data")
         this.model_id=md[0x2e1].value.readUInt16LE(2)
     }
-
     alarmReason(alarmValue){
         return this.constructor.AlarmReason[alarmValue]
     }

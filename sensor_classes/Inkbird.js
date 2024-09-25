@@ -2,10 +2,6 @@ const BTSensor = require("../BTSensor");
 
 class Inkbird extends BTSensor{
 
-    constructor(device, params){
-        super(device,params)
-    }
-
     static async identify(device){
         try{
             const uuids = await device.helper.prop('UUIDs')
@@ -36,27 +32,28 @@ class Inkbird extends BTSensor{
         }
     }
 
-    callback () {
-        try {            
-            this.device.getManufacturerData().then((md)=>{
-                if (!(md===undefined)) {
-                    const keys = Object.keys(md) 
-                    const key = keys[keys.length-1]
-                    const data = md[keys[keys.length-1]]
-                    this.emit("temp", (parseInt(key)/100) + 273.1);
-                    this.emit('battery', data[5]/100)
-                    if (this.getMetadata().has('humidity')){
-                        this.emit("temp", data.readUInt16LE(0)/100);
-                    }
-                }
-            })
-        }
-        catch (error) {
-            throw new Error(`Unable to read data: ${error}` )
-        }
-    }
+   
                             
     async connect() {
+        this.callback = ()=> {
+            try {            
+                this.device.getManufacturerData().then((md)=>{
+                    if (!(md===undefined)) {
+                        const keys = Object.keys(md) 
+                        const key = keys[keys.length-1]
+                        const data = md[keys[keys.length-1]]
+                        this.emit("temp", (parseInt(key)/100) + 273.1);
+                        this.emit('battery', data[5]/100)
+                        if (this.getMetadata().has('humidity')){
+                            this.emit("temp", data.readUInt16LE(0)/100);
+                        }
+                    }
+                })
+            }
+            catch (error) {
+                throw new Error(`Unable to read data: ${error}` )
+            }
+        }
         this.callback();
         this.device.helper.on('PropertiesChanged', this.callback)
         return this
@@ -64,8 +61,8 @@ class Inkbird extends BTSensor{
 
     async disconnect(){
         super.disconnect()
-        if (this.cb)
-            this.device.helper.removeListener('PropertiesChanged',this.cb)
+        if (this.callback)
+            this.device.helper.removeListener('PropertiesChanged',this.callback)
     }
 }
 module.exports=Inkbird

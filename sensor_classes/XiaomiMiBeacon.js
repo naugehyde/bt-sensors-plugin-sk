@@ -229,8 +229,9 @@ class XiaomiMiBeacon extends BTSensor{
     }
     async init(){
         super.init()
-        const data = await this.device.getProp('ServiceData')
-        if (!data) throw Error("Unable to get Service data")
+        const sd = await this.device.getProp('ServiceData')
+        if (!sd) throw Error("Unable to get Service data")
+        const data = sd[this.constructor.SERVICE_MIBEACON].value
         const frameControl = data[0] + (data[1] << 8)
         this.deviceID = data[2] + (data[3] << 8)
         this.isEncrypted = (frameControl >> 3) & 1
@@ -238,7 +239,7 @@ class XiaomiMiBeacon extends BTSensor{
     }   
 
     getName(){
-        const dt = DEVICE_TYPES[this.deviceID]
+        const dt = DEVICE_TYPES.get(this.deviceID)
         return `Xiaomi ${dt.name} ${dt.model}`
     }
    

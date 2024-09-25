@@ -24,7 +24,8 @@ class Xiaomi extends BTSensor{
         var  md = this.addMetadatum("pollFreq", "s", "polling frequency in seconds")
         md.isParam=true
 
-        //f8a49c8c7fe0df5a0028538ade2c3a16
+        //3985f4ebc032f276cc316f1f6ecea085
+        //8a1dadfa832fef54e9c1d190
 
         md = this.addMetadatum("bindKey", "", "bindkey for decryption")
         md.isParam=true

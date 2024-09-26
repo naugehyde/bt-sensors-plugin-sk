@@ -1,9 +1,7 @@
 const VictronDevice = require("./Victron/VictronDevice");
 const VC=require("./Victron/VictronConstants.js")
 
-function toBinaryString(buff){
-    return [...buff].map((b) => b.toString(2).padStart(8, "0")).join("");
-    }
+
 class VictronInverter extends VictronDevice{
     static async identify(device){
         return await this.identifyMode(device, 0x03)
@@ -24,18 +22,18 @@ class VictronInverter extends VictronDevice{
         this.addMetadatum('acPower','W', 'AC power (in watts: Apparent Power * Power Factor)', 
                 (buff)=>{const va = buff.readUInt16LE(5)
                     if (v == 0x7fff) 
-                        return 0
+                        return NaN
                    else
                        return va*this.powerFactor
            
                 })
         this.addMetadatum('acVoltage','V','AC Voltage',  (buff)=>{
-            return parseInt(toBinaryString(buff.subarray(7,4)).subarray(0,15),2)/100
+            return (buff.readUInt16BE(5)>>1)/10
         })
 
         this.addMetadatum('acCurrent','A', 'AC Current',
             (buff)=>{
-                return parseInt(toBinaryString(buff.subarray(7,4)).subarray(15,27),2)/10
+                return ((buff.readUInt32BE(5)&0x7ffff)>>6)/10
             }
         )
                 

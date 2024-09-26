@@ -201,6 +201,7 @@ class XiaomiMiBeacon extends BTSensor{
 
             const data = await this.device.getProp("ServiceData")
             var dec
+            console.log(data[this.constructor.SERVICE_MIBEACON].value)
             if (this.encryptionVersion >= 4) {
                 dec = this.decryptV4and5(data[this.constructor.SERVICE_MIBEACON].value)
             } else {
@@ -208,18 +209,16 @@ class XiaomiMiBeacon extends BTSensor{
                     dec=this.decryptV2and3(data)
                 }
             }
-
+            console.log(dec)
             switch(dec[0]){
             case 0x04:    
-                console.log("temp")
                 this.emit("temp",(dec.readInt16LE(3)/10)+273.15)  
                 break        
             case 0x06:
-                console.log("humidity")
                 this.emit("humidity",(dec.readInt16LE(3)/10))          
                 break
             default:
-                console.log("wait wha?"+ dec[0])
+                console.log("wait wha? "+ dec[0])
             }
         }
         await this.cb()

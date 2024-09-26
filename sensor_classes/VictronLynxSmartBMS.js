@@ -42,7 +42,7 @@ class VictronLynxSmartBMS extends VictronDevice{
         this.addMetadatum('soc','','state of charge',
             (buff)=>{return ((buff.readUInt16BE(11)&0x3fff)>>4)/100})
         this.addMetadatum('consumedAh','Ah','amp-hours consumed',
-            (buff)=>{return (int24.readInt24BE(12)>>4)/10} )
+            (buff)=>{return (int24.readUInt24BE(12)>>4)/10} )
         this.addMetadatum('temp', 'K', 'battery temperature',
             (buff)=>{return ((buff.readUInt8(15)>>1)-40)+273.15})
     }

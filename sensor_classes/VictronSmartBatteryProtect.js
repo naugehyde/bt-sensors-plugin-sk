@@ -64,4 +64,4 @@ class VictronSmartBatteryProtect extends VictronDevice{
         }
 
 }
-module.exports=VictronSolarCharger 
+module.exports=VictronSmartBatteryProtect 

@@ -74,8 +74,8 @@ const VC = require('./VictronConstants.js')
     }
 
     async init(){
-        super.init()
-        const md = await this.device.getProp('ManufacturerData')
+        await super.init()
+        const md = this.currentProperties['ManufacturerData']
         if (!md) throw Error("Unable to get Manufacturer data")
         this.model_id=md[0x2e1].value.readUInt16LE(2)
     }
@@ -105,13 +105,13 @@ const VC = require('./VictronConstants.js')
         return decData
         
     }
-    async getName(){
+    getName(){
         return `Victron ${this.getModelName()}`
     }
    
     async connect() {
         if (this.advertisementKey){
-            this.cb = async (propertiesChanged) => {
+            this.cb = async (props) => {
                 try{
                     const data = 
                     await this.device.getManufacturerData()             

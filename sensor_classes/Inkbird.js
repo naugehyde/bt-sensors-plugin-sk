@@ -14,7 +14,7 @@ class Inkbird extends BTSensor{
                 return this
             }
         } catch (e){
-            console.log(e)
+            this.debug(e)
             return null
         }
         return null
@@ -27,42 +27,26 @@ class Inkbird extends BTSensor{
     }
 
     async init(){
-        if (await this.device.getNameSafe() == 'sps'){
+        await super.init()
+        if (this.getName() == 'sps'){
             this.addMetadatum('humidity','ratio', 'humidity')
         }
     }
 
-   
-                            
-    async connect() {
-        this.callback = ()=> {
-            try {            
-                this.device.getManufacturerData().then((md)=>{
-                    if (!(md===undefined)) {
-                        const keys = Object.keys(md) 
-                        const key = keys[keys.length-1]
-                        const data = md[keys[keys.length-1]]
-                        this.emit("temp", (parseInt(key)/100) + 273.1);
-                        this.emit('battery', data[5]/100)
-                        if (this.getMetadata().has('humidity')){
-                            this.emit("temp", data.readUInt16LE(0)/100);
-                        }
-                    }
-                })
-            }
-            catch (error) {
-                throw new Error(`Unable to read data: ${error}` )
+   async propertiesChanged(props){
+        super.propertiesChanged(props)    
+        if (props.ManufacturerData) {
+            const keys = Object.keys(this.currentProperties.ManufacturerData) 
+            const key = keys[keys.length-1]
+            const data = this.getManufacturerData(key)
+            if (!data)
+                throw new Error("Unable to get manufacturer data for "+this.getDisplayName())
+            this.emit("temp", (parseInt(key)/100) + 273.1);
+            this.emit('battery', data[5]/100)
+            if (this.getMetadata().has('humidity')){
+                this.emit("temp", data.readUInt16LE(0)/100);
             }
         }
-        this.callback();
-        this.device.helper.on('PropertiesChanged', this.callback)
-        return this
-    }
-
-    async disconnect(){
-        super.disconnect()
-        if (this.callback)
-            this.device.helper.removeListener('PropertiesChanged',this.callback)
-    }
+   }                         
 }
 module.exports=Inkbird

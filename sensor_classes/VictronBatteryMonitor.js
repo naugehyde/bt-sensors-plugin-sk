@@ -36,7 +36,7 @@ class VictronBatteryMonitor extends VictronDevice{
 
     characteristics=[]
     async init(){
-        super.init()
+        await super.init()
         const modecurrent = await this.getAuxModeAndCurrent()
         this.auxMode= modecurrent.auxMode
         switch(this.auxMode){

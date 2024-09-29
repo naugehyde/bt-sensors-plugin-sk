@@ -1,3 +1,5 @@
+const { Variant } = require('dbus-next');
+const { log } = require('node:console');
 const EventEmitter = require('node:events');
 
 /**
@@ -32,7 +34,9 @@ class BTSensor {
     static getMetadata(){
         return this.metadata
     }
-
+    static {
+        this.addMetadatum("RSSI","db","Signal strength in db")
+    }
     static addMetadatum(tag, ...args){
         var metadatum = new this.Metadatum(tag, ...args)
         this.getMetadata().set(tag,metadatum)
@@ -69,8 +73,8 @@ class BTSensor {
         return [...buff].map((b) => b.toString(2).padStart(8, "0")).join("");
     }
 
-    init(){
-
+    async init(){
+        this.currentProperties=await this.device.helper.props()
     }
     addMetadatum(tag, ...args){
         var metadatum = new this.Metadatum(tag, ...args)
@@ -88,13 +92,13 @@ class BTSensor {
     }
 
     async getSignalStrength(){
-        const rssi = await this.device.getProp("RSSI")
+        const rssi =  this.getRSSI()
         if (!rssi) return 0
         return 150-(5/3*(Math.abs(rssi)))
     }
 
-    async getBars(){
-        const ss = await this.getSignalStrength()
+     getBars(){
+        const ss =  this.getSignalStrength()
         var bars = ""
       
         if (ss>=10)
@@ -109,24 +113,73 @@ class BTSensor {
 
     }
 
-    async getName(){
-        return await this.device.getNameSafe()
+     getName(){
+        return this.currentProperties.Name
     }
-    async getDisplayName(){
-        return `${await this.getName()} (${await this.getMacAddress()}) ${await this.getBars()}`
+     getDisplayName(){
+        return `${ this.getName()} (${ this.getMacAddress()}) ${ this.getBars()}`
     }
 
-    async getMacAddress(){
-        return this.device.getAddress()
+     getMacAddress(){
+        return this.currentProperties.Address
     }
+    getRSSI(){
+        return this.currentProperties.RSSI
+    }
+ 
+    valueIfVariant(obj){
+        const isVariant = obj.constructor && obj.constructor.name=='Variant'
+        if (isVariant) 
+            return obj.value
+        else
+            return obj
+        
+    }
+/**
+ * callback function on device properties changing
+ */
+    async propertiesChanged(props){
+            
+        if (props.RSSI) {
+            this.currentProperties.RSSI=this.valueIfVariant(props.RSSI)
+            this.emit("RSSI", this.currentProperties.RSSI)
+        }
+        if (props.ServiceData)
+            this.currentProperties.ServiceData=this.valueIfVariant(props.ServiceData)
+            
+
+        if (props.ManufacturerData)
+            this.currentProperties.ManufacturerData=this.valueIfVariant(props.ManufacturerData)
+
+    }
+   
   /**
    *  Connect to sensor.
    *  This is where the logic for connecting to sensor, listening for changes in values and emitting those values go
-   * @throws Error if unimplemented by subclass
    */
+    getServiceData(key){
+        if (this.currentProperties.ServiceData)
+            return this.valueIfVariant (this.currentProperties.ServiceData[key])
+        else
+            return null
 
-    connect(){
-        throw new Error("connect() member function must be implemented by subclass")
+    }
+    getManufacturerData(key){
+        if (this.currentProperties.ManufacturerData)
+            return this.valueIfVariant (this.currentProperties.ManufacturerData[key])
+        else
+            return null
+    }
+    
+    async connect(){
+        this.propertiesChanged.bind(this)
+        this.propertiesChanged(this.currentProperties)
+        this.device.helper.on("PropertiesChanged",
+        ((props)=> {
+            this.propertiesChanged(props)
+        }))
+        return this
+        //throw new Error("connect() member function must be implemented by subclass")
     }
   /**
    *  Discconnect from sensor.
@@ -135,6 +188,7 @@ class BTSensor {
 
     disconnect(){
         this.eventEmitter.removeAllListeners()
+        this.device.helper.removeListener(this, this.propertiesChanged)
     }
 
    /**

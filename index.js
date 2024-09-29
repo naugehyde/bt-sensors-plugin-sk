@@ -89,15 +89,20 @@ module.exports =  function (app) {
 		for (var [clsName, cls] of classMap) {
 			const c = await cls.identify(device)
 			if (c) {
+				
 				if (c.name.startsWith("_")) continue
-				const d = new c(device,params)	
+				const d = new c(device,params)
+				d.debug=app.debug
 				await d.init()
 				return d
 			}
 		}} catch(error){
 			app.debug(`Unable to instantiate ${await device.getAddress()}: ${error.message} `)
 		}
-		return new (classMap.get('UNKNOWN'))(device)
+		//if we're here ain't got no class for the device
+		const d = new (classMap.get('UNKNOWN'))(device)
+		await d.init()
+		return d
 	}
 
 	function createPaths(peripheral_config){
@@ -132,7 +137,6 @@ module.exports =  function (app) {
 		type: "object",
 		description: "",
 		properties: {
-			adapter: {title: "Bluetooth Adapter", type: "string", enum:[], default:'hci0' },
 			discoveryTimeout: {title: "Initial scan timeout (in seconds)", type: "number",default: 45 },
 			peripherals:
 				{ type: "array", title: "Sensors", items:{
@@ -175,111 +179,156 @@ module.exports =  function (app) {
 	}
 
 	async function createSensor(adapter, params) {
+		return new Promise( ( resolve, reject )=>{
 		var s
-		if (sensorMap.has(params.mac_address)) 
-			return sensorMap.get(params.mac_address)
 		try {
-			const device = await adapter.waitDevice(params.mac_address,params.discoveryTimeout*1000)
-			s = await instantiateSensor(device,params) 
-			sensorMap.set(params.mac_address,s)
-			addSensorToList(s)
-			return s
+			app.debug(`Waiting on ${params.mac_address}`)
+			adapter.waitDevice(params.mac_address,params.discoveryTimeout*1000)
+			.then(async (device)=> { 
+				app.debug(`Found ${params.mac_address}`)
+				s = await instantiateSensor(device,params) 
+				sensorMap.set(params.mac_address,s)
+				await addSensorToList(s)
+				resolve(s)
+			})
 		}
 		catch (e) {
 			if (s)
 				s.disconnect()		
 			app.debug("Unable to communicate with device " + params.mac_address +". Reason: "+ e.message )	
-			return null							
+			reject( null )							
 		}
-	}
-	
-	async function startScanner(){
-
-		bluetooth.getAdapter(app.settings?.btAdapter??adapterID).then(async (adapter) => {
-			app.debug("Starting scan...");
-			try{ await adapter.stopDiscovery() } catch(error){}
-			try{ await adapter.startDiscovery() } catch(error){}
-			if (!(await adapter.isDiscovering())) 
-				throw new Error  ("Could not start scan: Aborting")
-			plugin.schema.description='Scanning for Bluetooth devices...'	
-			setTimeout( async () => {
-				adapter.devices().then( async (macs)=>{
-					app.debug(`Found: ${util.inspect(macs)}`)
-					for (var mac of macs) {	
-						await createSensor(adapter,
-							 {mac_address:mac, discoveryTimeout: discoveryTimeout})						
-					}
-					plugin.schema.description=`Scan complete. Found ${macs.length} Bluetooth devices.`
-				})
-			}, app.settings?.btDiscoveryTimeout ?? discoveryTimeout * 1000)
 		})
 	}
-	const sensorMap=new Map()
-	loadClassMap()
-	updateAdapters()
-	startScanner()
-	plugin.start = async function (options, restartPlugin) {
+	
+	async function startScanner() {
+		
+		app.debug("Starting scan...");
+		try{ await adapter.stopDiscovery() } catch(error){}
+		try{ await adapter.startDiscovery() } catch(error){}
+		//if (!await adapter.isDiscovering()) 
+		//	throw new Error  ("Could not start scan: Aborting")
+	}
 
+	function findDevices(){
+
+		plugin.schema.description='Scanning for Bluetooth devices...'
+		const p = new Promise((resolve,reject)=>{setTimeout(  () => {
+			adapter.devices().then( (macs)=>{
+				for (var mac of macs) {	
+					if (!sensorMap.has(mac)) 
+						createSensor(adapter,
+								{mac_address:mac, discoveryTimeout: discoveryTimeout*1000})						
+				}
+				resolve(macs)
+			})
+		}, app.settings?.btDiscoveryTimeout ?? discoveryTimeout * 1000)
+		})
+		p.then((macs)=>{
+			app.debug(`Found: ${util.inspect(macs)}`)
+			plugin.schema.description=`Scan complete. Found ${macs.length} Bluetooth devices.`
+		})
+	
+	}
+	var discoveryInterval
+	function findDeviceLoop(){
+
+		//plugin.schema.description='Scanning for Bluetooth devices...'
+		discoveryInterval = setInterval(  () => {
+			adapter.devices().then( (macs)=>{
+				for (var mac of macs) {	
+					if (!sensorMap.has(mac)) 
+						createSensor(adapter,
+							{mac_address:mac, discoveryTimeout: discoveryTimeout*1000})
+					//else { 
+					//	const sensor = sensorMap.get(mac) 
+					//	sensor.device.getRSSI().then((rssi)=>{
+					//		sensor.emit("RSSI",rssi)
+					//	})
+					//}			
+				}
+			})
+		}, 30000)
+	
+	}
+
+	const sensorMap=new Map()
+	var adapter
+	bluetooth.getAdapter(app.settings?.btAdapter??adapterID).then((a)=>{
+		adapter=a
+	})
+	
+	plugin.started=false
+
+	loadClassMap()
+	//updateAdapters()
+	sleep(3000).then(()=>{ //wait to see if plugin is enabled and started
+		if (!plugin.started)
+			startScanner().then(()=>{findDeviceLoop()})
+	})
+
+	plugin.start = async function (options, restartPlugin) {
+		plugin.started=true
+		sensorMap.clear()
+		await sleep(5000) //Make sure plugin.stop() completes first			
+						  //plugin.start is called asynchronously for some reason
+						  //and does not wait for plugin.stop to complete
+		startScanner()
 		if (starts>0){
-			app.debug('Plugin stopping...');
-			await sleep(10000) //Make sure plugin.stop() completes first
 			app.debug('Plugin restarting...');
 			plugin.schema.properties.peripherals.items.dependencies.mac_address.oneOf=[]
-			sensorMap.clear()
-			startScanner()
 		} else {
 			app.debug('Plugin started');
 		}
 		starts++
-		var adapter= await bluetooth.getAdapter(options?.adapter??app.settings?.btAdapter??adapterID)
-		adapter.helper.on("PropertiesChanged", ((prop)=>{
-			app.debug(prop)
-		})
-		)
+		if (!await adapter.isDiscovering())
+			try{
+				await adapter.startDiscovery()
+			} catch (e){
+				app.debug(`Error starting scan: ${e.message}`)
+		}
 		if (!(options.peripherals===undefined)){
 			var found = 0
 			for (const peripheral of options.peripherals) {
-				app.debug(`Waiting on ${peripheral.mac_address}`);	
-				app.setPluginStatus(`Waiting on ${peripheral.mac_address}`);
+				app.setPluginStatus(`Setting up ${peripheral.mac_address}`);
 				
-				createSensor(adapter, peripheral).then((sensor)=>{
-					if (sensor==null) {
-						app.debug(`Unable to contact ${peripheral.mac_address}`)
-						//put paths in oneof based on options (which should exist)
-					}
-					else {
-						app.debug(`Got info for ${peripheral.mac_address} `)
-						peripheral.sensor=sensor
-						if (peripheral.active) {
+				createSensor(adapter, peripheral)
+				.then((sensor)=>{
+					app.debug(`Got info for ${peripheral.mac_address} `)
+					peripheral.sensor=sensor
+					if (peripheral.active) {
+						createPaths(peripheral)
+						sensor.getMetadata().forEach((metadatum, tag)=>{
+							const path = peripheral[tag];
+							if (!(path === undefined))
+								sensor.on(tag, (val)=>{
+									if (metadatum.notify){
+										app.notify(	tag, val, plugin.id )
+									} else {
+										updatePath(path,val)
+									}
+							})
+						})
+						peripheral.sensor.connect().then( ()=>{
 							app.debug(`Connected to ${peripheral.mac_address}`);
-							createPaths(peripheral)
-							sensor.getMetadata().forEach((metadatum, tag)=>{
-								const path = peripheral[tag];
-								if (!(path === undefined))
-									sensor.on(tag, (val)=>{
-										if (metadatum.notify){
-											app.notify(	tag, val, plugin.id )
-										} else {
-											updatePath(path,val)
-										}
-								})
-							})
-							peripheral.sensor.connect().then(async (sensor)=>{
-								app.setPluginStatus(`Connected to ${++found} sensors.`);
-							})
-						}
-					}	
+							app.setPluginStatus(`Connected to ${++found} sensors.`);
+						})
+					}
+
 				})
 				.catch((error)=>
-					{app.debug(`Sensor at ${peripheral.mac_address} unavailable. Reason: ${error.message}`)	})
+					{
+						app.debug(`Sensor at ${peripheral.mac_address} unavailable. Reason: ${error.message}`)	
+						//add sensor to list with known options
+					})
 			}
+			if (!discoveryInterval) 
+				findDeviceLoop()
 			peripherals=options.peripherals
 		}
 	} 
 	plugin.stop =  async function () {
 		app.debug("Stopping plugin")
-		var adapter = await bluetooth.getAdapter(app.settings?.btAdapter??adapterID)
-
 		if ((peripherals)){
 			for (var p of peripherals) {
 				if (p.sensor !== undefined) {
@@ -293,8 +342,12 @@ module.exports =  function (app) {
 				}				
 			}
 		}
+		if (discoveryInterval) {
+			clearInterval(discoveryInterval)
+			discoveryInterval=null
+		}
 
-		if (await adapter.isDiscovering())
+		if (adapter && await adapter.isDiscovering())
 			try{
 				await adapter.stopDiscovery()
 				app.debug('Scan stopped')

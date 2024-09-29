@@ -27,30 +27,14 @@ class ATC extends BTSensor{
         this.addMetadatum('voltage', 'V',  'sensor battery voltage',
             (buff,offset)=>{return ((buff.readUInt16LE(offset))/1000)})
     }
-
-    async connect() {
-        this.cb = (propertiesChanged) => {
-            try{
-                this.device.getServiceData().then((data)=>{             
-                    //TBD Check if the service ID is universal across ATC variants
-                    const buff=data['0000181a-0000-1000-8000-00805f9b34fb'];
-                    this.emitData("temp", buff, 6)
-                    this.emitData("humidity", buff, 8)
-                    this.emitData("voltage", buff, 10)
-                })
-            }
-            catch (error) {
-                throw new Error(`Unable to read data from ${util.inspect(device)}: ${error}` )
-            }
-        }
-        this.cb()
-        this.device.helper.on('PropertiesChanged', this.cb)
-        return this
-    }
-    async disconnect(){
-        super.disconnect()
-        if (this.cb)
-            this.device.helper.removeListener('PropertiesChanged',this.cb)
-    }
+    propertiesChanged(props){
+        super.propertiesChanged(props)    
+        const buff = this.getServiceData("0000181a-0000-1000-8000-00805f9b34fb")
+        if (!buff)
+            throw new Error("Unable to get service data for "+this.getDisplayName())
+        this.emitData("temp", buff, 6)
+        this.emitData("humidity", buff, 8)
+        this.emitData("voltage", buff, 10)
+    }                    
 }
 module.exports=ATC

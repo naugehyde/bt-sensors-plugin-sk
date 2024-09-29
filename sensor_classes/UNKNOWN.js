@@ -4,19 +4,18 @@ class UNKNOWN extends BTSensor{
     constructor(device, params){
         super(device, params)
     }
-
-
     static identify(device){
         return null
     }
-    getMetadata() { 
-        return new Map()
-    }
-    async getName(){
+    getName(){
         return "Unknown device"
     }
+
     async connect() {
-        return this
+        return super.connect()
+    }
+     disconnect() {
+        return super.disconnect()
     }
 }
 module.exports=UNKNOWN

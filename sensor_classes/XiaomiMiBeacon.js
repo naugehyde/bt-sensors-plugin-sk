@@ -95,6 +95,7 @@ class XiaomiMiBeacon extends BTSensor{
         this.metadata = new Map(super.getMetadata())
         var  md = this.addMetadatum("pollFreq", "s", "polling frequency in seconds")
         md.isParam=true
+        md.type="number"
 
         //3985f4ebc032f276cc316f1f6ecea085
         //8a1dadfa832fef54e9c1d190

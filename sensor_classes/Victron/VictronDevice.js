@@ -120,7 +120,7 @@ const VC = require('./VictronConstants.js')
                     this.emitValuesFrom(decData)
                 }
                 catch (error) {
-                    throw new Error(`Unable to read data from ${await this.getDisplayName()}: ${error}` )
+                    throw new Error(`Unable to read data from ${ this.getDisplayName()}: ${error}` )
                 }
             }
             this.cb()

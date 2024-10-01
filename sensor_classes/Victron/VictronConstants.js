@@ -191,7 +191,10 @@ module.exports = {
     0xA3CF: "Orion Smart 48V|48V-8.5A Isolated DC-DC Charger",
     0xA3E6: "Lynx Smart BMS 1000",
     0x2780: "Victron Multiplus II 12/3000/120-50 2x120V",
+    0xC00A: "Cerbo GX",
     0xC030: "SmartShunt IP65 500A/50mV",
+    0xeba0: "Smart Lithium Battery",
+    
 },
 AuxMode:{
     STARTER_VOLTAGE: 0,

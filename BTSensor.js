@@ -21,14 +21,17 @@ class BTSensor {
         class Metadatum{
         
             constructor(tag, unit, description, 
-                read=()=>{return null}, gatt=null){
+                read=()=>{return null}, gatt=null, type){
                 this.tag = tag
                 this.unit = unit
                 this.description = description
                 this.read = read
                 this.gatt = gatt
+                this.type = type //schema type e.g. 'number'
            } 
-
+            asJSONSchema(){
+                return {type:this?.type??'string', title: this.description}
+            }
         }  
 
     static getMetadata(){
@@ -91,7 +94,7 @@ class BTSensor {
         return this.getMetadata().get(tag)
     }
 
-    async getSignalStrength(){
+    getSignalStrength(){
         const rssi =  this.getRSSI()
         if (!rssi) return 0
         return 150-(5/3*(Math.abs(rssi)))
@@ -128,8 +131,7 @@ class BTSensor {
     }
  
     valueIfVariant(obj){
-        const isVariant = obj.constructor && obj.constructor.name=='Variant'
-        if (isVariant) 
+        if (obj.constructor && obj.constructor.name=='Variant') 
             return obj.value
         else
             return obj
@@ -146,7 +148,6 @@ class BTSensor {
         }
         if (props.ServiceData)
             this.currentProperties.ServiceData=this.valueIfVariant(props.ServiceData)
-            
 
         if (props.ManufacturerData)
             this.currentProperties.ManufacturerData=this.valueIfVariant(props.ManufacturerData)

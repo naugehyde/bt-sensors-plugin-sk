@@ -33,7 +33,28 @@ Device.prototype.getNameSafe=async function(propName) {
 Device.prototype.getAliasSafe=async function(propName) {
 	return this.getProp('Alias')
 }
+class MissingSensor{
 
+	constructor(config){
+		this.metadata= new Map()
+		const keys = Object.keys(config)
+			.filter(e=>(!(e=='mac_address' || e=='discoveryTimeout' || e=='active')))
+		keys.forEach((key)=>{
+			this.metadata.set(key, {type: config[key]?.type??'string', description: config[key].description} )
+		} )
+		this.mac_address = config.mac_address
+		
+	}
+	getMetadata(){
+		return this.metadata
+	}
+	getMacAddress(){
+		return this.mac_address
+	}
+	getDisplayName(){
+		return this.mac_address + " (OUT OF RANGE)"
+	}
+}
 module.exports =  function (app) {
 	const discoveryTimeout = 30
 	const adapterID = 'hci0'
@@ -135,15 +156,15 @@ module.exports =  function (app) {
 	
 	plugin.schema = {			
 		type: "object",
-		description: "",
+		description: "NOTE: Plugin must be enabled to configure. You will have to wait until the scanner has found your device before configuring it. To refresh the list of available devices and their configurations, just open and close the config screen by clicking on the arrow symbol in the config's top bar.",
 		properties: {
 			discoveryTimeout: {title: "Initial scan timeout (in seconds)", type: "number",default: 45 },
 			peripherals:
 				{ type: "array", title: "Sensors", items:{
 					title: "", type: "object", 
 					properties:{
-						active: {title: "Active", type: "boolean", default: true },
 						mac_address: {title: "Bluetooth Device", enum: [], enumNames:[], type: "string" },
+						active: {title: "Active", type: "boolean", default: true },
 						discoveryTimeout: {title: "Discovery timeout (in seconds)", type: "number", default:30},
 					}, dependencies:{mac_address:{oneOf:[]}}
 					
@@ -151,19 +172,37 @@ module.exports =  function (app) {
 			}
 		}
 	}
-	
-	async function addSensorToList(sensor){
-		const mac_address = await sensor.getMacAddress()
-		const displayName = await sensor.getDisplayName()
+	const UI_SCHEMA =  
+	{ "peripherals": {
+		'ui:disabled': !plugin.started
+ 	}
+	}
+	plugin.uiSchema=UI_SCHEMA
+		
+	function updateSensorDisplayName(sensor){
+		const mac_address =  sensor.getMacAddress()
+		const displayName =  sensor.getDisplayName()
+
 		const mac_addresses_list = plugin.schema.properties.peripherals.items.properties.
 		mac_address.enum
 		const mac_addresses_names = plugin.schema.properties.peripherals.items.properties.
 		mac_address.enumNames
 
-		if (!mac_addresses_list.includes(mac_address)) {
-			mac_addresses_list.push(mac_address)
-			mac_addresses_names.push(displayName)
-		}
+		var index = mac_addresses_list.indexOf(mac_address)
+		if (index!=-1)
+			mac_addresses_names[index]= displayName
+	}
+	function addSensorToList(sensor){
+		const mac_address =  sensor.getMacAddress()
+		const displayName =  sensor.getDisplayName()
+		const mac_addresses_list = plugin.schema.properties.peripherals.items.properties.
+		mac_address.enum
+		const mac_addresses_names = plugin.schema.properties.peripherals.items.properties.
+		mac_address.enumNames
+		var index = mac_addresses_list.indexOf(mac_address)
+		if (index==-1)
+			index = mac_addresses_list.push(mac_address)-1
+		mac_addresses_names[index]= displayName
 		var oneOf = {properties:{mac_address:{enum:[mac_address]}}}
 		sensor.getMetadata().forEach((metadatum,tag)=>{
 				oneOf.properties[tag]={type:metadatum?.type??'string', title: metadatum.description}
@@ -172,33 +211,26 @@ module.exports =  function (app) {
 
 	}
 
-	function updateAdapters(){
-		bluetooth.adapters().then((adapters)=>
-			{plugin.schema.properties.adapter.enum = adapters} 
-		)
-	}
-
 	async function createSensor(adapter, params) {
 		return new Promise( ( resolve, reject )=>{
 		var s
-		try {
-			app.debug(`Waiting on ${params.mac_address}`)
-			adapter.waitDevice(params.mac_address,params.discoveryTimeout*1000)
-			.then(async (device)=> { 
-				app.debug(`Found ${params.mac_address}`)
-				s = await instantiateSensor(device,params) 
-				sensorMap.set(params.mac_address,s)
-				await addSensorToList(s)
-				resolve(s)
-			})
-		}
-		catch (e) {
+		
+		app.debug(`Waiting on ${params.mac_address}`)
+		adapter.waitDevice(params.mac_address,params.discoveryTimeout*1000)
+		.then(async (device)=> { 
+			app.debug(`Found ${params.mac_address}`)
+			s = await instantiateSensor(device,params) 
+			sensorMap.set(params.mac_address,s)
+			addSensorToList(s)
+			s.on("RSSI",(()=>updateSensorDisplayName(s)))
+			resolve(s)
+		})
+		.catch((e)=>{
 			if (s)
 				s.disconnect()		
 			app.debug("Unable to communicate with device " + params.mac_address +". Reason: "+ e.message )	
-			reject( null )							
-		}
-		})
+			reject( e.message )	
+		})})
 	}
 	
 	async function startScanner() {
@@ -210,26 +242,6 @@ module.exports =  function (app) {
 		//	throw new Error  ("Could not start scan: Aborting")
 	}
 
-	function findDevices(){
-
-		plugin.schema.description='Scanning for Bluetooth devices...'
-		const p = new Promise((resolve,reject)=>{setTimeout(  () => {
-			adapter.devices().then( (macs)=>{
-				for (var mac of macs) {	
-					if (!sensorMap.has(mac)) 
-						createSensor(adapter,
-								{mac_address:mac, discoveryTimeout: discoveryTimeout*1000})						
-				}
-				resolve(macs)
-			})
-		}, app.settings?.btDiscoveryTimeout ?? discoveryTimeout * 1000)
-		})
-		p.then((macs)=>{
-			app.debug(`Found: ${util.inspect(macs)}`)
-			plugin.schema.description=`Scan complete. Found ${macs.length} Bluetooth devices.`
-		})
-	
-	}
 	var discoveryInterval
 	function findDeviceLoop(){
 
@@ -240,6 +252,12 @@ module.exports =  function (app) {
 					if (!sensorMap.has(mac)) 
 						createSensor(adapter,
 							{mac_address:mac, discoveryTimeout: discoveryTimeout*1000})
+						.then((s)=>
+							app.setPluginStatus(`Found ${s.getDisplayName()}.`)
+						)
+						.catch((e)=>
+							app.debug(`Sensor at ${mac} unavailable. Reason: ${e}`)	
+						)
 					//else { 
 					//	const sensor = sensorMap.get(mac) 
 					//	sensor.device.getRSSI().then((rssi)=>{
@@ -254,31 +272,36 @@ module.exports =  function (app) {
 
 	const sensorMap=new Map()
 	var adapter
-	bluetooth.getAdapter(app.settings?.btAdapter??adapterID).then((a)=>{
-		adapter=a
-	})
 	
 	plugin.started=false
 
 	loadClassMap()
 	//updateAdapters()
-	sleep(3000).then(()=>{ //wait to see if plugin is enabled and started
-		if (!plugin.started)
-			startScanner().then(()=>{findDeviceLoop()})
-	})
+	//sleep(3000).then(()=>{ //wait to see if plugin is enabled and started
+	//	if (!plugin.started)
+	//		startScanner().then(()=>{findDeviceLoop()})
+	//})
 
 	plugin.start = async function (options, restartPlugin) {
 		plugin.started=true
+		plugin.uiSchema.peripherals['ui:disabled']=false
 		sensorMap.clear()
-		await sleep(5000) //Make sure plugin.stop() completes first			
+		if (plugin.stopped) {
+			await sleep(5000) //Make sure plugin.stop() completes first			
 						  //plugin.start is called asynchronously for some reason
 						  //and does not wait for plugin.stop to complete
+			plugin.stopped=false
+		}
+//		for (const peripheral of options.peripherals) 
+//			addSensorToList(new MissingSensor(peripheral)) //add sensor to list with known options
+		adapter = await bluetooth.getAdapter(app.settings?.btAdapter??adapterID)
 		startScanner()
 		if (starts>0){
 			app.debug('Plugin restarting...');
 			plugin.schema.properties.peripherals.items.dependencies.mac_address.oneOf=[]
 		} else {
 			app.debug('Plugin started');
+			
 		}
 		starts++
 		if (!await adapter.isDiscovering())
@@ -318,8 +341,9 @@ module.exports =  function (app) {
 				})
 				.catch((error)=>
 					{
-						app.debug(`Sensor at ${peripheral.mac_address} unavailable. Reason: ${error.message}`)	
-						//add sensor to list with known options
+						app.debug(`Sensor at ${peripheral.mac_address} unavailable. Reason: ${error}`)	
+						addSensorToList(new MissingSensor(peripheral)) //add sensor to list with known options
+		
 					})
 			}
 			if (!discoveryInterval) 
@@ -329,6 +353,8 @@ module.exports =  function (app) {
 	} 
 	plugin.stop =  async function () {
 		app.debug("Stopping plugin")
+		plugin.stopped=true
+		plugin.uiSchema.peripherals['ui:disabled']=true
 		if ((peripherals)){
 			for (var p of peripherals) {
 				if (p.sensor !== undefined) {

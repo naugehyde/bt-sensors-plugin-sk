@@ -8,12 +8,12 @@ const VC = require('./VictronConstants.js')
 
     constructor(device,params){
         super(device,params)
-        this.advertisementKey = params?.advertisementKey
+        this.encryptionKey = params?.encryptionKey
     }
    
     static {
         this.metadata = new Map(super.getMetadata())
-        this.metadata.set('advertisementKey',{description: "Advertisement Key", isParam: true})
+        this.addMetadatum('encryptionKey','', "Encryption Key")
     }
 
     static async identifyMode(device, mode){
@@ -57,12 +57,11 @@ const VC = require('./VictronConstants.js')
             
     }
 
-    async getAuxModeAndCurrent(offset, decData=null){
+    getAuxModeAndCurrent(offset, decData=null){
         if (decData==null){
-            decData=await this.device.getProp('ManufacturerData')
-            if (!decData) throw Error("Unable to get Manufacturer data")
-            if (this.advertisementKey)
-                decData=this.decrypt(decData[0x2e1].value)
+            decData=this.getManufacturerData(0x2e1)
+            if (this.encryptionKey)
+                decData=this.decrypt(decData)
             else 
                 return {current:NaN, auxMode:NaN}
         } 
@@ -75,9 +74,7 @@ const VC = require('./VictronConstants.js')
 
     async init(){
         await super.init()
-        const md = this.currentProperties['ManufacturerData']
-        if (!md) throw Error("Unable to get Manufacturer data")
-        this.model_id=md[0x2e1].value.readUInt16LE(2)
+        this.model_id=this.getManufacturerData(0x2e1).readUInt16LE(2)
     }
     alarmReason(alarmValue){
         return this.constructor.AlarmReason[alarmValue]
@@ -86,12 +83,12 @@ const VC = require('./VictronConstants.js')
         return VC.MODEL_ID_MAP[this.model_id]
     }
     decrypt(data){
-        if (!this.advertisementKey)
-            throw Error("Unable to decrypt: no Advertisement key set")
+        if (!this.encryptionKey)
+            throw Error("Unable to decrypt: no encryption key set")
 
         const encMethod = 'aes-128-ctr';
         const iv = data.readUInt16LE(5); 
-        const key = Buffer.from(this.advertisementKey,'hex')
+        const key = Buffer.from(this.encryptionKey,'hex')
         const ivBuffer = Buffer.alloc(16); // 128 bits = 16 bytes
         
         ivBuffer.writeUInt16LE(iv)
@@ -108,24 +105,20 @@ const VC = require('./VictronConstants.js')
     getName(){
         return `Victron ${this.getModelName()}`
     }
-   
-    async connect() {
-        if (this.advertisementKey){
-            this.cb = async (props) => {
-                try{
-                    const data = 
-                    await this.device.getManufacturerData()             
-                    const buff=data[0x2e1];
-                    const decData=this.decrypt(buff)
-                    this.emitValuesFrom(decData)
-                }
-                catch (error) {
-                    throw new Error(`Unable to read data from ${ this.getDisplayName()}: ${error}` )
-                }
-            }
-            this.cb()
-            this.device.helper.on('PropertiesChanged', this.cb)
-            return this
+    propertiesChanged(props){
+        super.propertiesChanged(props)
+        try{
+            const buff = this.getManufacturerData(0x2e1)             
+            const decData=this.decrypt(buff)
+            this.emitValuesFrom(decData)
+        }
+        catch (error) {
+            throw new Error(`Unable to read data from ${ this.getDisplayName()}: ${error}` )
+        }
+    }
+    connect() {
+        if (this.encryptionKey){
+            return super.connect()
         }
         else return this.gatt_connect()
     }

@@ -2,6 +2,7 @@ const { throws } = require("assert");
 const BTSensor = require("../BTSensor");
 
 const crypto = require('crypto');
+const { isGeneratorFunction } = require("util/types");
 
 const DEVICE_TYPES = new Map([
     [0x0C3C, { name: "Alarm Clock", model: "CGC1" }],
@@ -93,14 +94,10 @@ class XiaomiMiBeacon extends BTSensor{
     }
     static {
         this.metadata = new Map(super.getMetadata())
-        var  md = this.addMetadatum("pollFreq", "s", "polling frequency in seconds")
-        md.isParam=true
-        md.type="number"
-
-        //3985f4ebc032f276cc316f1f6ecea085
+           //3985f4ebc032f276cc316f1f6ecea085
         //8a1dadfa832fef54e9c1d190
 
-        md = this.addMetadatum("bindKey", "", "bindkey for decryption")
+        const md = this.addMetadatum("bindKey", "", "bindkey for decryption")
         md.isParam=true
         this.addMetadatum('temp','K', 'temperature',
             (buff,offset)=>{return ((buff.readInt16LE(offset))/100) + 273.1})
@@ -111,71 +108,28 @@ class XiaomiMiBeacon extends BTSensor{
        
     }
 
-    #emitValues(buffer){
+    emitValues(buffer){
         this.emitData("temp", buffer, 0)
         this.emitData("humidity", buffer,2)
         this.emitData("voltage",buffer,3);
     }
-    async #connect(){
+    async initGATT(){
         await this.device.connect()
         const gattServer = await this.device.gatt()
         const gattService = await gattServer.getPrimaryService("ebe0ccb0-7a0a-4b0c-8a1a-6ff2997da3a6")
         this.gattCharacteristic = await gattService.getCharacteristic("ebe0ccc1-7a0a-4b0c-8a1a-6ff2997da3a6")
+        const buffer = await this.gattCharacteristic.readValue()
+        this.emitValues(buffer)
     }
-/*
- def _decrypt_mibeacon_legacy(
-        self, data: bytes, i: int, xiaomi_mac: bytes
-    ) -> bytes | None:
-        """decrypt MiBeacon v2/v3 encrypted advertisements"""
-        # check for minimum length of encrypted advertisement
-        if len(data) < i + 7:
-            _LOGGER.debug("Invalid data length (for decryption), adv: %s", data.hex())
-            return None
 
-        if not self.bindkey:
-            self.bindkey_verified = False
-            _LOGGER.debug("Encryption key not set and adv is encrypted")
-            return None
+    initGATTNotifications() { 
+        this.gattCharacteristic.startNotifications().then(()=>{    
+            this.gattCharacteristic.on('valuechanged', buffer => {
+                this.emitValues(buffer)
+            })
+        })
+    }
 
-        if len(self.bindkey) != 16:
-            self.bindkey_verified = False
-            _LOGGER.error("Encryption key should be 12 bytes (24 characters) long")
-            return None
-
-        nonce = b"".join([data[0:5], data[-4:-1], xiaomi_mac[::-1][:-1]])
-        encrypted_payload = data[i:-4]
-        # cryptography can't decrypt a message without authentication
-        # so we have to use Cryptodome
-        associated_data = b"\x11"
-        cipher = AES.new(self.bindkey, AES.MODE_CCM, nonce=nonce, mac_len=4)
-        cipher.update(associated_data)
-
-        assert cipher is not None  # nosec
-        # decrypt the data
-        # note that V2/V3 encryption will often pass the decryption process with a
-        # wrong encryption key, resulting in useless data, and we won't be able
-        # to verify this, as V2/V3 encryption does not use a tag to verify
-        # the decrypted data. This will be filtered as wrong data length
-        # during the conversion of the payload to sensor data.
-        try:
-            decrypted_payload = cipher.decrypt(encrypted_payload)
-        except ValueError as error:
-            self.bindkey_verified = False
-            _LOGGER.warning("Decryption failed: %s", error)
-            _LOGGER.debug("nonce: %s", nonce.hex())
-            _LOGGER.debug("encrypted payload: %s", encrypted_payload.hex())
-            return None
-        if decrypted_payload is None:
-            self.bindkey_verified = False
-            _LOGGER.warning(
-                "Decryption failed for %s, decrypted payload is None",
-                to_mac(xiaomi_mac),
-            )
-            return None
-        self.bindkey_verified = True
-        return decrypted_payload
-
-*/
     decryptV2and3(data){
         const encryptedPayload = data.subarray(-4);
         const xiaomi_mac = data.subarray(5,11)
@@ -194,44 +148,33 @@ class XiaomiMiBeacon extends BTSensor{
         cipher.setAuthTag(data.subarray(-4))    
         return cipher.update(encryptedPayload)
     }
-
-    async #connectEncrypted(){
-        this.cb=async()=>{
-            if (!this.isEncrypted)
-                throw new Error(`${this.getName()} is unencrypted.`)
-
-            const data = await this.device.getProp("ServiceData")
-            var dec
-            //console.log(data[this.constructor.SERVICE_MIBEACON].value)
-            if (this.encryptionVersion >= 4) {
-                dec = this.decryptV4and5(data[this.constructor.SERVICE_MIBEACON].value)
-            } else {
-                if(this.encryptionVersion>=2){
-                    dec=this.decryptV2and3(data)
-                }
-            }
-            //console.log(dec)
-            switch(dec[0]){
-            case 0x04:    
-                this.emit("temp",(dec.readInt16LE(3)/10)+273.15)  
-                break        
-            case 0x06:
-                this.emit("humidity",(dec.readInt16LE(3)/10))          
-                break
-            default:
-                console.log("wait wha??? "+ util.inspect(dec))
+    propertiesChanged(props){
+        super.propertiesChanged(props)
+        if (!this.bindKey) return
+        const data = this.getServiceData(this.constructor.SERVICE_MIBEACON)
+        var dec
+        if (this.encryptionVersion >= 4) {
+            dec = this.decryptV4and5(data)
+        } else {
+            if(this.encryptionVersion>=2){
+                dec=this.decryptV2and3(data)
             }
         }
-        await this.cb()
-        this.device.helper.on("PropertiesChanged",async (props)=>{
-            await this.cb()
-        })
+        switch(dec[0]){
+        case 0x04:    
+            this.emit("temp",(dec.readInt16LE(3)/10)+273.15)  
+            break        
+        case 0x06:
+            this.emit("humidity",(dec.readInt16LE(3)/10))          
+            break
+        default:
+            console.log("wait wha??? "+ util.inspect(dec))
+        }
     }
+    
     async init(){
-        super.init()
-        const sd = await this.device.getProp('ServiceData')
-        if (!sd) throw Error("Unable to get Service data")
-        const data = sd[this.constructor.SERVICE_MIBEACON].value
+        await super.init()
+        const data = this.getServiceData(this.constructor.SERVICE_MIBEACON)
         const frameControl = data[0] + (data[1] << 8)
         this.deviceID = data[2] + (data[3] << 8)
         this.isEncrypted = (frameControl >> 3) & 1
@@ -243,47 +186,29 @@ class XiaomiMiBeacon extends BTSensor{
         return `Xiaomi ${dt.name} ${dt.model}`
     }
    
-    #setupEmission(){
-   
-        if (this.pollFreq){
-            this.device.disconnect().then(()=>{
-                this.intervalID = setInterval( async () => {            
-                    try{
-                        await this.#connect()
-                        const buffer = await this.gattCharacteristic.readValue()
-                        this.#emitValues(buffer)
-                    }
-                    catch{(error)
-                        throw new Error(`unable to get values for device LYWSD03MMC:${error.message}`)
-                    }
-                    try { await this.device.disconnect() }
-                    catch{(error)
-                        console.log("Error disconnecting from LYWSD03MMC: "+error.message)
-                    }
-                    }, this.pollFreq*1000)
-                })
+    async initGATTInterval(){
+        await this.device.disconnect()
+
+        this.intervalID = setInterval( async () => {            
+            try{
+                await this.initGATT()
             }
-        else {
-           this.gattCharacteristic.startNotifications().then(()=>{    
-                this.gattCharacteristic.on('valuechanged', buffer => {
-                    this.#emitValues(buffer)
-                })
-            })
-        }
+            catch{(error)
+                throw new Error(`unable to get values for device ${this.getName()}:${error.message}`)
+            }
+            try { await this.device.disconnect() }
+            catch{(error)
+                console.log(`Error disconnecting from ${this.getName()}: ${error.message}`)
+            }
+            }, this.pollFreq*1000)
+        
     }
-    async connect() {
-        if (this.bindKey)
-            this.#connectEncrypted()
-        else{
-            await this.#connect()
-            this.gattCharacteristic.readValue().then((buffer)=>{
-                this.#emitValues(buffer)
-                this.#setupEmission()
-            })
-        }
-        return this
+
+    useGATT(){
+        return this.bindKey == undefined
     }
-    async #disconnectGattCharacteristic(){
+
+    async disconnectGattCharacteristic(){
         if (this.gattCharacteristic  && await this.gattCharacteristic.isNotifying()) {
             await this.gattCharacteristic.stopNotifications()
             this.gattCharacteristic=null
@@ -291,10 +216,8 @@ class XiaomiMiBeacon extends BTSensor{
     }
     async disconnect(){
         super.disconnect()
-        await this.#disconnectGattCharacteristic()
-        if (this.cb){
-            this.device.helper.removeListener("PropertiesChanged",this.cb)
-        }
+        await this.disconnectGattCharacteristic()
+       
         if (this.intervalID){
             clearInterval(this.intervalID)
         }

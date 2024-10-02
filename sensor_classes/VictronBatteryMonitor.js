@@ -37,7 +37,7 @@ class VictronBatteryMonitor extends VictronDevice{
     characteristics=[]
     async init(){
         await super.init()
-        const modecurrent = await this.getAuxModeAndCurrent()
+        const modecurrent = this.getAuxModeAndCurrent()
         this.auxMode= modecurrent.auxMode
         switch(this.auxMode){
             case VC.AuxMode.STARTER_VOLTAGE:
@@ -61,7 +61,7 @@ class VictronBatteryMonitor extends VictronDevice{
         }
     }
 
-    async emitValuesFrom(decData){
+    emitValuesFrom(decData){
         this.emitData("ttg",decData,0)
         this.emitData("voltage",decData,2);
         const alarm = this.getMetadatum("alarm").read(decData,4)
@@ -71,7 +71,7 @@ class VictronBatteryMonitor extends VictronDevice{
                 { message: AlarmReason.get(alarm), state: 'alert'})
         }
         
-        this.emit("current", (await this.getAuxModeAndCurrent(8,decData)).current)
+        this.emit("current", (this.getAuxModeAndCurrent(8,decData)).current)
         switch(this.auxMode){
         case VC.AuxMode.STARTER_VOLTAGE:
             this.emitData("starterVoltage",decData,6);
@@ -118,7 +118,7 @@ class VictronBatteryMonitor extends VictronDevice{
             await c.stopNotifications()
         }
         if (await this.device.isConnected()){
-            console.log(`Disconnecting from ${await this.device.getAddress()}`)
+            console.log(`Disconnecting from ${ this.getMacAddress()}`)
             await this.device.disconnect()
         }
     }

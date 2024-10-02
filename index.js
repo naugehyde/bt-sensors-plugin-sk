@@ -332,7 +332,8 @@ module.exports =  function (app) {
 									}
 							})
 						})
-						peripheral.sensor.connect().then( ()=>{
+						const result = Promise.resolve(peripheral.sensor.connect())
+						result.then(() => {
 							app.debug(`Connected to ${peripheral.mac_address}`);
 							app.setPluginStatus(`Connected to ${++found} sensors.`);
 						})

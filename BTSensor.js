@@ -38,6 +38,9 @@ class BTSensor {
         return this.metadata
     }
     static {
+        var  md = this.addMetadatum("pollFreq", "s", "polling frequency in seconds (GATT connections only)")
+        md.isParam=true
+        md.type="number"
         this.addMetadatum("RSSI","db","Signal strength in db")
     }
     static addMetadatum(tag, ...args){
@@ -94,6 +97,8 @@ class BTSensor {
         return this.getMetadata().get(tag)
     }
 
+
+   
     getSignalStrength(){
         const rssi =  this.getRSSI()
         if (!rssi) return 0
@@ -129,7 +134,9 @@ class BTSensor {
     getRSSI(){
         return this.currentProperties.RSSI
     }
- 
+    useGATT(){
+        return false
+    }
     valueIfVariant(obj){
         if (obj.constructor && obj.constructor.name=='Variant') 
             return obj.value
@@ -140,7 +147,7 @@ class BTSensor {
 /**
  * callback function on device properties changing
  */
-    async propertiesChanged(props){
+     propertiesChanged(props){
             
         if (props.RSSI) {
             this.currentProperties.RSSI=this.valueIfVariant(props.RSSI)
@@ -171,16 +178,38 @@ class BTSensor {
         else
             return null
     }
-    
-    async connect(){
+    propertiesChanged(props){
+            
+        if (props.RSSI) {
+            this.currentProperties.RSSI=this.valueIfVariant(props.RSSI)
+            this.emit("RSSI", this.currentProperties.RSSI)
+        }
+        if (props.ServiceData)
+            this.currentProperties.ServiceData=this.valueIfVariant(props.ServiceData)
+
+        if (props.ManufacturerData)
+            this.currentProperties.ManufacturerData=this.valueIfVariant(props.ManufacturerData)
+
+    }
+
+     async connect(){
         this.propertiesChanged.bind(this)
         this.propertiesChanged(this.currentProperties)
         this.device.helper.on("PropertiesChanged",
         ((props)=> {
             this.propertiesChanged(props)
         }))
+       
+        if (this.useGATT()){
+            await this.initGATT()
+            if (this.pollFreq){
+                this.initGATTInterval()
+            }
+            else{ 
+                this.initGATTNotifications()
+            }
+        }
         return this
-        //throw new Error("connect() member function must be implemented by subclass")
     }
   /**
    *  Discconnect from sensor.

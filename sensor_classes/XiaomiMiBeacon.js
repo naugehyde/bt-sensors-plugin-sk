@@ -129,7 +129,6 @@ class XiaomiMiBeacon extends BTSensor{
     }
 
     emitGATT(){
-        super.emitGATT()
         this.gattCharacteristic.readValue()
             .then((buffer)=>this.emitValues(buffer))
     }

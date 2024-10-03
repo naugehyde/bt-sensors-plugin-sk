@@ -92,6 +92,8 @@ class VictronBatteryMonitor extends VictronDevice{
     
     initGATT() {
         return new Promise((resolve,reject )=>{
+            if (!this.valueIfVariant(this.currentProperties.Paired))
+                reject(`${this.getName()} must be paired with the Signalk server to use GATT protocol`)
             this.device.connect().then(async ()=>{
                 if (!this.gattServer) {
                     this.gattServer = await this.device.gatt()

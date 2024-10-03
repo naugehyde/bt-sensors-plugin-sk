@@ -188,7 +188,7 @@ class BTSensor extends EventEmitter {
         }))
      }
 
-     async connect(){
+    connect(){
         this.initPropertiesChanged()       
         this.propertiesChanged(this.currentProperties)
         if (this.useGATT()){
@@ -200,6 +200,7 @@ class BTSensor extends EventEmitter {
                 else 
                     this.initGATTNotifications()
             })
+            .catch((e)=>this.debug("Cannot use GATT: "+e)
         }
         return this
     }
@@ -210,7 +211,7 @@ class BTSensor extends EventEmitter {
 
     disconnect(){
         this.removeAllListeners()
-        this.device.helper.removeListener(this, this.propertiesChanged)
+        this.device.helper.removeListener("PropertiesChanged", this.propertiesChanged)
         if (this.intervalID){
             clearInterval(this.intervalID)
         }    

@@ -8,11 +8,12 @@ const EventEmitter = require('node:events');
  * @class BTSensor
  * @see EventEmitter, node-ble/Device
  */
-class BTSensor {
+class BTSensor extends EventEmitter {
     static metadata=new Map()
     constructor(device,params=null) {
+        super()
         this.device=device
-        this.eventEmitter = new EventEmitter();
+        this.pollFreq = params?.pollFreq
         this.Metadatum = this.constructor.Metadatum
         this.metadata = new Map(this.constructor.metadata)
     }
@@ -53,33 +54,7 @@ class BTSensor {
         this.emit(tag, this.getMetadatum(tag).read(buffer, ...args))
     }
 
-    async emitGattData(tag, gattService, gattCharacteristic=null, ...args) {
-        const datum = this.getMetadatum(tag)
-        if (gattCharacteristic==null)
-            gattCharacteristic = await gattService.getCharacteristic(datum.gatt)
-
-        gattCharacteristic.readValue().then( buffer =>
-            this.emitData(tag, buffer, ...args)
-        )
-        return gattCharacteristic
-    }
-
-    static getInstantiationParameters(){
-        return new Map(
-            [...this.getMetadata().entries()].filter(([key,value]) => value?.isParam??false)
-          )
-    }
-
-    static strangeIntFromBuff(buffer, startBit, length) {
-        return parseInt(toBinaryString(buffer.slice(startBit,startBit+length),2))
-    }
-
-
-    static toBinaryString(buff){
-        return [...buff].map((b) => b.toString(2).padStart(8, "0")).join("");
-    }
-
-    async init(){
+ async init(){
         this.currentProperties=await this.device.helper.props()
     }
     addMetadatum(tag, ...args){
@@ -97,7 +72,11 @@ class BTSensor {
         return this.getMetadata().get(tag)
     }
 
-
+    getPathMetadata(){
+        return new Map(
+            [...this.getMetadata().entries()].filter(([key,value]) => !(value?.isParam??false))
+        )
+    }
    
     getSignalStrength(){
         const rssi =  this.getRSSI()
@@ -178,36 +157,49 @@ class BTSensor {
         else
             return null
     }
-    propertiesChanged(props){
-            
-        if (props.RSSI) {
-            this.currentProperties.RSSI=this.valueIfVariant(props.RSSI)
-            this.emit("RSSI", this.currentProperties.RSSI)
-        }
-        if (props.ServiceData)
-            this.currentProperties.ServiceData=this.valueIfVariant(props.ServiceData)
-
-        if (props.ManufacturerData)
-            this.currentProperties.ManufacturerData=this.valueIfVariant(props.ManufacturerData)
-
+    
+    initGATTInterval(){
+        this.device.disconnect().then(()=>{
+            this.initPropertiesChanged()
+            this.intervalID = setInterval( () => {
+                this.initGATT().then(()=>{
+                    this.emitGATT()
+                    this.device.disconnect()
+                        .then(()=>
+                            this.initPropertiesChanged()
+                        )
+                        .catch((e)=>{
+                            this.debug(`Error disconnecting from ${this.getName()}: ${e.message}`)
+                        })
+                })
+                .catch((error)=>{
+                    throw new Error(`unable to emit values for device ${this.getName()}:${error}`)
+                })
+            }
+            , this.pollFreq*1000)
+        })
     }
+     initPropertiesChanged(){
 
-     async connect(){
         this.propertiesChanged.bind(this)
-        this.propertiesChanged(this.currentProperties)
         this.device.helper.on("PropertiesChanged",
         ((props)=> {
             this.propertiesChanged(props)
         }))
-       
+     }
+
+     async connect(){
+        this.initPropertiesChanged()       
+        this.propertiesChanged(this.currentProperties)
         if (this.useGATT()){
-            await this.initGATT()
-            if (this.pollFreq){
-                this.initGATTInterval()
-            }
-            else{ 
-                this.initGATTNotifications()
-            }
+            this.initGATT().then(()=>{
+                this.emitGATT()
+                if (this.pollFreq){
+                    this.initGATTInterval()
+                }
+                else 
+                    this.initGATTNotifications()
+            })
         }
         return this
     }
@@ -217,22 +209,13 @@ class BTSensor {
    */
 
     disconnect(){
-        this.eventEmitter.removeAllListeners()
+        this.removeAllListeners()
         this.device.helper.removeListener(this, this.propertiesChanged)
+        if (this.intervalID){
+            clearInterval(this.intervalID)
+        }    
     }
 
-   /**
-   *  Convenience method for emitting value changes.
-   *  Just passes on(eventName, ...args) through to EventEmitter instance
-   */
-
-
-    on(eventName, ...args){
-        this.eventEmitter.on(eventName, ...args)
-    }
-    emit(eventName, value){
-        this.eventEmitter.emit(eventName,value);
-    }
     emitValuesFrom(buffer){
         this.getMetadata().forEach((datum, tag)=>{
             if (!(datum.isParam||datum.notify) && datum.read)

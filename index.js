@@ -149,7 +149,6 @@ module.exports =  function (app) {
 
 	function loadClassMap() {
 		classMap = utilities_sk.loadClasses(path.join(__dirname, 'sensor_classes'))
-
 	}
 
 	app.debug('Loading plugin')
@@ -222,7 +221,9 @@ module.exports =  function (app) {
 			s = await instantiateSensor(device,params) 
 			sensorMap.set(params.mac_address,s)
 			addSensorToList(s)
-			s.on("RSSI",(()=>updateSensorDisplayName(s)))
+			s.on("RSSI",(()=>{
+				updateSensorDisplayName(s)
+			}))
 			resolve(s)
 		})
 		.catch((e)=>{
@@ -249,7 +250,7 @@ module.exports =  function (app) {
 		discoveryInterval = setInterval(  () => {
 			adapter.devices().then( (macs)=>{
 				for (var mac of macs) {	
-					if (!sensorMap.has(mac)) 
+					if (!sensorMap.has(mac)) {
 						createSensor(adapter,
 							{mac_address:mac, discoveryTimeout: discoveryTimeout*1000})
 						.then((s)=>
@@ -258,12 +259,7 @@ module.exports =  function (app) {
 						.catch((e)=>
 							app.debug(`Sensor at ${mac} unavailable. Reason: ${e}`)	
 						)
-					//else { 
-					//	const sensor = sensorMap.get(mac) 
-					//	sensor.device.getRSSI().then((rssi)=>{
-					//		sensor.emit("RSSI",rssi)
-					//	})
-					//}			
+					}	
 				}
 			})
 		}, 30000)
@@ -276,11 +272,6 @@ module.exports =  function (app) {
 	plugin.started=false
 
 	loadClassMap()
-	//updateAdapters()
-	//sleep(3000).then(()=>{ //wait to see if plugin is enabled and started
-	//	if (!plugin.started)
-	//		startScanner().then(()=>{findDeviceLoop()})
-	//})
 
 	plugin.start = async function (options, restartPlugin) {
 		plugin.started=true

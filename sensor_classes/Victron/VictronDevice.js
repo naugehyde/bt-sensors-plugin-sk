@@ -13,7 +13,8 @@ const VC = require('./VictronConstants.js')
    
     static {
         this.metadata = new Map(super.getMetadata())
-        this.addMetadatum('encryptionKey','', "Encryption Key")
+        const md = this.addMetadatum('encryptionKey','', "Encryption Key")
+        md.isParam = true
     }
 
     static async identifyMode(device, mode){
@@ -107,6 +108,7 @@ const VC = require('./VictronConstants.js')
     }
     propertiesChanged(props){
         super.propertiesChanged(props)
+        if (this.useGATT()) return
         try{
             const buff = this.getManufacturerData(0x2e1)             
             const decData=this.decrypt(buff)
@@ -116,20 +118,15 @@ const VC = require('./VictronConstants.js')
             throw new Error(`Unable to read data from ${ this.getDisplayName()}: ${error}` )
         }
     }
-    connect() {
-        if (this.encryptionKey){
-            return super.connect()
-        }
-        else return this.gatt_connect()
+    useGATT(){
+        return this.encryptionKey == undefined
     }
-    gatt_connect(){
-        throw new Error( "GATT Connection unimplemented")
+
+    initGATT(){
+        throw new Error( "GATT Connection unimplemented for "+this.getDisplayName())
     }
-    disconnect(){
-        super.disconnect()
-        if (this.cb)
-            this.device.helper.removeListener('PropertiesChanged',this.cb)
-    }
+
+   
 
 }
 module.exports=VictronDevice

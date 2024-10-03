@@ -1,6 +1,6 @@
 const VictronDevice = require("./Victron/VictronDevice.js");
 const VC=require("./Victron/VictronConstants.js")
-
+//8cce8529307cf9dd0c85611c4fef42d9
 class VictronBatteryMonitor extends VictronDevice{
     static {
         this.metadata = new Map(super.getMetadata())
@@ -90,27 +90,52 @@ class VictronBatteryMonitor extends VictronDevice{
         this.emit("soc", ((soc & 0x3FFF) >> 4) / 1000)
     }
     
-    async gatt_connect() {
-        const paired = await this.device.isPaired()
-        if (!paired) 
-            throw new Error( this.device.toString() + " must be paired to use GATT.")
-        await this.device.connect()
-        const gattServer = await this.device.gatt()
-		const gattService = await gattServer.getPrimaryService("65970000-4bda-4c1e-af4b-551c4cf74769")
-        const keepAlive =await gattService.getCharacteristic('6597ffff-4bda-4c1e-af4b-551c4cf74769')
-	    await keepAlive.writeValue(Buffer.from([0xFF,0xFF]), { offset: 0, type: 'request' })
-        this.getMetadata().forEach(async (datum, id)=> {
-            if ((!(datum?.isParam)??false) && (datum.gatt)){ 
-                const c = await this.emitGattData(datum.tag, gattService) 
-                await c.startNotifications();	
-                c.on('valuechanged', buffer => {
-                    this.emitGattData(datum.tag, null, c)
+    initGATT() {
+        return new Promise((resolve,reject )=>{
+            this.device.connect().then(async ()=>{
+                if (!this.gattServer) {
+                    this.gattServer = await this.device.gatt()
+                    this.gattService= await this.gattServer.getPrimaryService("65970000-4bda-4c1e-af4b-551c4cf74769")
+                    const keepAlive = await this.gattService.getCharacteristic('6597ffff-4bda-4c1e-af4b-551c4cf74769')
+                    await keepAlive.writeValue(Buffer.from([0xFF,0xFF]), { offset: 0, type: 'request' })
+                }
+                resolve(this)
+            }).catch((e)=>reject(e.message))
+        })
+    }
+    emitGATT(){
+        this.getPathMetadata().forEach( (datum, tag)=> {
+            if (datum.gatt) {
+            this.gattService.getCharacteristic(datum.gatt).then((gattCharacteristic)=>{
+                gattCharacteristic.readValue().then((buffer)=>{
+                    this.emitData(tag, buffer)
                 })
-                this.characteristics.push(c)
-            } 
-        });
-        return this
+            }).catch((e)=>{
+                throw new Error(e)
+            })}
+        })
+    }
+    initGATTNotifications(){
+        return new Promise((resolve,reject )=>{
 
+        this.getPathMetadata().forEach((datum, tag)=> {
+            if (datum.gatt) {
+            this.gattService.getCharacteristic(datum.gatt).then(async (gattCharacteristic)=>{
+                const buffer = await gattCharacteristic.readValue()
+                this.emitData(tag, buffer)
+                
+                gattCharacteristic.startNotifications().then(()=>{
+                    gattCharacteristic.on('valuechanged', buffer => {
+                        this.emitData(tag, buffer)
+                    })
+                    this.characteristics.push(gattCharacteristic)
+                })
+            })
+        }})
+        resolve(this)})
+    }
+    propertiesChanged(props){
+        super.propertiesChanged(props)
     }
     async disconnect(){
         super.disconnect()

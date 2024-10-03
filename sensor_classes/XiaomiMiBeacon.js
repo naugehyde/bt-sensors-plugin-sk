@@ -75,7 +75,6 @@ class XiaomiMiBeacon extends BTSensor{
 
     constructor(device,params){
         super(device,params)
-        this.pollFreq = params?.pollFreq
         this.bindKey = params?.bindKey
     }
     static SERVICE_MIBEACON = "0000fe95-0000-1000-8000-00805f9b34fb"
@@ -113,13 +112,26 @@ class XiaomiMiBeacon extends BTSensor{
         this.emitData("humidity", buffer,2)
         this.emitData("voltage",buffer,3);
     }
-    async initGATT(){
-        await this.device.connect()
-        const gattServer = await this.device.gatt()
-        const gattService = await gattServer.getPrimaryService("ebe0ccb0-7a0a-4b0c-8a1a-6ff2997da3a6")
-        this.gattCharacteristic = await gattService.getCharacteristic("ebe0ccc1-7a0a-4b0c-8a1a-6ff2997da3a6")
-        const buffer = await this.gattCharacteristic.readValue()
-        this.emitValues(buffer)
+    initGATT(){
+        return new Promise((resolve,reject )=>{
+            this.device.connect().then(async ()=>{
+                if (!this.gattServer) {
+                    this.gattServer = await this.device.gatt()
+                    this.gattService = await this.gattServer.getPrimaryService("ebe0ccb0-7a0a-4b0c-8a1a-6ff2997da3a6")
+                    this.gattCharacteristic = await this.gattService.getCharacteristic("ebe0ccc1-7a0a-4b0c-8a1a-6ff2997da3a6")
+                }
+                resolve(this)
+            })
+            .catch((e)=>{
+                reject(e.message)
+            })
+        })
+    }
+
+    emitGATT(){
+        super.emitGATT()
+        this.gattCharacteristic.readValue()
+            .then((buffer)=>this.emitValues(buffer))
     }
 
     initGATTNotifications() { 
@@ -150,7 +162,7 @@ class XiaomiMiBeacon extends BTSensor{
     }
     propertiesChanged(props){
         super.propertiesChanged(props)
-        if (!this.bindKey) return
+        if (this.useGATT()) return
         const data = this.getServiceData(this.constructor.SERVICE_MIBEACON)
         var dec
         if (this.encryptionVersion >= 4) {
@@ -168,7 +180,7 @@ class XiaomiMiBeacon extends BTSensor{
             this.emit("humidity",(dec.readInt16LE(3)/10))          
             break
         default:
-            console.log("wait wha??? "+ util.inspect(dec))
+            console.log("wait wha??? "+ dec)
         }
     }
     
@@ -186,24 +198,6 @@ class XiaomiMiBeacon extends BTSensor{
         return `Xiaomi ${dt.name} ${dt.model}`
     }
    
-    async initGATTInterval(){
-        await this.device.disconnect()
-
-        this.intervalID = setInterval( async () => {            
-            try{
-                await this.initGATT()
-            }
-            catch{(error)
-                throw new Error(`unable to get values for device ${this.getName()}:${error.message}`)
-            }
-            try { await this.device.disconnect() }
-            catch{(error)
-                console.log(`Error disconnecting from ${this.getName()}: ${error.message}`)
-            }
-            }, this.pollFreq*1000)
-        
-    }
-
     useGATT(){
         return this.bindKey == undefined
     }
@@ -218,9 +212,6 @@ class XiaomiMiBeacon extends BTSensor{
         super.disconnect()
         await this.disconnectGattCharacteristic()
        
-        if (this.intervalID){
-            clearInterval(this.intervalID)
-        }
         if (await this.device.isConnected()){
                await this.device.disconnect()
         }

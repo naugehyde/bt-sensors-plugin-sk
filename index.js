@@ -72,31 +72,22 @@ module.exports =  function (app) {
 	//Try and load utilities-sk NOTE: should be installed from App Store-- 
 	//But there's a fail safe because I'm a reasonable man.
 
-	try{
-		utilities_sk = require('../utilities-sk/utilities.js')
-	}
-	catch (error){
-		try {
-			utilities_sk = require('utilities-sk/utilities.js')
-		} catch(error){
-			console.log(`${plugin.id} Plugin utilities-sk not found. Please install.`)
-			utilities_sk = {
-				loadClasses: function(dir, ext='.js')
-				{
-					const classMap = new Map()
-					const classFiles = fs.readdirSync(dir)
-					.filter(file => file.endsWith(ext));
-				
-					classFiles.forEach(file => {
-						const filePath = path.join(dir, file);
-						const cls = require(filePath);
-						classMap.set(cls.name, cls);
-					})
-					return classMap
-				}
-			 }
+	utilities_sk = {
+		loadClasses: function(dir, ext='.js')
+		{
+			const classMap = new Map()
+			const classFiles = fs.readdirSync(dir)
+			.filter(file => file.endsWith(ext));
+		
+			classFiles.forEach(file => {
+				const filePath = path.join(dir, file);
+				const cls = require(filePath);
+				classMap.set(cls.name, cls);
+			})
+			return classMap
 		}
 	}
+
 	function sleep(x) {
 		return new Promise((resolve) => {
 		  setTimeout(() => {

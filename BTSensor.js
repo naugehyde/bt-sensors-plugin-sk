@@ -200,7 +200,7 @@ class BTSensor extends EventEmitter {
                 else 
                     this.initGATTNotifications()
             })
-            .catch((e)=>this.debug("Cannot use GATT: "+e)
+            .catch((e)=>this.debug("Cannot use GATT: "+e))
         }
         return this
     }

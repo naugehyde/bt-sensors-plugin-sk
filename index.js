@@ -33,14 +33,20 @@ Device.prototype.getNameSafe=async function(propName) {
 Device.prototype.getAliasSafe=async function(propName) {
 	return this.getProp('Alias')
 }
-class MissingSensor{
+class MissingSensor  {
+	
 
 	constructor(config){
+		this.Metadatum = BTSensor.Metadatum
+		this.addMetadatum=BTSensor.prototype.addMetadatum
+
 		this.metadata= new Map()
 		const keys = Object.keys(config)
 			.filter(e=>(!(e=='mac_address' || e=='discoveryTimeout' || e=='active')))
+
+		this.addMetadatum.bind(this)
 		keys.forEach((key)=>{
-			this.metadata.set(key, {type: config[key]?.type??'string', description: config[key].description} )
+			this.addMetadatum(key, config[key]?.type??'string',  config[key].description )
 		} )
 		this.mac_address = config.mac_address
 		
@@ -195,10 +201,9 @@ module.exports =  function (app) {
 		mac_addresses_names[index]= displayName
 		var oneOf = {properties:{mac_address:{enum:[mac_address]}}}
 		sensor.getMetadata().forEach((metadatum,tag)=>{
-				oneOf.properties[tag]={type:metadatum?.type??'string', title: metadatum.description}
+				oneOf.properties[tag]=metadatum.asJSONSchema()
 		})
 		plugin.schema.properties.peripherals.items.dependencies.mac_address.oneOf.push(oneOf)
-
 	}
 
 	async function createSensor(adapter, params) {

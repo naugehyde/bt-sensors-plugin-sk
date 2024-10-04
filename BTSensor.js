@@ -31,7 +31,11 @@ class BTSensor extends EventEmitter {
                 this.type = type //schema type e.g. 'number'
            } 
             asJSONSchema(){
-                return {type:this?.type??'string', title: this.description}
+                return {
+                    type:this?.type??'string', 
+                    title: this.description,
+                    default: this?.default
+                }
             }
         }  
 
@@ -42,7 +46,8 @@ class BTSensor extends EventEmitter {
         var  md = this.addMetadatum("pollFreq", "s", "polling frequency in seconds (GATT connections only)")
         md.isParam=true
         md.type="number"
-        this.addMetadatum("RSSI","db","Signal strength in db")
+        md = this.addMetadatum("RSSI","db","Signal strength in db")
+        
     }
     static addMetadatum(tag, ...args){
         var metadatum = new this.Metadatum(tag, ...args)
@@ -53,9 +58,18 @@ class BTSensor extends EventEmitter {
     emitData(tag, buffer, ...args){
         this.emit(tag, this.getMetadatum(tag).read(buffer, ...args))
     }
-
- async init(){
+    _testBuffer(b){
+        this.getPathMetadata().forEach((datum,tag)=>{
+            this.on(tag,(v)=>console.log(`${tag}=${v}`))
+        })
+        this.emitValuesFrom(b)
+        this.removeAllListeners()
+    }
+    async init(){
         this.currentProperties=await this.device.helper.props()
+        
+        this.getMetadatum("RSSI").default=`sensors.${this.getMacAddress().replaceAll(':', '')}.rssi`
+        this.getMetadatum("RSSI").examples=[this.getMetadatum("RSSI").default]
     }
     addMetadatum(tag, ...args){
         var metadatum = new this.Metadatum(tag, ...args)

@@ -225,7 +225,7 @@ class BTSensor extends EventEmitter {
 
     disconnect(){
         this.removeAllListeners()
-        this.device.helper.removeListener("PropertiesChanged", this.propertiesChanged)
+        this.device.helper.removeListeners()
         if (this.intervalID){
             clearInterval(this.intervalID)
         }    

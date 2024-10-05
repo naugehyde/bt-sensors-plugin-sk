@@ -17,6 +17,7 @@ module.exports = {
     [252, 'EXTERNAL_CONTROL']
   ]),
   AlarmReason : new Map([
+    [0, "NO ALARM"],
     [1, "LOW_VOLTAGE"],
     [2, "HIGH_VOLTAGE"],
     [4, "LOW_SOC"],

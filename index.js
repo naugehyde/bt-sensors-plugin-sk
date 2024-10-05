@@ -118,8 +118,16 @@ module.exports =  function (app) {
 			app.debug(`Unable to instantiate ${await device.getAddress()}: ${error.message} `)
 		}
 		//if we're here ain't got no class for the device
+		//bypass  DBusHelper and get RSSI just once
 		const d = new (classMap.get('UNKNOWN'))(device)
-		await d.init()
+		const objectProxy  = await device.helper.dbus.getProxyObject(device.helper.service, device.helper.object)
+		const _propsProxy = await objectProxy.getInterface('org.freedesktop.DBus.Properties')
+		const rssi = await _propsProxy.Get(device.helper.iface,"RSSI")
+		const mac = await _propsProxy.Get(device.helper.iface,"Address")
+		d.currentProperties= { 
+			RSSI: rssi.value,
+			Address: mac.value
+		}
 		return d
 	}
 
@@ -343,19 +351,18 @@ module.exports =  function (app) {
 		app.debug("Stopping plugin")
 		plugin.stopped=true
 		plugin.uiSchema.peripherals['ui:disabled']=true
-		if ((peripherals)){
-			for (var p of peripherals) {
-				if (p.sensor !== undefined) {
-					try{
-						await p.sensor.disconnect()
-						app.debug(`Disconnected from ${p.mac_address}`)
-					}
-					catch (e){
-						app.debug(`Error disconnecting from ${p.mac_address}: ${e.message}`)
-					}
-				}				
-			}
+		if ((sensorMap)){
+			sensorMap.forEach(async (sensor, mac)=> {
+				try{
+					await sensor.disconnect()
+					app.debug(`Disconnected from ${mac}`)
+				}
+				catch (e){
+					app.debug(`Error disconnecting from ${mac}: ${e.message}`)
+				}
+			})				
 		}
+		
 		if (discoveryInterval) {
 			clearInterval(discoveryInterval)
 			discoveryInterval=null

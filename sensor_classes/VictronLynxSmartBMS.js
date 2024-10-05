@@ -40,11 +40,17 @@ class VictronLynxSmartBMS extends VictronDevice{
         this.addMetadatum('warningsAndAlarms','','warnings and alarms',
             (buff)=>{return (int24.readUInt24BE(buff,9)>>6)})
         this.addMetadatum('soc','','state of charge',
-            (buff)=>{return ((buff.readUInt16BE(11)&0x3fff)>>4)/100})
+            (buff)=>{return ((buff.readUInt16BE(11)&0x3fff)>>4)/1000})
         this.addMetadatum('consumedAh','Ah','amp-hours consumed',
-            (buff)=>{return (int24.readUInt24BE(12)>>4)/10} )
+            (buff)=>{return (int24.readUInt24BE(13)>>4)/10} )
         this.addMetadatum('temp', 'K', 'battery temperature',
-            (buff)=>{return ((buff.readUInt8(15)>>1)-40)+273.15})
+            (buff)=>{
+                const v = buff.readUInt8(15)>>1
+                if (v==0x7f) 
+                    return NaN 
+                else
+                    return v+233.15
+            })
     }
 }
 module.exports=VictronLynxSmartBMS

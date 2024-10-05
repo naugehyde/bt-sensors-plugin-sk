@@ -27,25 +27,25 @@ class VictronSmartBatteryProtect extends VictronDevice{
         this.metadata = new Map(super.getMetadata())
 
         this.addMetadatum('deviceState','', 'device state', 
-                        (buff)=>{return VC.OperationMode.get(buff.readUInt8(0))})
+                        (buff)=>{return VC.OperationMode.get(buff.readUInt8(1))})
         this.addMetadatum('outputStatus','', 'output status', 
-            (buff)=>{return (buff.readUInt8(1))})
+            (buff)=>{return (buff.readUInt8(2))})
 
         this.addMetadatum('chargerError','', 'charger error',
-            (buff)=>{return VC.ChargerError.get(buff.readUInt8(2))})
+            (buff)=>{return VC.ChargerError.get(buff.readUInt8(3))})
         this.addMetadatum('alarmReason','', 'alarm reason', 
-            (buff)=>{return VC.AlarmReason(buff.readUInt16LE(2))})
+            (buff)=>{return VC.AlarmReason.get(buff.readUInt16LE(4))})
         this.addMetadatum('warningReason','', 'warning reason', 
-            (buff)=>{return (buff.readUInt16LE(4))})
+            (buff)=>{return (buff.readUInt16LE(5))})
         this.addMetadatum('channel1Voltage','V', 'channel one voltage', 
-            (buff)=>{return buff.readInt16LE(6)/100})
+            (buff)=>{return buff.readInt16LE(7)/100})
         this.addMetadatum('outputVoltage','V', 'output voltage', 
-            (buff)=>{return buff.readUInt16LE(8)/100})
+            (buff)=>{return buff.readUInt16LE(9)/100})
         this.addMetadatum('offReason','', 'off reason', 
-            (buff)=>{return VC.OffReasons(buff.readUInt16LE(10))})
+            (buff)=>{return VC.OffReasons.get(buff.readUInt16LE(11))})
         }
 
-        async connect() {
+        async __connect() {
             //ASSUMING there's no decrypt here. 
             this.cb = async (propertiesChanged) => {
                 try{

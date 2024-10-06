@@ -96,7 +96,7 @@ class XiaomiMiBeacon extends BTSensor{
            //3985f4ebc032f276cc316f1f6ecea085
         //8a1dadfa832fef54e9c1d190
 
-        const md = this.addMetadatum("bindKey", "", "bindkey for decryption")
+        const md = this.addMetadatum("encryptionKey", "", "bindkey for decryption")
         md.isParam=true
         this.addMetadatum('temp','K', 'temperature',
             (buff,offset)=>{return ((buff.readInt16LE(offset))/100) + 273.1})

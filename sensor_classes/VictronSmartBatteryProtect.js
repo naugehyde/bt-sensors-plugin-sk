@@ -45,23 +45,5 @@ class VictronSmartBatteryProtect extends VictronDevice{
             (buff)=>{return VC.OffReasons.get(buff.readUInt16LE(11))})
         }
 
-        async __connect() {
-            //ASSUMING there's no decrypt here. 
-            this.cb = async (propertiesChanged) => {
-                try{
-                    const data = 
-                    await this.device.getManufacturerData()             
-                    const buff=data[0x2e1];
-                    this.emitValuesFrom(buff)
-                }
-                catch (error) {
-                    throw new Error(`Unable to read data from ${await this.getDisplayName()}: ${error}` )
-                }
-            }
-            this.cb()
-            this.device.helper.on('PropertiesChanged', this.cb)
-            return this
-        }
-
 }
 module.exports=VictronSmartBatteryProtect 

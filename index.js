@@ -295,7 +295,7 @@ module.exports =  function (app) {
 			app.debug('Plugin restarting...');
 			plugin.schema.properties.peripherals.items.dependencies.mac_address.oneOf=[]
 		} else {
-			app.debug('Plugin started');
+			app.debug('Plugin build 2024.10.04 started');
 			
 		}
 		starts++

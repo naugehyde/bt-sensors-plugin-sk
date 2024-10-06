@@ -16,12 +16,7 @@ const VC = require('./VictronConstants.js')
         const md = this.addMetadatum('encryptionKey','', "Encryption Key")
         md.isParam = true
     }
-    static _testEncryptedData(key, data)
-    {
-        const d = new this()
-        d.encryptionKey=key
-        d._testEncryptedData(data)
-    }
+
     static async identifyMode(device, mode){
 
         try{
@@ -88,10 +83,7 @@ const VC = require('./VictronConstants.js')
     getModelName(){
         return VC.MODEL_ID_MAP[this.model_id]
     }
-    _testEncryptedData(dataStr){
-        const b = Buffer.from(dataStr.replaceAll(" ",""),"hex")
-        this._testBuffer(this.decrypt(b))
-    }
+
     decrypt(data){
         if (!this.encryptionKey)
             throw Error("Unable to decrypt: no encryption key set")

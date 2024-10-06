@@ -17,7 +17,21 @@ class BTSensor extends EventEmitter {
         this.Metadatum = this.constructor.Metadatum
         this.metadata = new Map(this.constructor.metadata)
     }
-
+    static _test(data, key){
+        var b = Buffer.from(data.replaceAll(" ",""),"hex")
+        const d = new this()
+        d.getPathMetadata().forEach((datum,tag)=>{
+                d.on(tag,(v)=>console.log(`${tag}=${v}`))
+        })
+        if (key) {
+            d.encryptionKey = key
+            b = d.decrypt(b)
+            console.log(b)
+        }
+        d.emitValuesFrom(b)
+        d.removeAllListeners()
+    
+    }
     static Metadatum = 
         class Metadatum{
         
@@ -42,6 +56,7 @@ class BTSensor extends EventEmitter {
     static getMetadata(){
         return this.metadata
     }
+
     static {
         var  md = this.addMetadatum("pollFreq", "s", "polling frequency in seconds (GATT connections only)")
         md.isParam=true
@@ -54,23 +69,20 @@ class BTSensor extends EventEmitter {
         this.getMetadata().set(tag,metadatum)
         return metadatum
     }
-
+    static NaNif(v1,v2) {  return (v1==v2)?NaN:v1 }
+    
     emitData(tag, buffer, ...args){
         this.emit(tag, this.getMetadatum(tag).read(buffer, ...args))
     }
-    _testBuffer(b){
-        this.getPathMetadata().forEach((datum,tag)=>{
-            this.on(tag,(v)=>console.log(`${tag}=${v}`))
-        })
-        this.emitValuesFrom(b)
-        this.removeAllListeners()
-    }
+    
     async init(){
         this.currentProperties=await this.device.helper.props()
         
         this.getMetadatum("RSSI").default=`sensors.${this.getMacAddress().replaceAll(':', '')}.rssi`
         this.getMetadatum("RSSI").examples=[this.getMetadatum("RSSI").default]
     }
+    static NaNif(v1,v2) {  return (v1==v2)?NaN:v1 }
+    
     addMetadatum(tag, ...args){
         var metadatum = new this.Metadatum(tag, ...args)
         this.getMetadata().set(tag, metadatum)
@@ -154,10 +166,7 @@ class BTSensor extends EventEmitter {
 
     }
    
-  /**
-   *  Connect to sensor.
-   *  This is where the logic for connecting to sensor, listening for changes in values and emitting those values go
-   */
+
     getServiceData(key){
         if (this.currentProperties.ServiceData)
             return this.valueIfVariant (this.currentProperties.ServiceData[key])
@@ -201,7 +210,10 @@ class BTSensor extends EventEmitter {
             this.propertiesChanged(props)
         }))
      }
-
+  /**
+   *  Connect to sensor.
+   *  This is where the logic for connecting to sensor, listening for changes in values and emitting those values go
+   */
     connect(){
         this.initPropertiesChanged()       
         this.propertiesChanged(this.currentProperties)

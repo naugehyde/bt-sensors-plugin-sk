@@ -230,6 +230,7 @@ class BTSensor extends EventEmitter {
      initPropertiesChanged(){
 
         this.propertiesChanged.bind(this)
+        this.device.helper._prepare()
         this.device.helper.on("PropertiesChanged",
         ((props)=> {
             this.propertiesChanged(props)

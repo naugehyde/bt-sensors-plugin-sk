@@ -75,7 +75,7 @@ class XiaomiMiBeacon extends BTSensor{
 
     constructor(device,params){
         super(device,params)
-        this.bindKey = params?.bindKey
+        this.encryptionKey = params?.encryptionKey
     }
     static SERVICE_MIBEACON = "0000fe95-0000-1000-8000-00805f9b34fb"
 
@@ -96,7 +96,7 @@ class XiaomiMiBeacon extends BTSensor{
            //3985f4ebc032f276cc316f1f6ecea085
         //8a1dadfa832fef54e9c1d190
 
-        const md = this.addMetadatum("encryptionKey", "", "bindkey for decryption")
+        const md = this.addMetadatum("encryptionKey", "", "encryptionKey (AKA bindKey) for decryption")
         md.isParam=true
         this.addMetadatum('temp','K', 'temperature',
             (buff,offset)=>{return ((buff.readInt16LE(offset))/100) + 273.1})
@@ -145,7 +145,7 @@ class XiaomiMiBeacon extends BTSensor{
         const encryptedPayload = data.subarray(-4);
         const xiaomi_mac = data.subarray(5,11)
         const nonce = Buffer.concat([data.subarray(0, 5), data.subarray(-4,-1), xiaomi_mac.subarray(-1)]);
-        const cipher = crypto.createDecipheriv('aes-128-ccm', Buffer.from(this.bindKey,"hex"), nonce, { authTagLength: 4});
+        const cipher = crypto.createDecipheriv('aes-128-ccm', Buffer.from(this.encryptionKey,"hex"), nonce, { authTagLength: 4});
         cipher.setAAD(Buffer.from('11', 'hex'), { plaintextLength: encryptedPayload.length });
         
         return cipher.update(encryptedPayload)
@@ -154,7 +154,7 @@ class XiaomiMiBeacon extends BTSensor{
         const encryptedPayload = data.subarray(11,-7);
         const xiaomi_mac = data.subarray(5,11)
         const nonce = Buffer.concat([xiaomi_mac, data.subarray(2, 5), data.subarray(-7,-4)]);
-        const cipher = crypto.createDecipheriv('aes-128-ccm', Buffer.from(this.bindKey,"hex"), nonce, { authTagLength: 4});
+        const cipher = crypto.createDecipheriv('aes-128-ccm', Buffer.from(this.encryptionKey,"hex"), nonce, { authTagLength: 4});
         cipher.setAAD(Buffer.from('11', 'hex'), { plaintextLength: encryptedPayload.length });
         cipher.setAuthTag(data.subarray(-4))    
         return cipher.update(encryptedPayload)
@@ -198,7 +198,7 @@ class XiaomiMiBeacon extends BTSensor{
     }
    
     useGATT(){
-        return this.bindKey == undefined
+        return this.encryptionKey == undefined
     }
 
     async disconnectGattCharacteristic(){

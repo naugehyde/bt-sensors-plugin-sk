@@ -128,14 +128,14 @@ class BTSensor extends EventEmitter {
         return this.currentProperties.Name
     }
      getDisplayName(){
-        return `${ this.getName()} (${ this.getMacAddress()}) ${ this.getBars()}`
+        return `${ this.getName()} (${ this.getMacAddress()} RSSI: ${this.getRSSI()} db / ${this.getSignalStrength().toFixed()}%) ${ this.getBars()}`
     }
 
     getMacAddress(){
         return this.currentProperties.Address
     }
     getRSSI(){
-        return this.currentProperties.RSSI
+        return this.currentProperties?.RSSI??NaN
     }
     useGATT(){
         return false
@@ -148,11 +148,16 @@ class BTSensor extends EventEmitter {
         
     }
 
-    static async getDeviceProps(device, propNames=[]){
+    static async getPropsProxy(device){
+        
         const objectProxy  = await device.helper.dbus.getProxyObject(device.helper.service, device.helper.object)
         if (!device._propsProxy)
             device._propsProxy = await objectProxy.getInterface('org.freedesktop.DBus.Properties')
-        const rawProps = await device._propsProxy.GetAll(device.helper.iface)
+        return device._propsProxy 
+    }
+    static async getDeviceProps(device, propNames=[]){
+        const _propsProxy = await this.getPropsProxy(device)
+        const rawProps = await _propsProxy.GetAll(device.helper.iface)
         const props = {}
         for (const propKey in rawProps) {
             if (propNames.length==0 || propNames.indexOf(propKey)>=0)
@@ -161,17 +166,14 @@ class BTSensor extends EventEmitter {
         return props
     }
     static async getDeviceProp(device, prop){
-        const objectProxy  = await device.helper.dbus.getProxyObject(device.helper.service, device.helper.object)
-        if (!device._propsProxy)
-            device._propsProxy = await objectProxy.getInterface('org.freedesktop.DBus.Properties')
+        const _propsProxy = await this.getPropsProxy(device)
         try{
-            const rawProps = await device._propsProxy.Get(device.helper.iface,prop)
+            const rawProps = await _propsProxy.Get(device.helper.iface,prop)
             return rawProps?.value
         }
         catch(e){
-            return null
+            return null //Property $prop doesn't exist in $device
         }
-        
     }  
     
 /**

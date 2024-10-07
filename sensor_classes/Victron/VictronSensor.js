@@ -4,7 +4,7 @@ const int24 = require('int24')
 const util = require('util')
 const VC = require('./VictronConstants.js')
  
-  class VictronDevice extends BTSensor{
+  class VictronSensor extends BTSensor{
 
     constructor(device,params){
         super(device,params)
@@ -106,4 +106,4 @@ const VC = require('./VictronConstants.js')
    
 
 }
-module.exports=VictronDevice
+module.exports=VictronSensor

@@ -1,9 +1,9 @@
-const VictronDevice = require ("./Victron/VictronDevice.js") 
+const VictronSensor = require ("./Victron/VictronSensor.js") 
 const VC = require("./Victron/VictronConstants.js")
 const int24 = require('int24')
 AC_IN_STATE=["AC in 1","AC in 2","NOT CONNECTED", "NA"]
 ALARM_STATE=["None","warning", "alarm","NA"]
-class VictronVEBus extends VictronDevice{
+class VictronVEBus extends VictronSensor{
 
     static async identify(device){
         return await this.identifyMode(device, 0x0C)

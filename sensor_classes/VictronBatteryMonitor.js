@@ -1,6 +1,6 @@
-const VictronDevice = require("./Victron/VictronDevice.js");
+const VictronSensor = require("./Victron/VictronSensor.js");
 const VC=require("./Victron/VictronConstants.js")
-class VictronBatteryMonitor extends VictronDevice{
+class VictronBatteryMonitor extends VictronSensor{
     static {
         this.metadata = new Map(super.getMetadata())
         this.addMetadatum('current', 'A', 'house battery amperage', 

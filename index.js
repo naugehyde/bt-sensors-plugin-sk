@@ -140,6 +140,7 @@ module.exports =  function (app) {
 		description: "NOTE: Plugin must be enabled to configure. You will have to wait until the scanner has found your device before configuring it. To refresh the list of available devices and their configurations, just open and close the config screen by clicking on the arrow symbol in the config's top bar.",
 		properties: {
 			discoveryTimeout: {title: "Initial scan timeout (in seconds)", type: "number",default: 45 },
+			scanForNewDevices: {title: "Scan for new devices", type: "boolean", default: true },
 			peripherals:
 				{ type: "array", title: "Sensors", items:{
 					title: "", type: "object", 
@@ -220,14 +221,13 @@ module.exports =  function (app) {
 		app.debug("Starting scan...");
 		try{ await adapter.stopDiscovery() } catch(error){}
 		try{ await adapter.startDiscovery() } catch(error){}
-		//if (!await adapter.isDiscovering()) 
-		//	throw new Error  ("Could not start scan: Aborting")
 	}
 
 	var discoveryInterval
 	function findDeviceLoop(){
 
-		//plugin.schema.description='Scanning for Bluetooth devices...'
+		plugin.schema.description='Scanning for new Bluetooth devices...'
+		app.debug(plugin.schema.description)
 		discoveryInterval = setInterval(  () => {
 			adapter.devices().then( (macs)=>{
 				for (var mac of macs) {	
@@ -319,7 +319,7 @@ module.exports =  function (app) {
 		
 					})
 			}
-			if (!discoveryInterval) 
+			if (options.scanForNewDevices && !discoveryInterval) 
 				findDeviceLoop()
 			peripherals=options.peripherals
 		}

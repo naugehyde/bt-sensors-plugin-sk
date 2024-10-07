@@ -24,6 +24,5 @@
   "bugs": {
     "url": "https://github.com/naugehyde/bt-sensors-plugin-sk/issues"
   },
-  "homepage": "https://github.com/naugehyde/bt-sensors-plugin-sk#readme",
-  "signalk-plugin-enabled-by-default": true
+  "homepage": "https://github.com/naugehyde/bt-sensors-plugin-sk#readme"
 }

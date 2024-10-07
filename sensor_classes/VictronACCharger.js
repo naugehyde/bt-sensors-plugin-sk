@@ -18,11 +18,11 @@ Startbit Nr of bits Meaning Units Range NA value Remark
 
 
 
-const VictronDevice = require ("./Victron/VictronDevice.js") 
+const VictronSensor = require ("./Victron/VictronSensor.js") 
 const VC = require("./Victron/VictronConstants.js")
 const int24 = require('int24')
 
-class VictronACCharger extends VictronDevice{
+class VictronACCharger extends VictronSensor{
 
     static async identify(device){
         return await this.identifyMode(device, 0x0A)

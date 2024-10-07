@@ -1,7 +1,7 @@
-const VictronDevice = require ("./Victron/VictronDevice.js") 
+const VictronSensor = require ("./Victron/VictronSensor.js") 
 const VC = require("./Victron/VictronConstants.js")
 const int24 = require('int24')
-class VictronGXDevice extends VictronDevice{
+class VictronGXDevice extends VictronSensor{
 /*
 Record layout is still to be determined and might change.
 Start

@@ -1,8 +1,8 @@
-const VictronDevice = require("./Victron/VictronDevice");
+const VictronSensor = require("./Victron/VictronSensor");
 const VC=require("./Victron/VictronConstants.js")
 
 
-class VictronInverter extends VictronDevice{
+class VictronInverter extends VictronSensor{
     static async identify(device){
         return await this.identifyMode(device, 0x03)
     }

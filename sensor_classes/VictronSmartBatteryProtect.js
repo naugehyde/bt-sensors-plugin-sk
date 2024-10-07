@@ -15,9 +15,9 @@ value Remark
 96 32 Off reason 0 .. 0xFFFFFFFF - VE_REG_DEVICE_OFF_REASON_2
 */
 
-const VictronDevice = require ("./Victron/VictronDevice.js") 
+const VictronSensor = require ("./Victron/VictronSensor.js") 
 const VC = require("./Victron/VictronConstants.js")
-class VictronSmartBatteryProtect extends VictronDevice{
+class VictronSmartBatteryProtect extends VictronSensor{
 
     static async identify(device){
         return await this.identifyMode(device, 0x09)

@@ -16,10 +16,10 @@ Start Bit	Nr of Bits	Meaning	Units	Range	NA Value	Remark
 152	7	Battery temperature	1°C	-40..86 °C	0x7F	VE_REG_BAT_TEMPERATURE Temperature = Record value - 40
 159	1	Unused				
 VE_REG_BATTERY_CELL_VOLTAGE 0x00 ( 0) when cell voltage < 2.61V 0x01 ( 1) when cell voltage == 2.61V 0x7D (125) when cell voltage == 3.85V 0x7E (126) when cell voltage > 3.85 0x7F (127) when cell voltage is not available / unknown
-*/const VictronDevice = require ("./Victron/VictronDevice.js") 
+*/const VictronSensor = require ("./Victron/VictronSensor.js") 
 const VC = require("./Victron/VictronConstants.js")
 
-class VictronSmartLithium extends VictronDevice{
+class VictronSmartLithium extends VictronSensor{
 
     static async identify(device){
         return await this.identifyMode(device, 0x05)

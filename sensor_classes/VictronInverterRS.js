@@ -16,40 +16,17 @@ class VictronInverterRS extends VictronDevice{
         this.addMetadatum('deviceState','', 'inverter device state', 
                 (buff)=>{return VC.OperationMode.get(buff.readIntU8(0))})
         md = this.addMetadatum('chargerError','', 'charger error',
-                (buff)=>{return buff.readIntU8(1)})
+                (buff)=>{return VC.ChargerError(buff.readIntU8(1))})
         md.notify=true
 
         this.addMetadatum('batteryVoltage','V', 'battery voltage', 
-            (buff)=>{const v = buff.readInt16LE(2)
-                if (v == 0x7fff) 
-                    return NaN
-               else
-                   return v/100
-            })
+            (buff)=>{return this.NaNif(buff.readInt16LE(2),0x7FFF)/100})
         this.addMetadatum('pvPower','W', 'PV power', 
-                (buff)=>{const w = buff.readUInt16LE(4)
-                    if (w == 0xffff) 
-                        return NaN
-                   else
-                       return w
-           
-                })
+            (buff)=>{return this.NaNif(buff.readUInt16LE(4), 0xffff)})
         this.addMetadatum('yieldToday','W', 'yield yoday in watts', 
-            (buff)=>{const w = buff.readUInt16LE(6)
-                if (w == 0xffff) 
-                        return NaN
-                else
-                    return w*10
-        
-            })
+            (buff)=>{return this.NaNif(buff.readUInt16LE(6), 0xffff)*10})
         this.addMetadatum('acOutPower','W', 'AC out power in watts', 
-            (buff)=>{const w = buff.readInt16LE(8)
-                if (w == 0x7fff) 
-                        return NaN
-                else
-                    return w
-        
-            })                
+            (buff)=>{this.NaNif(buff.readInt16LE(8), 0x7fff)})                
     }
 
     emitValuesFrom(decData){

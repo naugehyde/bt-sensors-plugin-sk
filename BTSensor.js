@@ -69,20 +69,18 @@ class BTSensor extends EventEmitter {
         this.getMetadata().set(tag,metadatum)
         return metadatum
     }
-    static NaNif(v1,v2) {  return (v1==v2)?NaN:v1 }
     
     emitData(tag, buffer, ...args){
         this.emit(tag, this.getMetadatum(tag).read(buffer, ...args))
     }
     
     async init(){
-        this.currentProperties=await this.device.helper.props()
-        
+        this.currentProperties = await this.constructor.getDeviceProps(this.device)
         this.getMetadatum("RSSI").default=`sensors.${this.getMacAddress().replaceAll(':', '')}.rssi`
         this.getMetadatum("RSSI").examples=[this.getMetadatum("RSSI").default]
     }
     static NaNif(v1,v2) {  return (v1==v2)?NaN:v1 }
-    
+    NaNif(v1,v2) {  return this.constructor.NaNif(v1,v2) }
     addMetadatum(tag, ...args){
         var metadatum = new this.Metadatum(tag, ...args)
         this.getMetadata().set(tag, metadatum)
@@ -110,7 +108,7 @@ class BTSensor extends EventEmitter {
         return 150-(5/3*(Math.abs(rssi)))
     }
 
-     getBars(){
+    getBars(){
         const ss =  this.getSignalStrength()
         var bars = ""
       
@@ -126,14 +124,14 @@ class BTSensor extends EventEmitter {
 
     }
 
-     getName(){
+    getName(){
         return this.currentProperties.Name
     }
      getDisplayName(){
         return `${ this.getName()} (${ this.getMacAddress()}) ${ this.getBars()}`
     }
 
-     getMacAddress(){
+    getMacAddress(){
         return this.currentProperties.Address
     }
     getRSSI(){
@@ -149,10 +147,37 @@ class BTSensor extends EventEmitter {
             return obj
         
     }
+
+    static async getDeviceProps(device, propNames=[]){
+        const objectProxy  = await device.helper.dbus.getProxyObject(device.helper.service, device.helper.object)
+        if (!device._propsProxy)
+            device._propsProxy = await objectProxy.getInterface('org.freedesktop.DBus.Properties')
+        const rawProps = await device._propsProxy.GetAll(device.helper.iface)
+        const props = {}
+        for (const propKey in rawProps) {
+            if (propNames.length==0 || propNames.indexOf(propKey)>=0)
+                props[propKey] = rawProps[propKey].value
+        }
+        return props
+    }
+    static async getDeviceProp(device, prop){
+        const objectProxy  = await device.helper.dbus.getProxyObject(device.helper.service, device.helper.object)
+        if (!device._propsProxy)
+            device._propsProxy = await objectProxy.getInterface('org.freedesktop.DBus.Properties')
+        try{
+            const rawProps = await device._propsProxy.Get(device.helper.iface,prop)
+            return rawProps?.value
+        }
+        catch(e){
+            return null
+        }
+        
+    }  
+    
 /**
  * callback function on device properties changing
  */
-     propertiesChanged(props){
+    propertiesChanged(props){
             
         if (props.RSSI) {
             this.currentProperties.RSSI=this.valueIfVariant(props.RSSI)

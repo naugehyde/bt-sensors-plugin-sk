@@ -28,21 +28,21 @@ class VictronSmartBatteryProtect extends VictronDevice{
 
         this.addMetadatum('deviceState','', 'device state', 
                         (buff)=>{return VC.OperationMode.get(buff.readUInt8(1))})
-        this.addMetadatum('outputStatus','', 'output status', 
+        this.addMetadatum('outputStatus','', 'output status', //TODO
             (buff)=>{return (buff.readUInt8(2))})
 
         this.addMetadatum('chargerError','', 'charger error',
             (buff)=>{return VC.ChargerError.get(buff.readUInt8(3))})
         this.addMetadatum('alarmReason','', 'alarm reason', 
             (buff)=>{return VC.AlarmReason.get(buff.readUInt16LE(4))})
-        this.addMetadatum('warningReason','', 'warning reason', 
+        this.addMetadatum('warningReason','', 'warning reason', //TODO
             (buff)=>{return (buff.readUInt16LE(5))})
         this.addMetadatum('channel1Voltage','V', 'channel one voltage', 
-            (buff)=>{return buff.readInt16LE(7)/100})
+            (buff)=>{return this.NaNif(buff.readInt16LE(7),0x7FFF)/100})
         this.addMetadatum('outputVoltage','V', 'output voltage', 
-            (buff)=>{return buff.readUInt16LE(9)/100})
+            (buff)=>{return this.NaNif(buff.readUInt16LE(9),0xFFFF)/100})
         this.addMetadatum('offReason','', 'off reason', 
-            (buff)=>{return VC.OffReasons.get(buff.readUInt16LE(11))})
+            (buff)=>{return VC.OffReasons.get(buff.readUInt16LE(11))}) //TODO
         }
 
 }

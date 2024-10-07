@@ -1,34 +1,14 @@
-const _Victron = require("./Victron/VictronDevice");
+const VictronDevice = require("./Victron/VictronDevice");
 const VC=require("./Victron/VictronConstants.js")
 
-const MeterType = new Map([
-    [-9, 'SOLAR_CHARGER'],
-    [-8, 'WIND_CHARGER'],
-    [-7, 'SHAFT_GENERATOR'],
-    [-6, 'ALTERNATOR'],
-    [-5, 'FUEL_CELL'],
-    [-4, 'WATER_GENERATOR'],
-    [-3, 'DC_DC_CHARGER'],
-    [-2, 'AC_CHARGER'],
-    [-1, 'GENERIC_SOURCE'],
-    [1, 'GENERIC_LOAD'],
-    [2, 'ELECTRIC_DRIVE'],
-    [3, 'FRIDGE'],
-    [4, 'WATER_PUMP'],
-    [5, 'BILGE_PUMP'],
-    [6, 'DC_SYSTEM'],
-    [7, 'INVERTER'],
-    [8, 'WATER_HEATER']
-]);
-
-class VictronDCEnergyMeter extends _Victron{
+class VictronDCEnergyMeter extends VictronDevice{
     
     static async identify(device){
         return await this.identifyMode(device, 0x0D)
     }
     async init(){
-        super.init()
-        const modeCurrent = await this.getAuxModeAndCurrent()
+        await super.init()
+        const modeCurrent =  this.getAuxModeAndCurrent()
         this.auxMode= modeCurrent.auxMode
         switch(this.auxMode){
             case VC.AuxMode.STARTER_VOLTAGE:
@@ -53,7 +33,7 @@ class VictronDCEnergyMeter extends _Victron{
     static { 
         this.metadata = new Map(super.getMetadata())
         this.addMetadatum('meterType','', 'meter type', 
-                (buff)=>{return buff.readInt16LE(0)})
+                (buff)=>{return VC.MeterType.get( buff.readInt16LE(0))})
         this.addMetadatum('voltage','','voltage',
                 (buff)=>{return buff.readInt16LE(2)/100})
         this.addMetadatum('alarm','', 'alarm', 

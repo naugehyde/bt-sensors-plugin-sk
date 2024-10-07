@@ -4,13 +4,9 @@ class Inkbird extends BTSensor{
 
     static async identify(device){
         try{
-            const uuids = await device.helper.prop('UUIDs')
-            if (await device.getNameSafe() == 'tps' || await device.getAliasSafe() == 'tps' || 
-            (uuids.length > 0 && uuids[0] == '0000fff0-0000-1000-8000-00805f9b34fb')){
-                return this
-            }
-            if (await device.getNameSafe() == 'sps' || await device.getAliasSafe() == 'sps' || 
-            (uuids.length > 0 && uuids[0] == '0000fff0-0000-1000-8000-00805f9b34fb')){ //confirm uuid
+            const uuids = await this.getDeviceProp(device,'UUIDs')
+            const name = await this.getDeviceProp(device,"Name")
+            if ((name == 'tps' || name=='sps') && (uuids.length > 0 && uuids[0] == '0000fff0-0000-1000-8000-00805f9b34fb')){
                 return this
             }
         } catch (e){

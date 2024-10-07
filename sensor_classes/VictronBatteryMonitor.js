@@ -1,6 +1,5 @@
 const VictronDevice = require("./Victron/VictronDevice.js");
 const VC=require("./Victron/VictronConstants.js")
-//8cce8529307cf9dd0c85611c4fef42d9
 class VictronBatteryMonitor extends VictronDevice{
     static {
         this.metadata = new Map(super.getMetadata())
@@ -11,7 +10,7 @@ class VictronBatteryMonitor extends VictronDevice{
                 (buff,offset=0)=>{return buff.readInt16LE(offset)},
                 '6597ed8e-4bda-4c1e-af4b-551c4cf74769')
         this.addMetadatum('voltage','V',  'house battery voltage', 
-                (buff,offset=0)=>{return buff.readInt16LE(offset)/100},
+                (buff,offset=0)=>{return this.NaNif(buff.readInt16LE(offset), 0x7FFF)/100},
                 '6597ed8d-4bda-4c1e-af4b-551c4cf74769',)
         const alarmMD = this.addMetadatum('alarm','',  'alarm', 
                 (buff,offset=0)=>{return buff.readInt16LE(offset)})
@@ -26,7 +25,7 @@ class VictronBatteryMonitor extends VictronDevice{
                 '65970fff-4bda-4c1e-af4b-551c4cf74769')    
 
         this.addMetadatum( 'ttg','s','time to go', 
-                (buff,offset=0)=>{return buff.readUInt16LE(offset)*60},
+                (buff,offset=0)=>{return this.NaNif(buff.readUInt16LE(offset),0xFFFF)*60},
                 '65970ffe-4bda-4c1e-af4b-551c4cf74769')    
     }
 
@@ -85,7 +84,7 @@ class VictronBatteryMonitor extends VictronDevice{
         default:
             break
         }      
-        this.emit("consumed",decData.readInt16LE(11) / 10 );
+        this.emit("consumed",decData.readInt16LE(11) / 10 ); //TODO this ain't right
         var soc = decData.readUInt16LE(13)
         this.emit("soc", ((soc & 0x3FFF) >> 4) / 1000)
     }

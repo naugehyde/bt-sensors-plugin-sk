@@ -9,20 +9,14 @@ class VictronDCDCConverter extends VictronDevice{
    
     static {
         this.metadata= new Map(super.getMetadata())
-        this.addMetadatum('chargeState','', 'device charge state', 
+        this.addMetadatum('deviceState','', 'device state', 
                 (buff)=>{return VC.OperationMode.get(buff.readUInt8(0))})
         this.addMetadatum('chargerError','', 'charger error',
                 (buff)=>{return VC.ChargerError.get(buff.readUInt8(1))})
         this.addMetadatum('inputVoltage','V', 'input voltage', 
-                (buff)=>{return buff.readUInt16LE(2)/100})
+                (buff)=>{return this.NaNif(buff.readUInt16LE(2),0xFFFF)/100})
         this.addMetadatum('outputVoltage','V', 'output voltage', 
-                (buff)=>{const v = buff.readUInt16LE(4)/100
-                    if (v == 0x7fff) 
-                        return 0
-                   else
-                       return v
-           
-                })
+                (buff)=>{return this.NaNif(buff.readInt16LE(4),0x7FFF)/100 })
         this.addMetadatum('offReason','', 'reason unit is off',
                 (buff)=>{return VC.OffReasons.get(buff.readUInt32LE(6))})
                 

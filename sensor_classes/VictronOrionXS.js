@@ -11,18 +11,18 @@ class VictronOrionXS extends VictronDevice{
     static {
         this.metadata = new Map(super.getMetadata())
 
-        this.addMetadatum('chargeState','', 'charge state', 
-                        (buff)=>{return VC.OperationMode.get(buff.readUInt8(0))})
+        this.addMetadatum('deviceState','', 'device state', 
+            (buff)=>{return VC.OperationMode.get(buff.readUInt8(0))})
         this.addMetadatum('chargerError','', 'charger error',
-            (buff)=>{return buff.readUInt8(1)})
+            (buff)=>{return VC.ChargerError.get(buff.readUInt8(1))})
         this.addMetadatum('outputVoltage','V', 'output voltage', 
-            (buff)=>{return buff.readInt16LE(2)/100})
+            (buff)=>{return this.NaNif(buff.readInt16LE(2),0x7FF)/100})
         this.addMetadatum('current','A','output current', 
-            (buff)=>{return buff.readInt16LE(4)/10})
+            (buff)=>{return this.NaNif(buff.readUInt16LE(4),0xFFFF)/10})
         this.addMetadatum('inputVoltage','V', 'input voltage', 
-            (buff)=>{return buff.readInt16LE(6)/100})
+            (buff)=>{return this.NaNif(buff.readInt16LE(6),0x07FF)/100})
         this.addMetadatum('inputCurrent','A','input current', 
-            (buff)=>{return buff.readInt16LE(8)/10})
+            (buff)=>{return this.NaNif(buff.readUInt16LE(8),0xFFFF)/10})
         this.addMetadatum('deviceOffReason','', 'device off reason', 
             (buff)=>{return VC.OffReasons(buff.readUInt32(10))})    
         }

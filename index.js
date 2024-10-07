@@ -14,25 +14,7 @@ try {
 }
 const { Variant } = require('dbus-next')
 
-Device.prototype.getUUIDs=async function() {
-	return this.helper.prop('UUIDs')
-}
 
-Device.prototype.getProp=async function(propName) {
-	const props = await this.helper.props()
-			if (props[propName])
-				return props[propName]
-			else
-				return null
-}
-
-Device.prototype.getNameSafe=async function(propName) {
-	return this.getProp('Name')
-}
-
-Device.prototype.getAliasSafe=async function(propName) {
-	return this.getProp('Alias')
-}
 class MissingSensor  {
 	
 
@@ -101,34 +83,29 @@ module.exports =  function (app) {
 		  }, x);
 		});
 	  }
-	async function  instantiateSensor(device,params){
-//		app.debug(`instantiating ${await device.getAddress()}`)
+	async function instantiateSensor(device,params){
 		try{
 		for (var [clsName, cls] of classMap) {
 			const c = await cls.identify(device)
 			if (c) {
 				
 				if (c.name.startsWith("_")) continue
-				const d = new c(device,params)
-				d.debug=app.debug
-				await d.init()
-				return d
+				c.debug=app.debug
+				c.debug.bind(c)
+				const sensor = new c(device,params)
+				if (sensor == undefined)
+					debugger
+				sensor.debug=app.debug
+				await sensor.init()
+				return sensor
 			}
 		}} catch(error){
-			app.debug(`Unable to instantiate ${await device.getAddress()}: ${error.message} `)
+			app.debug(`Unable to instantiate ${await BTSensor.getDeviceProp(device,"Address")}: ${error.message} `)
 		}
 		//if we're here ain't got no class for the device
-		//bypass  DBusHelper and get RSSI just once
-		const d = new (classMap.get('UNKNOWN'))(device)
-		const objectProxy  = await device.helper.dbus.getProxyObject(device.helper.service, device.helper.object)
-		const _propsProxy = await objectProxy.getInterface('org.freedesktop.DBus.Properties')
-		const rssi = await _propsProxy.Get(device.helper.iface,"RSSI")
-		const mac = await _propsProxy.Get(device.helper.iface,"Address")
-		d.currentProperties= { 
-			RSSI: rssi.value,
-			Address: mac.value
-		}
-		return d
+		const sensor = new (classMap.get('UNKNOWN'))(device)
+		await sensor.init()
+		return sensor
 	}
 
 	function createPaths(peripheral_config){

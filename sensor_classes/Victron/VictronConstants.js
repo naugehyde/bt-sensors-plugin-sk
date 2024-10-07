@@ -1,4 +1,24 @@
 module.exports = { 
+
+  /*Device State?
+  0x00: Off
+0x01: Low Power Mode,
+0x02: Fault,
+0x03: Bulk,
+0x04: Absorption,
+0x05: Float,
+0x06: Storage,
+0x07: Equalize,
+0x08: Passthru,
+0x09: Inverting,
+0x0A: Assisting,
+0x0B: Power Supply Mode,
+0x0C-0xFA: Reserved,
+0xFB: Test,
+0xFC: Hub-1,
+0xFD-0xFE: Reserved,
+0xFF: Not Available
+  */
     OperationMode: new Map([
     [0, 'OFF'],
     [1, 'LOW_POWER'],
@@ -32,6 +52,25 @@ module.exports = {
     [2048, "HIGH_V_AC_OUT"],
     [4096, "SHORT_CIRCUIT"],
     [8192, "BMS_LOCKOUT"]
+  ]),
+  MeterType : new Map([
+    [-9, 'SOLAR_CHARGER'],
+    [-8, 'WIND_CHARGER'],
+    [-7, 'SHAFT_GENERATOR'],
+    [-6, 'ALTERNATOR'],
+    [-5, 'FUEL_CELL'],
+    [-4, 'WATER_GENERATOR'],
+    [-3, 'DC_DC_CHARGER'],
+    [-2, 'AC_CHARGER'],
+    [-1, 'GENERIC_SOURCE'],
+    [1, 'GENERIC_LOAD'],
+    [2, 'ELECTRIC_DRIVE'],
+    [3, 'FRIDGE'],
+    [4, 'WATER_PUMP'],
+    [5, 'BILGE_PUMP'],
+    [6, 'DC_SYSTEM'],
+    [7, 'INVERTER'],
+    [8, 'WATER_HEATER']
   ]),
   MODEL_ID_MAP :{
     0x203: "BMV-700",
@@ -284,5 +323,6 @@ OffReasons : new Map([
     [0x00000080, 'ENGINE_SHUTDOWN'],
     [0x00000081, 'ENGINE_SHUTDOWN_AND_INPUT_VOLTAGE_LOCKOUT'],
     [0x00000100, 'ANALYSING_INPUT_VOLTAGE']
-  ])
+  ]),
+  
 }

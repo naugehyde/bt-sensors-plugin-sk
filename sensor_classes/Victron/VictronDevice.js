@@ -20,42 +20,18 @@ const VC = require('./VictronConstants.js')
     static async identifyMode(device, mode){
 
         try{
-            if (VictronDevice.identify(device)==null)
-                return null
-            
-            if (await this.getMode(device)==mode)
-                return this
-
-        } catch (e){
-            console.log(e)
-            return null
-        }
-        return null
-    }
-    
-    static async identify(device){
-        try{
-           
-            const md = await device.getProp('ManufacturerData')
+            const md = await this.getDeviceProp(device,'ManufacturerData')
             if (!md) return null   
             const data = md[0x2e1]
-            if (data && data.value[0]==0x10)
+            if (data && data.value[0]==0x10 && data.value[4]==mode)
                 return this
-
+            else
+                return null
         } catch (e){
             console.log(e)
             return null
         }
-        return null
-    }    
-    static async getMode(device, md = null){
-        if (md ==null)
-            md = await device.getProp('ManufacturerData')
-        if (md==undefined) return null
-        const data = md[0x2e1]
-        if (data==undefined || data.value.length<8) return null
-        return data.value.readUInt8(4)
-            
+        
     }
 
     getAuxModeAndCurrent(offset, decData=null){
@@ -68,7 +44,7 @@ const VC = require('./VictronConstants.js')
         } 
         const auxModeAndCurrent = int24.readInt24LE(decData,offset)
         return {
-            current : (auxModeAndCurrent >> 2)/1000,
+            current : (this.NaNif(auxModeAndCurrent >> 2,0x3FFFFF))/1000,
             auxMode : auxModeAndCurrent & 0b11
         }
     }

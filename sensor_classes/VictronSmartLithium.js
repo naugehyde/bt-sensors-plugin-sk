@@ -28,7 +28,7 @@ class VictronSmartLithium extends VictronDevice{
     static {
 
         function _toCellVoltage(val){    
-            return val==0x7f?Nan:2.6+(val/100)
+            return val==0x7F?NaN:2.6+(val/100)
         }
         this.metadata = new Map(super.getMetadata())
 
@@ -55,11 +55,11 @@ class VictronSmartLithium extends VictronDevice{
         this.addMetadatum('cell8Voltage','V', 'cell #8 voltage', 
             (buff)=>{return _toCellVoltage((buff.readUInt8(11))&0x7f)})
         this.addMetadatum('batteryVoltage','V', 'battery voltage', 
-            (buff)=>{return (buff.readUInt16BE(14)>>4)/100})
-        this.addMetadatum('balancerStatus','', 'balancer status', 
-            (buff)=>{return (buff.readUInt16BE(14)&0xf)})
+            (buff)=>{return this.NaNif((buff.readUInt16BE(14)>>4),0xFFF)/100})
+        this.addMetadatum('balancerStatus','', 'balancer status', //TODO
+            (buff)=>{return this.NaNif((buff.readUInt16BE(14)&0xf),0xF)})
         this.addMetadatum('batteryTemp','K', 'battery temperature', 
-            (buff)=>{return (buff.readInt8(15)>>1)+40+273.15})
+            (buff)=>{return this.NaNif((buff.readInt8(15)>>1),0x7F)+233.15})
     
                 
     }

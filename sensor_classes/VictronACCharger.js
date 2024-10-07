@@ -32,7 +32,7 @@ class VictronACCharger extends VictronDevice{
         this.metadata = new Map(super.getMetadata())
 
         this.addMetadatum('state','', 'device state', 
-            (buff)=>{return buff.readUInt8(0)})
+            (buff)=>{return VC.OperationMode.get(buff.readUInt8(0))})
         this.addMetadatum('error','', 'error code', 
             (buff)=>{return VC.ChargerError.get(buff.readUInt8(1))})
  

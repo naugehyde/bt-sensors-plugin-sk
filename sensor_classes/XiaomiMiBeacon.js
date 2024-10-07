@@ -81,7 +81,7 @@ class XiaomiMiBeacon extends BTSensor{
 
     static async identify(device){
         try{
-            const sd = await device.getProp('ServiceData')
+            const sd = await this.getDeviceProp(device, 'ServiceData')
             if (sd == null || sd.length==0) return null
             const keys = Object.keys(sd)
             if (keys[0]==this.SERVICE_MIBEACON) return this

@@ -7,7 +7,7 @@ class RuuviTag extends BTSensor{
     static async identify(device){
         try{
            
-            const md = await device.getProp('ManufacturerData')
+            const md = await this.getDeviceProp(device,'ManufacturerData')
             if (!md) return null   
             const data = md[0x499]
 
@@ -22,7 +22,7 @@ class RuuviTag extends BTSensor{
     }
     async init(){
         await super.init()
-        const md = this.valueIfVariant(this.currentProperties.manufacturerData["0x0499"])
+        const md = this.valueIfVariant(this.getManufacturerData["0x0499"])
         this.mode = md[0]
         if (this._initModeV+md[0])
             this._initModeV+md[0]()

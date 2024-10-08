@@ -12,8 +12,25 @@ const BTCompanies = require('./bt_co.json')
 const BTCompanyMap=new Map()
 BTCompanies.company_identifiers.forEach( (v) =>{
     BTCompanyMap.set(v.value, v.name)
+})
+
+function signalQualityPercentQuad(rssi, perfect_rssi=-20, worst_rssi=-85) {
+    const nominal_rssi=(perfect_rssi - worst_rssi);
+    var signal_quality =
+    (100 *
+    (perfect_rssi - worst_rssi) *
+    (perfect_rssi - worst_rssi) -
+    (perfect_rssi - rssi) *
+    (15 * (perfect_rssi - worst_rssi) + 62 * (perfect_rssi - rssi))) / 
+    ((perfect_rssi - worst_rssi) * (perfect_rssi - worst_rssi));
+    
+    if (signal_quality > 100) {
+        signal_quality = 100;
+    } else if (signal_quality < 1) {
+        signal_quality = 0;
+    }
+    return Math.ceil(signal_quality);
 }
-)
 class BTSensor extends EventEmitter {
     static metadata=new Map()
     constructor(device,config={}) {
@@ -119,21 +136,22 @@ class BTSensor extends EventEmitter {
    
     getSignalStrength(){
         const rssi =  this.getRSSI()
-        if (!rssi) return 0
-        return 150-(5/3*(Math.abs(rssi)))
+        if (!rssi) 
+            return NaN
+        return signalQualityPercentQuad(rssi)
     }
 
     getBars(){
         const ss =  this.getSignalStrength()
         var bars = ""
       
-        if (ss>=10)
+        if (ss>0)
             bars+= '\u{2582} ' //;"▂ "
-        if (ss>=35) 
+        if (ss>=30) 
             bars+= "\u{2584} " 
         if (ss>=60)
             bars+= "\u{2586} " 
-        if (ss > 85) 
+        if (ss > 80) 
             bars+= "\u{2588}"
         return bars 
 

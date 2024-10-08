@@ -6,10 +6,7 @@ class UNKNOWN extends BTSensor{
     async init(){
         await super.init()
         if (!this.currentProperties.Name) 
-            this.currentProperties.Name= "Unknown device"
-    }
-    getDescription(){
-        return `Unknown or unrecognized device from ${this.getManufacturer()}`
+            this.currentProperties.Name= `Unknown device from ${this.getManufacturer()}`
     }
 }
 module.exports=UNKNOWN

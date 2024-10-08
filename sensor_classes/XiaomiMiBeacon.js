@@ -171,6 +171,9 @@ class XiaomiMiBeacon extends BTSensor{
                 dec=this.decryptV2and3(data)
             }
         }
+        if (dec.length==0)
+            throw new Error(`${this.getNameAndAddress()} received empty decrypted packet. Check that the bind/encryption key in config is correct.`)
+
         switch(dec[0]){
         case 0x04:    
             this.emit("temp",(dec.readInt16LE(3)/10)+273.15)  
@@ -179,7 +182,8 @@ class XiaomiMiBeacon extends BTSensor{
             this.emit("humidity",(dec.readInt16LE(3)/10))          
             break
         default:
-            console.log("wait wha??? "+ dec)
+            throw new Error(`${this.getNameAndAddress()} unable to parse decrypted service data (${dec})`)
+            
         }
     }
     

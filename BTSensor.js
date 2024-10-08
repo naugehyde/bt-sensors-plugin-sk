@@ -71,8 +71,10 @@ class BTSensor extends EventEmitter {
             asJSONSchema(){
                 return {
                     type:this?.type??'string', 
-                    title: this.description,
-                    default: this?.default
+                    title: this?.description,
+                    unit: this?.unit,
+                    default: this?.default,
+
                 }
             }
         }  
@@ -164,6 +166,10 @@ class BTSensor extends EventEmitter {
     getName(){
         return this?.name??this.currentProperties.Name
     }
+
+    getNameAndAddress(){
+        return `${this.getName()} at ${this.getMacAddress()}`
+    }
      getDisplayName(){
         return `${ this.getName()} (${ this.getMacAddress()} RSSI: ${this.getRSSI()} db / ${this.getSignalStrength().toFixed()}%) ${ this.getBars()}`
     }
@@ -209,7 +215,7 @@ class BTSensor extends EventEmitter {
             return rawProps?.value
         }
         catch(e){
-            return null //Property $prop doesn't exist in $device
+            return null //Property $prop (probably) doesn't exist in $device
         }
     }  
     
@@ -229,8 +235,6 @@ class BTSensor extends EventEmitter {
             this.currentProperties.ManufacturerData=this.valueIfVariant(props.ManufacturerData)
 
     }
-   
-
 
     getServiceData(key){
         if (this.currentProperties.ServiceData)

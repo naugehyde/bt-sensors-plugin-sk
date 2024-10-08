@@ -291,7 +291,7 @@ module.exports =  function (app) {
 
 
 		function isConfiguredPeripheral(mac){
-			return options.peripherals.find((p)=>{p.mac_address==mac})!=-1
+			return options.peripherals.findIndex((p)=>p.mac_address==mac) !=-1
 		}
 
 		function findDevices (discoveryTimeout) {

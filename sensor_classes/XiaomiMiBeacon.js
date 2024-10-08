@@ -112,6 +112,9 @@ class XiaomiMiBeacon extends BTSensor{
         this.emitData("humidity", buffer,2)
         this.emitData("voltage",buffer,3);
     }
+    getManufacturer(){
+        return "Xiaomi Inc."
+    }
     initGATT(){
         return new Promise((resolve,reject )=>{
             this.device.connect().then(async ()=>{
@@ -198,7 +201,7 @@ class XiaomiMiBeacon extends BTSensor{
 
     getName(){
         const dt = DEVICE_TYPES.get(this.deviceID)
-        return `Xiaomi ${dt.name} ${dt.model}`
+        return this?.name??`${dt.name} ${dt.model}`
     }
    
     useGATT(){

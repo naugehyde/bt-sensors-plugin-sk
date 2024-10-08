@@ -285,10 +285,10 @@ module.exports =  function (app) {
 	plugin.started=false
 
 	loadClassMap()
+	var discoveryIntervalID
 
 	plugin.start = async function (options, restartPlugin) {
 
-		var discoveryIntervalID
 
 		function isConfiguredPeripheral(mac){
 			return options.peripherals.find((p)=>{p.mac_address==mac})!=-1

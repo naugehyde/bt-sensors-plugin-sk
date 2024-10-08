@@ -1,21 +1,15 @@
 const BTSensor = require("../BTSensor");
 class UNKNOWN extends BTSensor{
-
-    constructor(device, params){
-        super(device, params)
-    }
     static identify(device){
         return null
     }
-    getName(){
-        return "Unknown device"
+    async init(){
+        await super.init()
+        if (!this.currentProperties.Name) 
+            this.currentProperties.Name= "Unknown device"
     }
-
-    async connect() {
-        return super.connect()
-    }
-     disconnect() {
-        return super.disconnect()
+    getDescription(){
+        return `Unknown or unrecognized device from ${this.getManufacturer()}`
     }
 }
 module.exports=UNKNOWN

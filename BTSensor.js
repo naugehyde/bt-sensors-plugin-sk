@@ -1,19 +1,26 @@
 const { Variant } = require('dbus-next');
 const { log } = require('node:console');
 const EventEmitter = require('node:events');
-
+const BTCompanies = require('./bt_co.json')
 /**
  * @classdesc Abstract class that all sensor classes should inherit from. Sensor subclasses monitor a 
  * BT peripheral and emit changes in the sensors's value like "temp" or "humidity"
  * @class BTSensor
  * @see EventEmitter, node-ble/Device
  */
+
+const BTCompanyMap=new Map()
+BTCompanies.company_identifiers.forEach( (v) =>{
+    BTCompanyMap.set(v.value, v.name)
+}
+)
 class BTSensor extends EventEmitter {
     static metadata=new Map()
-    constructor(device,params=null) {
+    constructor(device,config={}) {
         super()
         this.device=device
-        this.pollFreq = params?.pollFreq
+        this.pollFreq = config?.pollFreq
+        this.name = config?.name
         this.Metadatum = this.constructor.Metadatum
         this.metadata = new Map(this.constructor.metadata)
     }
@@ -58,7 +65,10 @@ class BTSensor extends EventEmitter {
     }
 
     static {
-        var  md = this.addMetadatum("pollFreq", "s", "polling frequency in seconds (GATT connections only)")
+        var md = this.addMetadatum("name", "string","Name of sensor" )
+        md.isParam=true
+
+        md = this.addMetadatum("pollFreq", "s", "polling frequency in seconds (GATT connections only)")
         md.isParam=true
         md.type="number"
         md = this.addMetadatum("RSSI","db","Signal strength in db")
@@ -101,6 +111,11 @@ class BTSensor extends EventEmitter {
             [...this.getMetadata().entries()].filter(([key,value]) => !(value?.isParam??false))
         )
     }
+    getParamMetadata(){
+        return new Map(
+            [...this.getMetadata().entries()].filter(([key,value]) => (value?.isParam??false))
+        )
+    }
    
     getSignalStrength(){
         const rssi =  this.getRSSI()
@@ -123,9 +138,11 @@ class BTSensor extends EventEmitter {
         return bars 
 
     }
-
+    getDescription(){
+        return `${this.getName()} from ${this.getManufacturer()}`
+    }
     getName(){
-        return this.currentProperties.Name
+        return this?.name??this.currentProperties.Name
     }
      getDisplayName(){
         return `${ this.getName()} (${ this.getMacAddress()} RSSI: ${this.getRSSI()} db / ${this.getSignalStrength().toFixed()}%) ${ this.getBars()}`
@@ -194,11 +211,23 @@ class BTSensor extends EventEmitter {
     }
    
 
+
     getServiceData(key){
         if (this.currentProperties.ServiceData)
             return this.valueIfVariant (this.currentProperties.ServiceData[key])
         else
             return null
+
+    }
+    getManufacturer(){
+        const md = this.currentProperties.ManufacturerData
+        var co=null
+        if (md){
+            const keys = Object.keys(this.valueIfVariant(md))
+            if (keys.length>0)
+                co=BTCompanyMap.get(parseInt(keys[0]))
+        }
+        return (co==null)?"Unknown manufacturer":co
 
     }
     getManufacturerData(key){
@@ -254,7 +283,7 @@ class BTSensor extends EventEmitter {
                 else 
                     this.initGATTNotifications()
             })
-            .catch((e)=>this.debug("Cannot use GATT: "+e))
+            .catch((e)=>this.debug(`GATT services unavailable for ${this.getName()}. Reason: ${e}`))
         }
         return this
     }

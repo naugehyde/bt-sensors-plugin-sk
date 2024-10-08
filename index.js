@@ -6,15 +6,6 @@ const {bluetooth, destroy} = createBluetooth()
 
 const BTSensor = require('./BTSensor.js')
 
-try {
-	var Device = require('../node-ble/src/Device.js')
-	if (Device == undefined) throw new Error('')
-} catch (error) {
-	Device = require('./node_modules/node-ble/src/Device.js')	
-}
-const { Variant } = require('dbus-next')
-
-
 class MissingSensor  {
 	
 
@@ -29,6 +20,7 @@ class MissingSensor  {
 		this.addMetadatum.bind(this)
 		keys.forEach((key)=>{
 			this.addMetadatum(key, config[key]?.type??'string',  config[key].description )
+			this[key]=config[key]
 		} )
 		this.mac_address = config.mac_address
 		
@@ -39,8 +31,11 @@ class MissingSensor  {
 	getMacAddress(){
 		return this.mac_address
 	}
+	getName(){
+		return this?.name??"Unknown device"
+	}	
 	getDisplayName(){
-		return this.mac_address + " (OUT OF RANGE)"
+		return `OUT OF RANGE DEVICE (${this.getName()} ${this.getMacAddress()})`
 	}
 }
 module.exports =  function (app) {
@@ -83,7 +78,7 @@ module.exports =  function (app) {
 		  }, x);
 		});
 	  }
-	async function instantiateSensor(device,params){
+	async function instantiateSensor(device,config){
 		try{
 		for (var [clsName, cls] of classMap) {
 			const c = await cls.identify(device)
@@ -92,7 +87,7 @@ module.exports =  function (app) {
 				if (c.name.startsWith("_")) continue
 				c.debug=app.debug
 				c.debug.bind(c)
-				const sensor = new c(device,params)
+				const sensor = new c(device,config)
 				if (sensor == undefined)
 					debugger
 				sensor.debug=app.debug
@@ -108,13 +103,13 @@ module.exports =  function (app) {
 		return sensor
 	}
 
-	function createPaths(peripheral_config){
-		peripheral_config.sensor.getMetadata().forEach((metadatum, tag)=>{
+	function createPaths(config){
+		config.sensor.getMetadata().forEach((metadatum, tag)=>{
 			if ((!(metadatum?.isParam)??false)){ //param metadata is passed to the sensor at 
 												 //create time through the constructor, and isn't a
 												 //a value you want to see in a path 
 				
-				const path = peripheral_config[tag]
+				const path = config[tag]
 				if (!(path===undefined))
 					app.handleMessage(plugin.id, 
 					{
@@ -143,12 +138,12 @@ module.exports =  function (app) {
 			scanForNewDevices: {title: "Scan for new devices", type: "boolean", default: true },
 			peripherals:
 				{ type: "array", title: "Sensors", items:{
-					title: "", type: "object", 
+					title: "", type: "object",
 					properties:{
-						mac_address: {title: "Bluetooth Device", enum: [], enumNames:[], type: "string" },
 						active: {title: "Active", type: "boolean", default: true },
-						discoveryTimeout: {title: "Discovery timeout (in seconds)", type: "number", default:30},
-					}, dependencies:{mac_address:{oneOf:[]}}
+						mac_address: {title: "Bluetooth Sensor",  type: "string" },
+						discoveryTimeout: {title: "Discovery timeout (in seconds)", type: "number", default:30}
+					}
 					
 				}
 			}
@@ -175,33 +170,58 @@ module.exports =  function (app) {
 			mac_addresses_names[index]= displayName
 	}
 	function addSensorToList(sensor){
+		if (!plugin.schema.properties.peripherals.items.dependencies)
+			plugin.schema.properties.peripherals.items.dependencies={mac_address:{oneOf:[]}}
+		
+		if(plugin.schema.properties.peripherals.items.properties.mac_address.enum==undefined) {
+			plugin.schema.properties.peripherals.items.properties.mac_address.enum=[]
+			plugin.schema.properties.peripherals.items.properties.mac_address.enumNames=[]
+		}
+		const mac_addresses_names = plugin.schema.properties.peripherals.items.properties.mac_address.enumNames
+		const mac_addresses_list = plugin.schema.properties.peripherals.items.properties.mac_address.enum
 		const mac_address =  sensor.getMacAddress()
 		const displayName =  sensor.getDisplayName()
-		const mac_addresses_list = plugin.schema.properties.peripherals.items.properties.
-		mac_address.enum
-		const mac_addresses_names = plugin.schema.properties.peripherals.items.properties.
-		mac_address.enumNames
+
 		var index = mac_addresses_list.indexOf(mac_address)
 		if (index==-1)
 			index = mac_addresses_list.push(mac_address)-1
 		mac_addresses_names[index]= displayName
 		var oneOf = {properties:{mac_address:{enum:[mac_address]}}}
-		sensor.getMetadata().forEach((metadatum,tag)=>{
-				oneOf.properties[tag]=metadatum.asJSONSchema()
+		
+		oneOf.properties.params={
+			title:`${sensor.getName().toUpperCase()}`,
+			description: sensor.getDescription(),
+			type:"object",
+			properties:{}
+		}
+		sensor.getParamMetadata().forEach((metadatum,tag)=>{
+			oneOf.properties.params.properties[tag]=metadatum.asJSONSchema()
+		})
+
+		oneOf.properties.paths={
+			title:"Signalk Paths",
+			description: `Signalk paths to be updated when ${sensor.getName()}'s values change`,
+			type:"object",
+			properties:{}
+		}
+		sensor.getPathMetadata().forEach((metadatum,tag)=>{
+				oneOf.properties.paths.properties[tag]=metadatum.asJSONSchema()
 		})
 		plugin.schema.properties.peripherals.items.dependencies.mac_address.oneOf.push(oneOf)
 	}
-
-	async function createSensor(adapter, params) {
+	function peripheralNameAndAddress(config){
+		return `${config?.name??""}${config.name?" at ":""}${config.mac_address}`
+	}
+	async function createSensor(adapter, config) {
 		return new Promise( ( resolve, reject )=>{
 		var s
 		
-		app.debug(`Waiting on ${params.mac_address}`)
-		adapter.waitDevice(params.mac_address,params.discoveryTimeout*1000)
+		app.debug(`Waiting on ${peripheralNameAndAddress(config)}`)
+		adapter.waitDevice(config.mac_address,config.discoveryTimeout*1000)
 		.then(async (device)=> { 
-			app.debug(`Found ${params.mac_address}`)
-			s = await instantiateSensor(device,params) 
-			sensorMap.set(params.mac_address,s)
+			app.debug(`Found ${config.mac_address}`)
+			s = await instantiateSensor(device,config) 
+			sensorMap.set(config.mac_address,s)
 			addSensorToList(s)
 			s.on("RSSI",(()=>{
 				updateSensorDisplayName(s)
@@ -211,8 +231,8 @@ module.exports =  function (app) {
 		.catch((e)=>{
 			if (s)
 				s.disconnect()		
-			app.debug("Unable to communicate with device " + params.mac_address +". Reason: "+ e.message )	
-			reject( e.message )	
+			app.debug(`Unable to communicate with device ${peripheralNameAndAddress(config)} Reason: ${e?.message??e}`)
+			reject( e?.message??e )	
 		})})
 	}
 	
@@ -225,9 +245,8 @@ module.exports =  function (app) {
 
 	var discoveryInterval
 	function findDeviceLoop(){
-
-		plugin.schema.description='Scanning for new Bluetooth devices...'
-		app.debug(plugin.schema.description)
+		app.setPluginStatus(`Scanning for new Bluetooth devices...`);
+		
 		discoveryInterval = setInterval(  () => {
 			adapter.devices().then( (macs)=>{
 				for (var mac of macs) {	
@@ -265,12 +284,13 @@ module.exports =  function (app) {
 			plugin.stopped=false
 		}
 //		for (const peripheral of options.peripherals) 
-//			addSensorToList(new MissingSensor(peripheral)) //add sensor to list with known options
+//			addSensorToList(new MissingSensor(peripheral)) 
 		adapter = await bluetooth.getAdapter(app.settings?.btAdapter??adapterID)
-		startScanner()
+		await startScanner()
 		if (starts>0){
 			app.debug('Plugin restarting...');
-			plugin.schema.properties.peripherals.items.dependencies.mac_address.oneOf=[]
+			if (plugin.schema.properties.peripherals.items.dependencies)
+				plugin.schema.properties.peripherals.items.dependencies.mac_address.oneOf=[]
 		} else {
 			app.debug('Plugin build 2024.10.04 started');
 			
@@ -285,11 +305,10 @@ module.exports =  function (app) {
 		if (!(options.peripherals===undefined)){
 			var found = 0
 			for (const peripheral of options.peripherals) {
-				app.setPluginStatus(`Setting up ${peripheral.mac_address}`);
-				
+				app.setPluginStatus(`Initializing ${peripheralNameAndAddress(peripheral)}`);
+
 				createSensor(adapter, peripheral)
 				.then((sensor)=>{
-					app.debug(`Got info for ${peripheral.mac_address} `)
 					peripheral.sensor=sensor
 					if (peripheral.active) {
 						createPaths(peripheral)
@@ -306,8 +325,8 @@ module.exports =  function (app) {
 						})
 						const result = Promise.resolve(peripheral.sensor.connect())
 						result.then(() => {
-							app.debug(`Connected to ${peripheral.mac_address}`);
-							app.setPluginStatus(`Connected to ${++found} sensors.`);
+							app.debug(`Connected to ${peripheral.sensor.getDisplayName()}`);
+							app.setPluginStatus(`Initial scan complete. Connected to ${++found} sensors.`);
 						})
 					}
 
@@ -319,10 +338,11 @@ module.exports =  function (app) {
 		
 					})
 			}
-			if (options.scanForNewDevices && !discoveryInterval) 
-				findDeviceLoop()
+			
 			peripherals=options.peripherals
 		}
+		if (options.scanForNewDevices && !discoveryInterval) 
+			findDeviceLoop()
 	} 
 	plugin.stop =  async function () {
 		app.debug("Stopping plugin")

@@ -1,9 +1,6 @@
 const BTSensor = require("../BTSensor");
 class RuuviTag extends BTSensor{
 
-    constructor(device, params){
-        super(device, params)
-    }
     static async identify(device){
         try{
            
@@ -17,9 +14,7 @@ class RuuviTag extends BTSensor{
         }
         return null
     }    
-    getName(){
-        return "RuuviTag"
-    }
+   
     async init(){
         await super.init()
         const md = this.valueIfVariant(this.getManufacturerData["0x0499"])

@@ -1,9 +1,6 @@
 const BTSensor = require("../BTSensor");
 class ATC extends BTSensor{
 
-    constructor(device,params){
-        super(device,params)
-    }
     static async identify(device){
         try{
             const regex = /^ATC_[A-Fa-f0-9]{6}$/

@@ -6,9 +6,9 @@ const VC = require('./VictronConstants.js')
  
   class VictronSensor extends BTSensor{
 
-    constructor(device,params){
-        super(device,params)
-        this.encryptionKey = params?.encryptionKey
+    constructor(device,config){
+        super(device,config)
+        this.encryptionKey = config?.encryptionKey
     }
    
     static {

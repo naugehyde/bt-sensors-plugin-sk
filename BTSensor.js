@@ -107,7 +107,9 @@ class BTSensor extends EventEmitter {
         this.getMetadatum("RSSI").examples=[this.getMetadatum("RSSI").default]
     }
     static NaNif(v1,v2) {  return (v1==v2)?NaN:v1 }
+    
     NaNif(v1,v2) {  return this.constructor.NaNif(v1,v2) }
+
     addMetadatum(tag, ...args){
         var metadatum = new this.Metadatum(tag, ...args)
         this.getMetadata().set(tag, metadatum)

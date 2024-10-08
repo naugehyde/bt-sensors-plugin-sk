@@ -12,17 +12,24 @@ class MissingSensor  {
 	constructor(config){
 		this.Metadatum = BTSensor.Metadatum
 		this.addMetadatum=BTSensor.prototype.addMetadatum
+		this.getPathMetadata = BTSensor.prototype.getPathMetadata
+		this.getParamMetadata = BTSensor.prototype.getParamMetadata
+
 
 		this.metadata= new Map()
-		const keys = Object.keys(config)
+		var keys = Object.keys(config.paths)
 			.filter(e=>(!(e=='mac_address' || e=='discoveryTimeout' || e=='active')))
 
 		this.addMetadatum.bind(this)
 		keys.forEach((key)=>{
-			this.addMetadatum(key, config[key]?.type??'string',  config[key].description )
-			this[key]=config[key]
+			this.addMetadatum(key, config.paths[key]?.type??'string',  config.paths[key].description )
 		} )
-		this.mac_address = config.mac_address
+		keys = Object.keys(config.params)
+		keys.forEach((key)=>{
+			this.addMetadatum(key, config.params[key]?.type??'string',  config.params[key].description ).isParam=true
+			this[key]=config.params[key]
+		})
+		this.mac_address = config.paths.mac_address
 		
 	}
 	getMetadata(){
@@ -39,12 +46,6 @@ class MissingSensor  {
 	}	
 	getDisplayName(){
 		return `OUT OF RANGE DEVICE (${this.getName()} ${this.getMacAddress()})`
-	}
-	getParamMetadata(){
-		return new Map()
-	}
-	getPathMetadata(){
-		return new Map()
 	}
 
 }

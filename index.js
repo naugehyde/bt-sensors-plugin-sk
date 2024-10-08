@@ -31,12 +31,22 @@ class MissingSensor  {
 	getMacAddress(){
 		return this.mac_address
 	}
+	getDescription(){
+		return ""
+	}
 	getName(){
 		return this?.name??"Unknown device"
 	}	
 	getDisplayName(){
 		return `OUT OF RANGE DEVICE (${this.getName()} ${this.getMacAddress()})`
 	}
+	getParamMetadata(){
+		return new Map()
+	}
+	getPathMetadata(){
+		return new Map()
+	}
+
 }
 module.exports =  function (app) {
 	const discoveryTimeout = 30
@@ -87,7 +97,7 @@ module.exports =  function (app) {
 				if (c.name.startsWith("_")) continue
 				c.debug=app.debug
 				c.debug.bind(c)
-				const sensor = new c(device,config)
+				const sensor = new c(device,config.params)
 				if (sensor == undefined)
 					debugger
 				sensor.debug=app.debug
@@ -313,7 +323,7 @@ module.exports =  function (app) {
 					if (peripheral.active) {
 						createPaths(peripheral)
 						sensor.getMetadata().forEach((metadatum, tag)=>{
-							const path = peripheral[tag];
+							const path = peripheral.paths[tag];
 							if (!(path === undefined))
 								sensor.on(tag, (val)=>{
 									if (metadatum.notify){

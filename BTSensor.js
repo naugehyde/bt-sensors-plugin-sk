@@ -114,7 +114,7 @@ class BTSensor extends EventEmitter {
         if (!md) return null 
         const keys = Object.keys(md)
         if (keys && keys.length>0){
-            return keys[0]
+            return parseInt(keys[0])
         }
         return null
     }
@@ -260,7 +260,7 @@ class BTSensor extends EventEmitter {
         if (md){
             const keys = Object.keys(this.valueIfVariant(md))
             if (keys.length>0)
-                return keys[0]
+                return parseInt(keys[0])
         }
         return null
     }

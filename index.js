@@ -16,12 +16,12 @@ class MissingSensor  {
 		this.getParamMetadata = BTSensor.prototype.getParamMetadata
 
 		this.metadata= new Map()
-		var keys = Object.keys(config.paths)
+		var keys = Object.keys(config?.paths??{})
 		this.addMetadatum.bind(this)
 		keys.forEach((key)=>{
 			this.addMetadatum(key, config.paths[key]?.type??'string',  config.paths[key].description )
 		} )
-		keys = Object.keys(config.params)
+		keys = Object.keys(config?.params??{})
 		keys.forEach((key)=>{
 			this.addMetadatum(key, config.params[key]?.type??'string',  config.params[key].description ).isParam=true
 			this[key]=config.params[key]
@@ -45,11 +45,12 @@ class MissingSensor  {
 	getDisplayName(){
 		return `OUT OF RANGE DEVICE (${this.getName()} ${this.getMacAddress()})`
 	}
-
+	disconnect(){}
+	connect(){}
 }
 module.exports =  function (app) {
 	const adapterID = 'hci0'
-	var peripherals
+	var deviceConfigs
 	var starts=0
 	var classMap
 	
@@ -128,11 +129,11 @@ module.exports =  function (app) {
 			})
 	}
 
-	function initPaths(peripheral){
-		peripheral.sensor.getMetadata().forEach((metadatum, tag)=>{
-			const path = peripheral.paths[tag];
+	function initPaths(deviceConfig){
+		deviceConfig.sensor.getMetadata().forEach((metadatum, tag)=>{
+			const path = deviceConfig.paths[tag];
 			if (!(path === undefined))
-				peripheral.sensor.on(tag, (val)=>{
+				deviceConfig.sensor.on(tag, (val)=>{
 					if (metadatum.notify){
 						app.notify(	tag, val, plugin.id )
 					} else {
@@ -204,6 +205,21 @@ module.exports =  function (app) {
 		if (index!=-1)
 			mac_addresses_names[index]= displayName
 	}
+
+	function removeSensorFromList(sensor){
+		const mac_addresses_list = plugin.schema.properties.peripherals.items.properties.mac_address.enum
+		const mac_addresses_names = plugin.schema.properties.peripherals.items.properties.mac_address.enumNames
+		const oneOf = plugin.schema.properties.peripherals.items.dependencies.mac_address.oneOf
+		const mac_address = sensor.getMacAddress()
+		
+		const i = mac_addresses_list.indexOf(mac_address)
+		if (i<0) return // n'existe pas
+
+		mac_addresses_list.splice(i,1)
+		mac_addresses_names.splice(i,1)
+		oneOf.splice(oneOf.findIndex((p)=>p.properties.mac_address.enum[0]==mac_address),1)
+
+	}
 	function addSensorToList(sensor){
 		if (!plugin.schema.properties.peripherals.items.dependencies)
 			plugin.schema.properties.peripherals.items.dependencies={mac_address:{oneOf:[]}}
@@ -244,7 +260,7 @@ module.exports =  function (app) {
 		})
 		plugin.schema.properties.peripherals.items.dependencies.mac_address.oneOf.push(oneOf)
 	}
-	function peripheralNameAndAddress(config){
+	function deviceNameAndAddress(config){
 		return `${config?.name??""}${config.name?" at ":""}${config.mac_address}`
 	}
 	
@@ -252,7 +268,7 @@ module.exports =  function (app) {
 		return new Promise( ( resolve, reject )=>{
 		var s
 		
-		app.debug(`Waiting on ${peripheralNameAndAddress(config)}`)
+		app.debug(`Waiting on ${deviceNameAndAddress(config)}`)
 		adapter.waitDevice(config.mac_address,config.discoveryTimeout*1000)
 		.then(async (device)=> { 
 			app.debug(`Found ${config.mac_address}`)
@@ -267,7 +283,7 @@ module.exports =  function (app) {
 		.catch((e)=>{
 			if (s)
 				s.disconnect()		
-			app.debug(`Unable to communicate with device ${peripheralNameAndAddress(config)} Reason: ${e?.message??e}`)
+			app.debug(`Unable to communicate with device ${deviceNameAndAddress(config)} Reason: ${e?.message??e}`)
 			reject( e?.message??e )	
 		})})
 	}
@@ -289,28 +305,60 @@ module.exports =  function (app) {
 
 	plugin.start = async function (options, restartPlugin) {
 
-
-		function isConfiguredPeripheral(mac){
-			return options.peripherals.findIndex((p)=>p.mac_address==mac) !=-1
+		function isDeviceConfigured(mac){
+			return deviceConfigs.findIndex((p)=>p.mac_address==mac) !=-1
 		}
 
+		function getDeviceConfig(mac){
+			return deviceConfigs.find((p)=>p.mac_address==mac) 
+		}	
+
+		function initConfiguredDevice(deviceConfig){
+			app.setPluginStatus(`Initializing ${deviceNameAndAddress(deviceConfig)}`);
+			if (!deviceConfig.discoveryTimeout)
+				deviceConfig.discoveryTimeout = options.discoveryTimeout
+			createSensor(adapter, deviceConfig).then((sensor)=>{
+				deviceConfig.sensor=sensor
+				if (deviceConfig.active) {
+					createPaths(deviceConfig)
+					initPaths(deviceConfig)
+					const result = Promise.resolve(deviceConfig.sensor.connect())
+					result.then(() => {
+						app.debug(`Connected to ${deviceConfig.sensor.getDisplayName()}`);
+						app.setPluginStatus(`Initial scan complete. Connected to ${++found} sensors.`);
+					})
+				}
+
+			})
+			.catch((error)=>
+				{
+					app.debug(`Sensor at ${deviceConfig.mac_address} unavailable. Reason: ${error}`)
+					deviceConfig.sensor=new MissingSensor(deviceConfig)
+					addSensorToList(deviceConfig.sensor) //add sensor to list with known options
+				})
+		}
 		function findDevices (discoveryTimeout) {
 			app.debug("Scanning for new Bluetooth devices...")
 			app.setPluginStatus("Scanning for new Bluetooth devices...");
 
 			adapter.devices().then( (macs)=>{
 				for (var mac of macs) {	
-					if (!sensorMap.has(mac)) {
-						if (isConfiguredPeripheral(mac)) continue; 
-						createSensor(adapter,
-							{mac_address:mac, discoveryTimeout: discoveryTimeout*1000})
-						.then((s)=>
-							app.setPluginStatus(`Found ${s.getDisplayName()}.`)
-						)
-						.catch((e)=>
-							app.debug(`Device at ${mac} unavailable. Reason: ${e}`)	
-						)
-					}	
+					const deviceConfig = getDeviceConfig(mac)
+					if (deviceConfig && deviceConfig.sensor instanceof MissingSensor){
+						removeSensorFromList(deviceConfig.sensor)
+						initConfiguredDevice(deviceConfig)
+					} else
+					{
+						if (!sensorMap.has(mac)) {
+							if (deviceConfig) continue; 
+							createSensor(adapter,
+								{mac_address:mac, discoveryTimeout: discoveryTimeout*1000})
+							.then((s)=>
+								app.setPluginStatus(`Found ${s.getDisplayName()}.`))
+							.catch((e)=>
+								app.debug(`Device at ${mac} unavailable. Reason: ${e}`))
+						}
+					}
 				}
 			})
 		}
@@ -325,6 +373,8 @@ module.exports =  function (app) {
 		plugin.started=true
 		plugin.uiSchema.peripherals['ui:disabled']=false
 		sensorMap.clear()
+		deviceConfigs=options?.peripherals??[]
+
 		if (plugin.stopped) {
 			await sleep(5000) //Make sure plugin.stop() completes first			
 						  //plugin.start is called asynchronously for some reason
@@ -348,34 +398,11 @@ module.exports =  function (app) {
 			} catch (e){
 				app.debug(`Error starting scan: ${e.message}`)
 		}
-		if (!(options.peripherals===undefined)){
+		if (!(deviceConfigs===undefined)){
 			var found = 0
-			for (const peripheral of options.peripherals) {
-				app.setPluginStatus(`Initializing ${peripheralNameAndAddress(peripheral)}`);
-				if (!peripheral.discoveryTimeout)
-					peripheral.discoveryTimeout = options.discoveryTimeout
-				createSensor(adapter, peripheral).then((sensor)=>{
-					peripheral.sensor=sensor
-					if (peripheral.active) {
-						createPaths(peripheral)
-						initPaths(peripheral)
-						const result = Promise.resolve(peripheral.sensor.connect())
-						result.then(() => {
-							app.debug(`Connected to ${peripheral.sensor.getDisplayName()}`);
-							app.setPluginStatus(`Initial scan complete. Connected to ${++found} sensors.`);
-						})
-					}
-
-				})
-				.catch((error)=>
-					{
-						app.debug(`Sensor at ${peripheral.mac_address} unavailable. Reason: ${error}`)	
-						addSensorToList(new MissingSensor(peripheral)) //add sensor to list with known options
-		
-					})
+			for (const deviceConfig of deviceConfigs) {
+				initConfiguredDevice(deviceConfig)
 			}
-			
-			peripherals=options.peripherals
 		}
 		if (options.discoveryInterval && !discoveryIntervalID) 
 			findDeviceLoop(options.discoveryTimeout, options.discoveryInterval)

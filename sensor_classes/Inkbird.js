@@ -29,7 +29,10 @@ class Inkbird extends BTSensor{
         }
     }
 
-   async propertiesChanged(props){
+    getManufacturer(){
+        return "Shenzhen Inkbird Technology Co."
+    }
+    async propertiesChanged(props){
         super.propertiesChanged(props)    
         if (props.ManufacturerData) {
             const keys = Object.keys(this.currentProperties.ManufacturerData) 

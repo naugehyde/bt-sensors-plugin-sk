@@ -344,7 +344,6 @@ module.exports =  function (app) {
 				})
 		}
 		function findDevices (discoveryTimeout) {
-			app.debug("Scanning for new Bluetooth devices...")
 			app.setPluginStatus("Scanning for new Bluetooth devices...");
 
 			adapter.devices().then( (macs)=>{

@@ -3,11 +3,8 @@ class RuuviTag extends BTSensor{
 
     static async identify(device){
         try{
-           
-            const md = await this.getDeviceProp(device,'ManufacturerData')
-            if (!md) return null   
-            const data = md[0x499]
-
+            if (await this.getManufacturerID(device)==0x499)
+                return this
         } catch (e){
             console.log(e)
             return null

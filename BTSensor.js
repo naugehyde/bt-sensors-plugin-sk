@@ -108,9 +108,20 @@ class BTSensor extends EventEmitter {
         this.getMetadatum("RSSI").default=`sensors.${this.getMacAddress().replaceAll(':', '')}.rssi`
         this.getMetadatum("RSSI").examples=[this.getMetadatum("RSSI").default]
     }
+
+    static async getManufacturerID(device){
+        const md = await this.getDeviceProp(device,'ManufacturerData')
+        if (!md) return null 
+        const keys = Object.keys(md)
+        if (keys && keys.length>0){
+            return keys[0]
+        }
+        return null
+    }
     static NaNif(v1,v2) {  return (v1==v2)?NaN:v1 }
     
     NaNif(v1,v2) {  return this.constructor.NaNif(v1,v2) }
+
 
     addMetadatum(tag, ...args){
         var metadatum = new this.Metadatum(tag, ...args)
@@ -243,16 +254,20 @@ class BTSensor extends EventEmitter {
             return null
 
     }
-    getManufacturer(){
+
+    getManufacturerID(){
         const md = this.currentProperties.ManufacturerData
-        var co=null
         if (md){
             const keys = Object.keys(this.valueIfVariant(md))
             if (keys.length>0)
-                co=BTCompanyMap.get(parseInt(keys[0]))
+                return keys[0]
         }
-        return (co==null)?"Unknown manufacturer":co
-
+        return null
+    }
+    
+    getManufacturer(){
+        const id = this.getManufacturerID()
+        return (id==null)?"Unknown manufacturer":BTCompanyMap.get(parseInt(id))
     }
     getManufacturerData(key){
         if (this.currentProperties.ManufacturerData)

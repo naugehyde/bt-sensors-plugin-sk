@@ -5,6 +5,7 @@ const {createBluetooth} = require('node-ble')
 const {bluetooth, destroy} = createBluetooth()
 
 const BTSensor = require('./BTSensor.js')
+const BLACKLISTED = require('./sensor_classes/BlackListedDevice.js')
 
 class MissingSensor  {
 	
@@ -273,12 +274,16 @@ module.exports =  function (app) {
 		.then(async (device)=> { 
 			app.debug(`Found ${config.mac_address}`)
 			s = await instantiateSensor(device,config) 
-			sensorMap.set(config.mac_address,s)
-			addSensorToList(s)
-			s.on("RSSI",(()=>{
-				updateSensorDisplayName(s)
-			}))
-			resolve(s)
+			if (s instanceof BLACKLISTED)
+				reject ( `Device is blacklisted (${s.reasonForBlacklisting()}).`)
+			else{
+				sensorMap.set(config.mac_address,s)
+				addSensorToList(s)
+				s.on("RSSI",(()=>{
+					updateSensorDisplayName(s)
+				}))
+				resolve(s)
+			}
 		})
 		.catch((e)=>{
 			if (s)

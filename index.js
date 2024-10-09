@@ -274,10 +274,11 @@ module.exports =  function (app) {
 		.then(async (device)=> { 
 			app.debug(`Found ${config.mac_address}`)
 			s = await instantiateSensor(device,config) 
+			sensorMap.set(config.mac_address,s)
+
 			if (s instanceof BLACKLISTED)
 				reject ( `Device is blacklisted (${s.reasonForBlacklisting()}).`)
 			else{
-				sensorMap.set(config.mac_address,s)
 				addSensorToList(s)
 				s.on("RSSI",(()=>{
 					updateSensorDisplayName(s)
@@ -349,19 +350,21 @@ module.exports =  function (app) {
 			adapter.devices().then( (macs)=>{
 				for (var mac of macs) {	
 					const deviceConfig = getDeviceConfig(mac)
+					const _mac = mac
+
 					if (deviceConfig && deviceConfig.sensor instanceof MissingSensor){
 						removeSensorFromList(deviceConfig.sensor)
 						initConfiguredDevice(deviceConfig)
 					} else
 					{
-						if (!sensorMap.has(mac)) {
+						if (!sensorMap.has(_mac)) {
 							if (deviceConfig) continue; 
 							createSensor(adapter,
-								{mac_address:mac, discoveryTimeout: discoveryTimeout*1000})
+								{mac_address:_mac, discoveryTimeout: discoveryTimeout*1000})
 							.then((s)=>
 								app.setPluginStatus(`Found ${s.getDisplayName()}.`))
 							.catch((e)=>
-								app.debug(`Device at ${mac} unavailable. Reason: ${e}`))
+								app.debug(`Device at ${_mac} unavailable. Reason: ${e}`))
 						}
 					}
 				}

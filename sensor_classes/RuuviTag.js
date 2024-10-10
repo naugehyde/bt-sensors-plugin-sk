@@ -38,7 +38,7 @@ class RuuviTag extends BTSensor{
 16-17	0 ... 65534	Measurement sequence number (16 bit unsigned), each time a measurement is taken, this is incremented by one, used for measurement de-duplication. Depending on the transmit interval, multiple packets with the same measurements can be sent, and there may be measurements that never were sent.
 18-23	Any valid mac	48bit MAC address.
  **/
-    initModeV5(){
+    _initModeV5(){
         this.addMetadatum("temp","K","temperature in Kelvin", 
             (buffer)=>{ return (buffer.readInt16BE(1)*.005)+273.15}
         )
@@ -85,7 +85,7 @@ Offset	Allowed values	Description
 12 - 13	0 ... 65535	Battery voltage (millivolts). MSB First
  **/
 
-    initModeV3(){
+    _initModeV3(){
         this.addMetadatum("humidity","ratio","humidity", 
             (buffer)=>{ return (buffer.readUInt(1)*.5)/100}
         )

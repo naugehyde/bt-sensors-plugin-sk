@@ -6,8 +6,8 @@ const VC = require('./VictronConstants.js')
  
   class VictronSensor extends BTSensor{
 
-    constructor(device,config){
-        super(device,config)
+    constructor(device,config,gattConfig){
+        super(device,config,gattConfig)
         this.encryptionKey = config?.encryptionKey
     }
    
@@ -85,7 +85,7 @@ const VC = require('./VictronConstants.js')
     }
     propertiesChanged(props){
         super.propertiesChanged(props)
-        if (this.useGATT()) return
+        if (this.usingGATT()) return
         try{
             const buff = this.getManufacturerData(0x2e1)             
             const decData=this.decrypt(buff)
@@ -94,9 +94,6 @@ const VC = require('./VictronConstants.js')
         catch (error) {
             throw new Error(`Unable to read data from ${ this.getDisplayName()}: ${error}` )
         }
-    }
-    useGATT(){
-        return this.encryptionKey == undefined
     }
 
     initGATT(){

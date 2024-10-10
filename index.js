@@ -31,6 +31,9 @@ class MissingSensor  {
 		
 		
 	}
+	canUseGATT(){
+		return false
+	}
 	getMetadata(){
 		return this.metadata
 	}
@@ -97,7 +100,7 @@ module.exports =  function (app) {
 				if (c.name.startsWith("_")) continue
 				c.debug=app.debug
 				c.debug.bind(c)
-				const sensor = new c(device,config.params)
+				const sensor = new c(device,config?.params, config?.gattParams)
 				if (sensor == undefined)
 					debugger
 				sensor.debug=app.debug
@@ -173,13 +176,13 @@ module.exports =  function (app) {
 				{ type: "array", title: "Sensors", items:{
 					title: "", type: "object",
 					properties:{
-						active: {title: "Active", type: "boolean", default: true },
-						mac_address: {title: "Bluetooth Sensor",  type: "string" },
-						discoveryTimeout: {title: "Device discovery timeout (in seconds)", 
-							type: "integer", default:30,
-							minimum: 10,
-							maximum: 600 
-						}
+					active: {title: "Active", type: "boolean", default: true },
+					mac_address: {title: "Bluetooth Sensor",  type: "string" },
+					discoveryTimeout: {title: "Device discovery timeout (in seconds)", 
+						type: "integer", default:30,
+						minimum: 10,
+						maximum: 600 
+					}
 					}
 					
 				}
@@ -241,7 +244,7 @@ module.exports =  function (app) {
 		var oneOf = {properties:{mac_address:{enum:[mac_address]}}}
 		
 		oneOf.properties.params={
-			title:`${sensor.getName().toUpperCase()}`,
+			title:`Device parameters`,
 			description: sensor.getDescription(),
 			type:"object",
 			properties:{}
@@ -249,6 +252,19 @@ module.exports =  function (app) {
 		sensor.getParamMetadata().forEach((metadatum,tag)=>{
 			oneOf.properties.params.properties[tag]=metadatum.asJSONSchema()
 		})
+
+		if (sensor.canUseGATT()){
+
+			oneOf.properties.gattParams={
+				title:`GATT Specific device parameters`,
+				description: sensor.getGATTDescription(),
+				type:"object",
+				properties:{}
+			}
+			sensor.getGATTParamMetadata().forEach((metadatum,tag)=>{
+				oneOf.properties.gattParams.properties[tag]=metadatum.asJSONSchema()
+			})
+		}
 
 		oneOf.properties.paths={
 			title:"Signalk Paths",
@@ -260,6 +276,9 @@ module.exports =  function (app) {
 				oneOf.properties.paths.properties[tag]=metadatum.asJSONSchema()
 		})
 		plugin.schema.properties.peripherals.items.dependencies.mac_address.oneOf.push(oneOf)
+		//plugin.schema.properties.peripherals.items.title=sensor.getName()
+		//plugin.uiSchema.peripherals['items']={"paths":{"type":"HorizontalLayout"}}
+
 	}
 	function deviceNameAndAddress(config){
 		return `${config?.name??""}${config.name?" at ":""}${config.mac_address}`

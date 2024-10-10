@@ -73,10 +73,10 @@ const DEVICE_TYPES = new Map([
 
 class XiaomiMiBeacon extends BTSensor{
 
-    constructor(device,params){
-        super(device,params)
-        this.encryptionKey = params?.encryptionKey
-    }
+    constructor(device, config, gattConfig){
+        super(device, config, gattConfig)
+        this.encryptionKey = config?.encryptionKey
+     }
     static SERVICE_MIBEACON = "0000fe95-0000-1000-8000-00805f9b34fb"
 
     static async identify(device){
@@ -136,12 +136,12 @@ class XiaomiMiBeacon extends BTSensor{
             .then((buffer)=>this.emitValues(buffer))
     }
 
-    initGATTNotifications() { 
-        this.gattCharacteristic.startNotifications().then(()=>{    
+    async initGATTNotifications() { 
+        Promise.resolve(this.gattCharacteristic.startNotifications().then(()=>{    
             this.gattCharacteristic.on('valuechanged', buffer => {
                 this.emitValues(buffer)
             })
-        })
+        }))
     }
 
     decryptV2and3(data){
@@ -162,9 +162,14 @@ class XiaomiMiBeacon extends BTSensor{
         cipher.setAuthTag(data.subarray(-4))    
         return cipher.update(encryptedPayload)
     }
+
+    canUseGATT(){
+        return true
+    }
+
     propertiesChanged(props){
         super.propertiesChanged(props)
-        if (this.useGATT()) return
+        if (this.usingGATT()) return
         const data = this.getServiceData(this.constructor.SERVICE_MIBEACON)
         var dec
         if (this.encryptionVersion >= 4) {
@@ -202,10 +207,6 @@ class XiaomiMiBeacon extends BTSensor{
     getName(){
         const dt = DEVICE_TYPES.get(this.deviceID)
         return this?.name??`${dt.name} ${dt.model}`
-    }
-   
-    useGATT(){
-        return this.encryptionKey == undefined
     }
 
     async disconnectGattCharacteristic(){

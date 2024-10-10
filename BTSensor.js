@@ -33,11 +33,15 @@ function signalQualityPercentQuad(rssi, perfect_rssi=-20, worst_rssi=-85) {
 }
 class BTSensor extends EventEmitter {
     static metadata=new Map()
-    constructor(device,config={}) {
+    constructor(device, config={}, gattConfig={}) {
         super()
+  
         this.device=device
-        this.pollFreq = config?.pollFreq
         this.name = config?.name
+  
+        this.useGATT = gattConfig?.useGATT
+        this.pollFreq = gattConfig?.pollFreq
+        
         this.Metadatum = this.constructor.Metadatum
         this.metadata = new Map(this.constructor.metadata)
     }
@@ -87,10 +91,8 @@ class BTSensor extends EventEmitter {
         var md = this.addMetadatum("name", "string","Name of sensor" )
         md.isParam=true
 
-        md = this.addMetadatum("pollFreq", "s", "polling frequency in seconds (GATT connections only)")
-        md.isParam=true
-        md.type="number"
-        md = this.addMetadatum("RSSI","db","Signal strength in db")
+        this.addMetadatum("RSSI","db","Signal strength in db")
+
         
     }
     static addMetadatum(tag, ...args){
@@ -106,7 +108,17 @@ class BTSensor extends EventEmitter {
     async init(){
         this.currentProperties = await this.constructor.getDeviceProps(this.device)
         this.getMetadatum("RSSI").default=`sensors.${this.getMacAddress().replaceAll(':', '')}.rssi`
-        this.getMetadatum("RSSI").examples=[this.getMetadatum("RSSI").default]
+        if (this.canUseGATT()) {
+            var md = this.addMetadatum("useGATT", "boolean", "Use GATT connection")
+            md.type="boolean"
+            md.isParam=true
+            md.isGATT=true
+
+            md = this.addMetadatum("pollFreq", "s", "Polling frequency in seconds")
+            md.type="number"
+            md.isParam=true
+            md.isGATT=true
+        }
     }
 
     static async getManufacturerID(device){
@@ -145,10 +157,17 @@ class BTSensor extends EventEmitter {
     }
     getParamMetadata(){
         return new Map(
-            [...this.getMetadata().entries()].filter(([key,value]) => (value?.isParam??false))
+            [...this.getMetadata().entries()].filter(([key,value]) => (value?.isParam??false) && !(value?.isGATT??false))
         )
     }
-   
+    getGATTParamMetadata(){
+        return new Map(
+            [...this.getMetadata().entries()].filter(([key,value]) => (value?.isParam??false) && (value?.isGATT??false))
+        )
+    }
+    getGATTDescription() {
+        return ""
+    }
     getSignalStrength(){
         const rssi =  this.getRSSI()
         if (!rssi) 
@@ -191,8 +210,11 @@ class BTSensor extends EventEmitter {
     getRSSI(){
         return this.currentProperties?.RSSI??NaN
     }
-    useGATT(){
+    canUseGATT(){
         return false
+    }
+    usingGATT(){
+        return this.useGATT
     }
     valueIfVariant(obj){
         if (obj.constructor && obj.constructor.name=='Variant') 
@@ -313,14 +335,14 @@ class BTSensor extends EventEmitter {
     connect(){
         this.initPropertiesChanged()       
         this.propertiesChanged(this.currentProperties)
-        if (this.useGATT()){
-            this.initGATT().then(()=>{
+        if (this.usingGATT()){
+            this.initGATT().then(async ()=>{
                 this.emitGATT()
                 if (this.pollFreq){
                     this.initGATTInterval()
                 }
                 else 
-                    this.initGATTNotifications()
+                    await this.initGATTNotifications()
             })
             .catch((e)=>this.debug(`GATT services unavailable for ${this.getName()}. Reason: ${e}`))
         }

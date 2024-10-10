@@ -138,6 +138,14 @@ class VictronBatteryMonitor extends VictronSensor{
     propertiesChanged(props){
         super.propertiesChanged(props)
     }
+    canUseGATT(){
+        return true
+    }
+    
+    getGATTDescription(){
+        return "To use the GATT connection the SignalK server and the Smart Shunt must first be paired."
+    }
+
     async disconnect(){
         super.disconnect()
         for (var c of this.characteristics){

@@ -1,9 +1,9 @@
 const BTSensor = require("../BTSensor");
 class RuuviTag extends BTSensor{
-
+    static manufacturerID = 0x0499
     static async identify(device){
         try{
-            if (await this.getManufacturerID(device)==0x499)
+            if (await this.getManufacturerID(device)==this.manufacturerID)
                 return this
         } catch (e){
             console.log(e)
@@ -14,13 +14,13 @@ class RuuviTag extends BTSensor{
    
     async init(){
         await super.init()
-        const md = this.valueIfVariant(this.getManufacturerData["0x0499"])
+        const md = this.valueIfVariant(this.getManufacturerData(this.constructor.manufacturerID))
         this.mode = md[0]
-        if (this._initModeV+md[0])
-            this._initModeV+md[0]()
+        if (this['_initModeV'+this.mode])
+            this['_initModeV'+this.mode]()
         else    
             throw new Error("Unrecognized Ruuvitag data mode "+md[0])
-    }
+    } 
 
 /**
  * https://github.com/ruuvi/ruuvi-sensor-protocols/blob/master/dataformat_05.md
@@ -108,12 +108,9 @@ Offset	Allowed values	Description
             (buffer)=>{ return buffer.readUInt16BE(12)/1000}
         )        
     }
-
-    async connect() {
-        return super.connect()
-    }
-     disconnect() {
-        return super.disconnect()
+    propertiesChanged(props){
+        super.propertiesChanged(props)
+        this.emitValuesFrom( this.getManufacturerData(this.constructor.manufacturerID) )
     }
 }
 module.exports=RuuviTag

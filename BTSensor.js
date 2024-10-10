@@ -77,8 +77,7 @@ class BTSensor extends EventEmitter {
                     type:this?.type??'string', 
                     title: this?.description,
                     unit: this?.unit,
-                    default: this?.default,
-
+                    default: this?.default
                 }
             }
         }  

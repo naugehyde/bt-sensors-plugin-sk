@@ -143,7 +143,7 @@ class VictronBatteryMonitor extends VictronSensor{
     }
     
     getGATTDescription(){
-        return "To use the GATT connection the SignalK server and the Smart Shunt must first be paired."
+        return "To use the GATT connection the SignalK server computer and the Smart Shunt must first be paired."
     }
 
     async disconnect(){

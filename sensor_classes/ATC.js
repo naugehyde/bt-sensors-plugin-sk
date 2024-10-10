@@ -32,5 +32,8 @@ class ATC extends BTSensor{
         this.emitData("humidity", buff, 8)
         this.emitData("voltage", buff, 10)
     }                    
+    getManufacturer(){
+        return "ATC1441 (custom firmware see: https://github.com/atc1441)"
+    }
 }
 module.exports=ATC

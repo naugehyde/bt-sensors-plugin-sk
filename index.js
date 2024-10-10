@@ -158,7 +158,10 @@ module.exports =  function (app) {
 	
 	plugin.schema = {			
 		type: "object",
-		description: "NOTE: Plugin must be enabled to configure. You will have to wait until the scanner has found your device before configuring it. To refresh the list of available devices and their configurations, just open and close the config screen by clicking on the arrow symbol in the config's top bar.",
+		description: "NOTE: \n 1) Plugin must be enabled to configure your sensors. \n"+
+		"2) You will have to wait until the scanner has found and connected to your device before seeing your device's config fields and saving the configuration. \n"+
+		"3) To refresh the list of available devices and their configurations, just open and close the config screen by clicking on the arrow symbol in the config's top bar. \n"+
+		"4) If you submit and get errors it may be because the configured devices have not yet all been discovered.",
 		required:["discoveryTimeout", "discoveryInterval"],
 		properties: {
 			discoveryTimeout: {title: "Default device discovery timeout (in seconds)", 
@@ -175,6 +178,7 @@ module.exports =  function (app) {
 			peripherals:
 				{ type: "array", title: "Sensors", items:{
 					title: "", type: "object",
+					required:["mac_address", "discoveryTimeout"],
 					properties:{
 					active: {title: "Active", type: "boolean", default: true },
 					mac_address: {title: "Bluetooth Sensor",  type: "string" },
@@ -277,7 +281,6 @@ module.exports =  function (app) {
 		})
 		plugin.schema.properties.peripherals.items.dependencies.mac_address.oneOf.push(oneOf)
 		//plugin.schema.properties.peripherals.items.title=sensor.getName()
-		//plugin.uiSchema.peripherals['items']={"paths":{"type":"HorizontalLayout"}}
 
 	}
 	function deviceNameAndAddress(config){
@@ -398,6 +401,9 @@ module.exports =  function (app) {
 	
 		plugin.started=true
 		plugin.uiSchema.peripherals['ui:disabled']=false
+		plugin.uiSchema.peripherals['items']={ mac_address:{
+			"ui:enableMarkdownInDescription": true,
+		}}
 		sensorMap.clear()
 		deviceConfigs=options?.peripherals??[]
 

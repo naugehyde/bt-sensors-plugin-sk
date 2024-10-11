@@ -29,7 +29,6 @@ class MissingSensor  {
 		})
 		this.mac_address = config.mac_address
 		
-		
 	}
 	canUseGATT(){
 		return false
@@ -333,10 +332,6 @@ module.exports =  function (app) {
 
 	plugin.start = async function (options, restartPlugin) {
 
-		function isDeviceConfigured(mac){
-			return deviceConfigs.findIndex((p)=>p.mac_address==mac) !=-1
-		}
-
 		function getDeviceConfig(mac){
 			return deviceConfigs.find((p)=>p.mac_address==mac) 
 		}	
@@ -398,12 +393,8 @@ module.exports =  function (app) {
 			discoveryIntervalID = setInterval( findDevices, discoveryInterval*1000, discoveryTimeout)
 		}
 	
-	
 		plugin.started=true
 		plugin.uiSchema.peripherals['ui:disabled']=false
-		plugin.uiSchema.peripherals['items']={ mac_address:{
-			"ui:enableMarkdownInDescription": true,
-		}}
 		sensorMap.clear()
 		deviceConfigs=options?.peripherals??[]
 

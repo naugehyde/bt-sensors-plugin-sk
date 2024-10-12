@@ -106,7 +106,8 @@ class XiaomiMiBeacon extends BTSensor{
             (buff,offset)=>{return ((buff.readUInt16LE(offset))/1000)})
        
     }
-
+    GATTwarning = "WARNING: Xiaomi GATT connections are known to be unreliable on Debian distributions with Bluez 5.55 and up (earlier BlueZ versions are untested). Using GATT on the Xiaomi may put the system Bluetooth stack into an inconsistent state disrupting and disabling other plugin Bluetooth connections. If by some chance you're successful using GATT with the Xiaomi, let the plugin developer know your configuration. Refer to the plugin documentation for getting the Xiamoi bindKey for non-GATT connections and more information on Xiaomi GATT issues."
+    
     emitValues(buffer){
         this.emitData("temp", buffer, 0)
         this.emitData("humidity", buffer,2)
@@ -115,7 +116,11 @@ class XiaomiMiBeacon extends BTSensor{
     getManufacturer(){
         return "Xiaomi Inc."
     }
+    getGATTDescription() {
+        return this.GATTwarning
+    }
     initGATT(){
+        this.debug(this.GATTwarning.toUpperCase())
         return new Promise((resolve,reject )=>{
             this.device.connect().then(async ()=>{
                 if (!this.gattServer) {

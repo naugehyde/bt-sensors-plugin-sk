@@ -100,14 +100,15 @@ module.exports =  function (app) {
 				c.debug=app.debug
 				c.debug.bind(c)
 				const sensor = new c(device,config?.params, config?.gattParams)
-				if (sensor == undefined)
-					debugger
 				sensor.debug=app.debug
 				await sensor.init()
 				return sensor
 			}
 		}} catch(error){
-			app.debug(`Unable to instantiate ${await BTSensor.getDeviceProp(device,"Address")}: ${error.message} `)
+			const msg = `Unable to instantiate ${await BTSensor.getDeviceProp(device,"Address")}: ${error.message} `
+			app.debug(msg)
+			app.debug(error)
+			app.setPluginError(msg)
 		}
 		//if we're here ain't got no class for the device
 		const sensor = new (classMap.get('UNKNOWN'))(device)
@@ -355,7 +356,10 @@ module.exports =  function (app) {
 			})
 			.catch((error)=>
 				{
-					app.debug(`Sensor at ${deviceConfig.mac_address} unavailable. Reason: ${error}`)
+					const msg =`Sensor at ${deviceConfig.mac_address} unavailable. Reason: ${error}`
+					app.debug(msg)
+					app.debug(error)
+					app.setPluginError(msg)
 					deviceConfig.sensor=new MissingSensor(deviceConfig)
 					addSensorToList(deviceConfig.sensor) //add sensor to list with known options
 				})

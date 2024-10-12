@@ -316,6 +316,7 @@ class BTSensor extends EventEmitter {
                         })
                 })
                 .catch((error)=>{
+                    this.debug(error)
                     throw new Error(`unable to emit values for device ${this.getName()}:${error}`)
                 })
             }

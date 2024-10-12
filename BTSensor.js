@@ -64,7 +64,9 @@ class BTSensor extends EventEmitter {
         class Metadatum{
         
             constructor(tag, unit, description, 
-                read=()=>{return null}, gatt=null, type){
+                read=()=>{
+                    return null
+                }, gatt=null, type){
                 this.tag = tag
                 this.unit = unit
                 this.description = description
@@ -90,7 +92,6 @@ class BTSensor extends EventEmitter {
         var md = this.addMetadatum("name", "string","Name of sensor" )
         md.isParam=true
 
-        this.addMetadatum("RSSI","db","Signal strength in db")
 
         
     }
@@ -106,7 +107,10 @@ class BTSensor extends EventEmitter {
     
     async init(){
         this.currentProperties = await this.constructor.getDeviceProps(this.device)
+        this.addMetadatum("RSSI","db","Signal strength in db")
         this.getMetadatum("RSSI").default=`sensors.${this.getMacAddress().replaceAll(':', '')}.rssi`
+        this.getMetadatum("RSSI").read=()=>{return this.getRSSI()}
+        this.getMetadatum("RSSI").read.bind(this)
         if (this.canUseGATT()) {
             var md = this.addMetadatum("useGATT", "boolean", "Use GATT connection")
             md.type="boolean"

@@ -11,7 +11,11 @@ class RuuviTag extends BTSensor{
         }
         return null
     }    
-   
+
+    static {
+        this.metadata = new Map(super.getMetadata())
+    }
+    
     async init(){
         await super.init()
         const md = this.valueIfVariant(this.getManufacturerData(this.constructor.manufacturerID))
@@ -110,7 +114,8 @@ Offset	Allowed values	Description
     }
     propertiesChanged(props){
         super.propertiesChanged(props)
-        this.emitValuesFrom( this.getManufacturerData(this.constructor.manufacturerID) )
+        if (props.ManufacturerData)
+            this.emitValuesFrom( this.getManufacturerData(this.constructor.manufacturerID) )
     }
 }
 module.exports=RuuviTag

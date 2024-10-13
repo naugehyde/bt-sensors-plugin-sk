@@ -136,7 +136,7 @@ class VictronBatteryMonitor extends VictronSensor{
     propertiesChanged(props){
         super.propertiesChanged(props)
     }
-    canUseGATT(){
+    hasGATT(){
         return true
     }
     

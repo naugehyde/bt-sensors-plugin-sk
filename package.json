@@ -1,13 +1,12 @@
 {
   "name": "bt-sensors-plugin-sk",
-  "version": "1.0.2",
-  "description": "Bluetooth Sensors for Signalk",
+  "version": "1.1.0-beta.1",
+  "description": "Bluetooth Sensors for Signalk - Beta 20241012",
   "main": "index.js",
   "dependencies": {
     "dbus-next": "^0.10.2",
     "node-ble": "^1.9.0",
-    "int24":"^0.0.1",
-    "bitset":"^5.1.1"
+    "int24":"^0.0.1"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

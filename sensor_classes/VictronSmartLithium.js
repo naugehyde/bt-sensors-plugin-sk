@@ -34,8 +34,7 @@ class VictronSmartLithium extends VictronSensor{
 
         this.addMetadatum('bmsFlags','', 'BMS Flags', 
                         (buff)=>{return buff.readUInt32BE(0)})
-                            //0x00 ( 0) when cell voltage < 2.61V 0x01 ( 1) when cell voltage == 2.61V 0x7D (125) when cell voltage == 3.85V 0x7E (126) when cell voltage > 3.85 0x7F (127) when cell voltage is not available / unknown
-
+/
         this.addMetadatum('smartLithiumErrors','', 'Smart Lithium Errors Flags',
             (buff)=>{return buff.readUInt16BE(3)})
         this.addMetadatum('cell1Voltage','V', 'cell #1 voltage', 

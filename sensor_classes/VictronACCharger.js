@@ -28,9 +28,8 @@ class VictronACCharger extends VictronSensor{
         return await this.identifyMode(device, 0x0A)
     }   
 
-    static {
-        this.metadata = new Map(super.getMetadata())
-
+    async init(){
+        await super.init()
         this.addMetadatum('state','', 'device state', 
             (buff)=>{return VC.OperationMode.get(buff.readUInt8(0))})
         this.addMetadatum('error','', 'error code', 
@@ -48,8 +47,8 @@ class VictronACCharger extends VictronSensor{
         this.addMetadatum('curr2','A', 'battery 2 current',
             (buff)=>{return this.NaNif(buff.readUInt16BE(7)&0x7FF,0x7FF)/10})
 
-            this.addMetadatum('batt3','V', 'battery 3 voltage',
-                (buff)=>{return this.NaNif((buff.readUInt16BE(8)>>3), 0x1FFF)/100})
+        this.addMetadatum('batt3','V', 'battery 3 voltage',
+            (buff)=>{return this.NaNif((buff.readUInt16BE(8)>>3), 0x1FFF)/100})
 
         this.addMetadatum('curr3','A', 'battery 3 current',
             (buff)=>{return this.NaNif(buff.readUInt16BE(9)&0x7FF,0x7FF)/10})

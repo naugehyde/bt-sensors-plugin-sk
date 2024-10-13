@@ -23,9 +23,8 @@ class VictronSmartBatteryProtect extends VictronSensor{
         return await this.identifyMode(device, 0x09)
     }   
 
-    static {
-        this.metadata = new Map(super.getMetadata())
-
+    async init() {
+        await super.init()
         this.addMetadatum('deviceState','', 'device state', 
                         (buff)=>{return VC.OperationMode.get(buff.readUInt8(1))})
         this.addMetadatum('outputStatus','', 'output status', //TODO

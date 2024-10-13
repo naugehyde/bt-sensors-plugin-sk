@@ -14,8 +14,8 @@ class ATC extends BTSensor{
         return null
     }
   
-    static {
-        this.metadata = new Map(super.getMetadata())
+    async init() {
+        await super.init() 
         this.addMetadatum('temp','K', 'temperature',
             (buff,offset)=>{return ((buff.readInt16LE(offset))/100) + 273.1})
         this.addMetadatum('humidity','ratio', 'humidity',

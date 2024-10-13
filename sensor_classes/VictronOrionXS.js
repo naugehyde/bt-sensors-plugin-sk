@@ -8,9 +8,8 @@ class VictronOrionXS extends VictronSensor{
     static async identify(device){
         return await this.identifyMode(device, 0x0F)
     }   
-    static {
-        this.metadata = new Map(super.getMetadata())
-
+    async init() {
+        await super.init()
         this.addMetadatum('deviceState','', 'device state', 
             (buff)=>{return VC.OperationMode.get(buff.readUInt8(0))})
         this.addMetadatum('chargerError','', 'charger error',

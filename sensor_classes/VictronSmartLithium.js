@@ -25,16 +25,14 @@ class VictronSmartLithium extends VictronSensor{
         return await this.identifyMode(device, 0x05)
     }   
 
-    static {
-
+    async init() {
+        await super.init()
         function _toCellVoltage(val){    
             return val==0x7F?NaN:2.6+(val/100)
         }
-        this.metadata = new Map(super.getMetadata())
-
         this.addMetadatum('bmsFlags','', 'BMS Flags', 
                         (buff)=>{return buff.readUInt32BE(0)})
-/
+
         this.addMetadatum('smartLithiumErrors','', 'Smart Lithium Errors Flags',
             (buff)=>{return buff.readUInt16BE(3)})
         this.addMetadatum('cell1Voltage','V', 'cell #1 voltage', 
@@ -58,9 +56,7 @@ class VictronSmartLithium extends VictronSensor{
         this.addMetadatum('balancerStatus','', 'balancer status', //TODO
             (buff)=>{return this.NaNif((buff.readUInt16BE(14)&0xf),0xF)})
         this.addMetadatum('batteryTemp','K', 'battery temperature', 
-            (buff)=>{return this.NaNif((buff.readInt8(15)>>1),0x7F)+233.15})
-    
-                
+            (buff)=>{return this.NaNif((buff.readInt8(15)>>1),0x7F)+233.15})          
     }
 }
 module.exports=VictronSmartLithium

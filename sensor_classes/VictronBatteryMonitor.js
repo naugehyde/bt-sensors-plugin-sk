@@ -1,11 +1,18 @@
 const VictronSensor = require("./Victron/VictronSensor.js");
 const VC=require("./Victron/VictronConstants.js")
 class VictronBatteryMonitor extends VictronSensor{
-    static {
-        this.metadata = new Map(super.getMetadata())
+
+
+    static async identify(device){
+        return await this.identifyMode(device, 0x02)
+    }
+
+    characteristics=[]
+    async init(){
+        await super.init()
         this.addMetadatum('current', 'A', 'house battery amperage', 
-                (buff,offset=0)=>{return buff.readInt32LE(offset)/1000},
-                '6597ed8c-4bda-4c1e-af4b-551c4cf74769')
+            (buff,offset=0)=>{return buff.readInt32LE(offset)/1000},
+            '6597ed8c-4bda-4c1e-af4b-551c4cf74769')
         this.addMetadatum('power','W', 'house battery wattage',
                 (buff,offset=0)=>{return buff.readInt16LE(offset)},
                 '6597ed8e-4bda-4c1e-af4b-551c4cf74769')
@@ -27,15 +34,6 @@ class VictronBatteryMonitor extends VictronSensor{
         this.addMetadatum( 'ttg','s','time to go', 
                 (buff,offset=0)=>{return this.NaNif(buff.readUInt16LE(offset),0xFFFF)*60},
                 '65970ffe-4bda-4c1e-af4b-551c4cf74769')    
-    }
-
-    static async identify(device){
-        return await this.identifyMode(device, 0x02)
-    }
-
-    characteristics=[]
-    async init(){
-        await super.init()
         const modecurrent = this.getAuxModeAndCurrent()
         this.auxMode= modecurrent.auxMode
         switch(this.auxMode){

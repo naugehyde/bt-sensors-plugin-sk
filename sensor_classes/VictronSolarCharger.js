@@ -6,8 +6,8 @@ class VictronSolarCharger extends VictronSensor{
         return await this.identifyMode(device, 0x01)
     }   
 
-    static {
-        this.metadata = new Map(super.getMetadata())
+    async init() {
+        await super.init()
 
         this.addMetadatum('chargeState','', 'charge state', 
             (buff)=>{return VC.OperationMode.get(buff.readUInt8(0))})

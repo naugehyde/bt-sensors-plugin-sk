@@ -91,21 +91,7 @@ class XiaomiMiBeacon extends BTSensor{
         }
         return null
     }
-    static {
-        this.metadata = new Map(super.getMetadata())
-           //3985f4ebc032f276cc316f1f6ecea085
-        //8a1dadfa832fef54e9c1d190
 
-        const md = this.addMetadatum("encryptionKey", "", "encryptionKey (AKA bindKey) for decryption")
-        md.isParam=true
-        this.addMetadatum('temp','K', 'temperature',
-            (buff,offset)=>{return ((buff.readInt16LE(offset))/100) + 273.1})
-        this.addMetadatum('humidity','ratio', 'humidity',
-            (buff,offset)=>{return ((buff.readUInt8(offset))/100)})
-        this.addMetadatum('voltage', 'V',  'sensor battery voltage',
-            (buff,offset)=>{return ((buff.readUInt16LE(offset))/1000)})
-       
-    }
     GATTwarning = "WARNING: Xiaomi GATT connections are known to be unreliable on Debian distributions with Bluez 5.55 and up (earlier BlueZ versions are untested). Using GATT on the Xiaomi may put the system Bluetooth stack into an inconsistent state disrupting and disabling other plugin Bluetooth connections. If by some chance you're successful using GATT with the Xiaomi, let the plugin developer know your configuration. Refer to the plugin documentation for getting the Xiamoi bindKey for non-GATT connections and more information on Xiaomi GATT issues."
     
     emitValues(buffer){
@@ -168,7 +154,7 @@ class XiaomiMiBeacon extends BTSensor{
         return cipher.update(encryptedPayload)
     }
 
-    canUseGATT(){
+    hasGATT(){
         return true
     }
 
@@ -202,6 +188,15 @@ class XiaomiMiBeacon extends BTSensor{
     
     async init(){
         await super.init()
+        const md = this.addMetadatum("encryptionKey", "", "encryptionKey (AKA bindKey) for decryption")
+        md.isParam=true
+        this.addMetadatum('temp','K', 'temperature',
+            (buff,offset)=>{return ((buff.readInt16LE(offset))/100) + 273.1})
+        this.addMetadatum('humidity','ratio', 'humidity',
+            (buff,offset)=>{return ((buff.readUInt8(offset))/100)})
+        this.addMetadatum('voltage', 'V',  'sensor battery voltage',
+            (buff,offset)=>{return ((buff.readUInt16LE(offset))/1000)})
+
         const data = this.getServiceData(this.constructor.SERVICE_MIBEACON)
         const frameControl = data[0] + (data[1] << 8)
         this.deviceID = data[2] + (data[3] << 8)

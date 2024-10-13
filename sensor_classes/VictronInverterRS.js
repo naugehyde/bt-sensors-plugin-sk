@@ -10,12 +10,12 @@ class VictronInverterRS extends VictronSensor{
     }
     
 
-    static {
-        var md
-        this.metadata= new Map(super.getMetadata())
+    async init() {
+        await super.init()
+        
         this.addMetadatum('deviceState','', 'inverter device state', 
                 (buff)=>{return VC.OperationMode.get(buff.readIntU8(0))})
-        md = this.addMetadatum('chargerError','', 'charger error',
+        const md = this.addMetadatum('chargerError','', 'charger error',
                 (buff)=>{return VC.ChargerError(buff.readIntU8(1))})
         md.notify=true
 

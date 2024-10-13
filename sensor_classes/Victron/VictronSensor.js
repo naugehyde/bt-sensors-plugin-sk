@@ -11,12 +11,6 @@ const VC = require('./VictronConstants.js')
         this.encryptionKey = config?.encryptionKey
     }
    
-    static {
-        this.metadata = new Map(super.getMetadata())
-        const md = this.addMetadatum('encryptionKey','', "Encryption Key")
-        md.isParam = true
-    }
-
     static async identifyMode(device, mode){
 
         try{
@@ -51,6 +45,11 @@ const VC = require('./VictronConstants.js')
 
     async init(){
         await super.init()
+        var md = this.addMetadatum('encryptionKey','', "Encryption Key")
+        md.isParam = true
+        this.metadata = new Map(super.getMetadata())
+        md = this.addMetadatum('encryptionKey','', "Encryption Key")
+        md.isParam = true
         this.model_id=this.getManufacturerData(0x2e1).readUInt16LE(2)
     }
     alarmReason(alarmValue){

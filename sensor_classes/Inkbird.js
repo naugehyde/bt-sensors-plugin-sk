@@ -16,14 +16,10 @@ class Inkbird extends BTSensor{
         return null
     }
 
-    static {
-        this.metadata = new Map(super.getMetadata())
-        this.addMetadatum('temp','K', 'temperature')
-        this.addMetadatum('battery','ratio', 'battery strength')
-    }
-
     async init(){
         await super.init()
+        this.addMetadatum('temp','K', 'temperature')
+        this.addMetadatum('battery','ratio', 'battery strength')
         if (this.getName() == 'sps'){
             this.addMetadatum('humidity','ratio', 'humidity')
         }

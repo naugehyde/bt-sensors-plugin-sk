@@ -7,12 +7,11 @@ class VictronInverter extends VictronSensor{
         return await this.identifyMode(device, 0x03)
     }
 
-    static {
-        var md
-        this.metadata= new Map(super.getMetadata())
+    async init() {
+        await super.init()
         this.addMetadatum('deviceState','', 'inverter device state', 
             (buff)=>{return VC.OperationMode.get(buff.readIntU8(0))})
-        md = this.addMetadatum('alarmReason','', 'reason for alarm',
+        const md = this.addMetadatum('alarmReason','', 'reason for alarm',
             (buff)=>{return buff.readIntU16LE(1)})
         md.notify=true
 

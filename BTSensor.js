@@ -10,9 +10,14 @@ const BTCompanies = require('./bt_co.json')
  */
 
 const BTCompanyMap=new Map()
+
 BTCompanies.company_identifiers.forEach( (v) =>{
     BTCompanyMap.set(v.value, v.name)
 })
+
+/**
+ * https://www.intuitibits.com/2016/03/23/dbm-to-percent-conversion/
+ */
 
 function signalQualityPercentQuad(rssi, perfect_rssi=-20, worst_rssi=-85) {
     const nominal_rssi=(perfect_rssi - worst_rssi);
@@ -31,6 +36,7 @@ function signalQualityPercentQuad(rssi, perfect_rssi=-20, worst_rssi=-85) {
     }
     return Math.ceil(signal_quality);
 }
+
 class BTSensor extends EventEmitter {
     static metadata=new Map()
     constructor(device, config={}, gattConfig={}) {
@@ -84,46 +90,37 @@ class BTSensor extends EventEmitter {
             }
         }  
 
-    static getMetadata(){
-        return this.metadata
-    }
-
-    static {
-        var md = this.addMetadatum("name", "string","Name of sensor" )
-        md.isParam=true
-
-
+  
+        static async getPropsProxy(device){
         
-    }
-    static addMetadatum(tag, ...args){
-        var metadatum = new this.Metadatum(tag, ...args)
-        this.getMetadata().set(tag,metadatum)
-        return metadatum
-    }
-    
-    emitData(tag, buffer, ...args){
-        this.emit(tag, this.getMetadatum(tag).read(buffer, ...args))
-    }
-    
-    async init(){
-        this.currentProperties = await this.constructor.getDeviceProps(this.device)
-        this.addMetadatum("RSSI","db","Signal strength in db")
-        this.getMetadatum("RSSI").default=`sensors.${this.getMacAddress().replaceAll(':', '')}.rssi`
-        this.getMetadatum("RSSI").read=()=>{return this.getRSSI()}
-        this.getMetadatum("RSSI").read.bind(this)
-        if (this.canUseGATT()) {
-            var md = this.addMetadatum("useGATT", "boolean", "Use GATT connection")
-            md.type="boolean"
-            md.isParam=true
-            md.isGATT=true
-
-            md = this.addMetadatum("pollFreq", "s", "Polling frequency in seconds")
-            md.type="number"
-            md.isParam=true
-            md.isGATT=true
+            if (!device._propsProxy) {
+                const objectProxy  = await device.helper.dbus.getProxyObject(device.helper.service, device.helper.object)
+                device._propsProxy = await objectProxy.getInterface('org.freedesktop.DBus.Properties')
+            }
+            return device._propsProxy 
         }
-    }
-
+        static async getDeviceProps(device, propNames=[]){
+            const _propsProxy = await this.getPropsProxy(device)
+            const rawProps = await _propsProxy.GetAll(device.helper.iface)
+            const props = {}
+            for (const propKey in rawProps) {
+                if (propNames.length==0 || propNames.indexOf(propKey)>=0)
+                    props[propKey] = rawProps[propKey].value
+            }
+            return props
+        }
+        static async getDeviceProp(device, prop){
+            const _propsProxy = await this.getPropsProxy(device)
+            try{
+                const rawProps = await _propsProxy.Get(device.helper.iface,prop)
+                return rawProps?.value
+            }
+            catch(e){
+                return null //Property $prop (probably) doesn't exist in $device
+            }
+        }  
+        
+    
     static async getManufacturerID(device){
         const md = await this.getDeviceProp(device,'ManufacturerData')
         if (!md) return null 
@@ -135,8 +132,28 @@ class BTSensor extends EventEmitter {
     }
     static NaNif(v1,v2) {  return (v1==v2)?NaN:v1 }
     
-    NaNif(v1,v2) {  return this.constructor.NaNif(v1,v2) }
+    async init(){
+        var md = this.addMetadatum("name", "string","Name of sensor" )
+        md.isParam=true
+        this.currentProperties = await this.constructor.getDeviceProps(this.device)
+        this.addMetadatum("RSSI","db","Signal strength in db")
+        this.getMetadatum("RSSI").default=`sensors.${this.getMacAddress().replaceAll(':', '')}.rssi`
+        this.getMetadatum("RSSI").read=()=>{return this.getRSSI()}
+        this.getMetadatum("RSSI").read.bind(this)
+        if (this.hasGATT()) {
+            md = this.addMetadatum("useGATT", "boolean", "Use GATT connection")
+            md.type="boolean"
+            md.isParam=true
+            md.isGATT=true
 
+            md = this.addMetadatum("pollFreq", "s", "Polling frequency in seconds")
+            md.type="number"
+            md.isParam=true
+            md.isGATT=true
+        }
+    }
+    
+    NaNif(v1,v2) {  return this.constructor.NaNif(v1,v2) }
 
     addMetadatum(tag, ...args){
         var metadatum = new this.Metadatum(tag, ...args)
@@ -193,6 +210,8 @@ class BTSensor extends EventEmitter {
         return bars 
 
     }
+
+
     getDescription(){
         return `${this.getName()} from ${this.getManufacturer()}`
     }
@@ -213,7 +232,7 @@ class BTSensor extends EventEmitter {
     getRSSI(){
         return this.currentProperties?.RSSI??NaN
     }
-    canUseGATT(){
+    hasGATT(){
         return false
     }
     usingGATT(){
@@ -226,35 +245,10 @@ class BTSensor extends EventEmitter {
             return obj
         
     }
+    emitData(tag, buffer, ...args){
+        this.emit(tag, this.getMetadatum(tag).read(buffer, ...args))
+    }
 
-    static async getPropsProxy(device){
-        
-        const objectProxy  = await device.helper.dbus.getProxyObject(device.helper.service, device.helper.object)
-        if (!device._propsProxy)
-            device._propsProxy = await objectProxy.getInterface('org.freedesktop.DBus.Properties')
-        return device._propsProxy 
-    }
-    static async getDeviceProps(device, propNames=[]){
-        const _propsProxy = await this.getPropsProxy(device)
-        const rawProps = await _propsProxy.GetAll(device.helper.iface)
-        const props = {}
-        for (const propKey in rawProps) {
-            if (propNames.length==0 || propNames.indexOf(propKey)>=0)
-                props[propKey] = rawProps[propKey].value
-        }
-        return props
-    }
-    static async getDeviceProp(device, prop){
-        const _propsProxy = await this.getPropsProxy(device)
-        try{
-            const rawProps = await _propsProxy.Get(device.helper.iface,prop)
-            return rawProps?.value
-        }
-        catch(e){
-            return null //Property $prop (probably) doesn't exist in $device
-        }
-    }  
-    
 /**
  * callback function on device properties changing
  */
@@ -294,9 +288,13 @@ class BTSensor extends EventEmitter {
         const id = this.getManufacturerID()
         return (id==null)?"Unknown manufacturer":BTCompanyMap.get(parseInt(id))
     }
-    getManufacturerData(key){
+
+    getManufacturerData(key=null){
         if (this.currentProperties.ManufacturerData)
-            return this.valueIfVariant (this.currentProperties.ManufacturerData[key])
+            if (key)
+                return this.valueIfVariant (this.currentProperties.ManufacturerData[key])
+            else
+                return(this.valueIfVariant (this.currentProperties.ManufacturerData))                
         else
             return null
     }

@@ -8,6 +8,13 @@ class VictronDCEnergyMeter extends VictronSensor{
     }
     async init(){
         await super.init()
+        this.addMetadatum('meterType','', 'meter type', 
+            (buff)=>{return VC.MeterType.get( buff.readInt16LE(0))})
+        this.addMetadatum('voltage','','voltage',
+            (buff)=>{return buff.readInt16LE(2)/100})
+        this.addMetadatum('alarm','', 'alarm', 
+            (buff)=>{return buff.readUInt16LE(4)})
+        this.addMetadatum('current','A', 'current')    
         const modeCurrent =  this.getAuxModeAndCurrent()
         this.auxMode= modeCurrent.auxMode
         switch(this.auxMode){
@@ -30,16 +37,7 @@ class VictronDCEnergyMeter extends VictronSensor{
                 break
         }
     }
-    static { 
-        this.metadata = new Map(super.getMetadata())
-        this.addMetadatum('meterType','', 'meter type', 
-                (buff)=>{return VC.MeterType.get( buff.readInt16LE(0))})
-        this.addMetadatum('voltage','','voltage',
-                (buff)=>{return buff.readInt16LE(2)/100})
-        this.addMetadatum('alarm','', 'alarm', 
-                (buff)=>{return buff.readUInt16LE(4)})
-        this.addMetadatum('current','A', 'current')    
-    }
+    
     emitValuesFrom(decData){
         this.emitData("meterType",decData,0)
         this.emitData("voltage",decData,2);

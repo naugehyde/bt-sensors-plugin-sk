@@ -30,7 +30,7 @@ class MissingSensor  {
 		this.mac_address = config.mac_address
 		
 	}
-	canUseGATT(){
+	hasGATT(){
 		return false
 	}
 	getMetadata(){
@@ -257,7 +257,7 @@ module.exports =  function (app) {
 			oneOf.properties.params.properties[tag]=metadatum.asJSONSchema()
 		})
 
-		if (sensor.canUseGATT()){
+		if (sensor.hasGATT()){
 
 			oneOf.properties.gattParams={
 				title:`GATT Specific device parameters`,

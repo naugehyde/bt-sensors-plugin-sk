@@ -26,8 +26,8 @@ TBD
         return await this.identifyMode(device, 0x07)
     }   
 
-    static {
-        this.metadata = new Map(super.getMetadata())
+    async init() {
+        super.init()
         this.addMetadatum('voltage','V', 'channel #1 voltage', 
             (buff)=>{return this.NaNif(buff.readInt16LE(0),0xFFFF)/100})
         this.addMetadatum('pvPower','W','DC input power in watts', 

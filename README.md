@@ -5,49 +5,45 @@
 
 BT Sensors Plugin for Signalk is a lightweight BLE (Bluetooth Low Energy) framework for connecting to Bluetooth sensors on your boat and sending deltas to Signalk paths with the values the sensors reports. <br>
 
+The Plugin currently supports every documented Victron device (AC Charger, Battery Monitor, DC-DC Converter, DC Energy Meter, GX Device, Inverter, Inverter RS, Lynx Smart BMS, Orion XS, Smart Battery Protect, Smart Lithium and VE Bus),  Xiaomi devices, [ATC devices](https://github.com/atc1441/ATC_MiThermometer), RuuviTags and Inkbird thermometers.
+
 A typical use case is a Bluetooth thermometer like the Xiaomi LYWSD03MMC, an inexpensive Bluetooth thermometer that runs on a 3V watch battery that can report the current temperature and humidity in your refrigerator or cabin or wherever you want to stick it (no judgement.) <br>
 
 The reported temperature can then be displayed on a Signalk app like Kip or, with appropiate mapping to NMEA-2000, a NMEA 2000 Multi-function display. 
 
-The Plugin currently supports the Xiaomi LYWSD03MMC, [ATC](https://github.com/atc1441/ATC_MiThermometer) flashed LYWSD03MMCs, Victron SmartShunt and the Inkbird IBS-TH2 thermometer.
-
-Sounds like meager offerings but it's pretty easy to write and deploy your own sensor class for any currently unsupported sensor. More on that in [the development section](#development).
+It's pretty easy to write and deploy your own sensor class for any currently unsupported sensor. More on that in [the development section](#development).
 
 ## WHO IS IT FOR
 
 Signalk users with a Linux boat-puter (Windows and MacOS are NOT supported) and Bluetooth sensors they'd like to integrate into their Signalk datastream.
 
-## ALTERNATIVES
-
-An [MQTT](https://mqtt.org/) server with an appropriate SK client plugin. There are several MQTT plugin clients in the Signalk appstore. 
-
-Advantages of this plugin over an MQTT server and client plugin are:
-* simplicity of setup
-* reduced overhead on server
-* one less piece of software to maintain on your boat-puter
-* ease of rolling your own sensor classes
-
-The key advantages of an MQTT setup is comprehensive support for BT devices and non-Linux platforms. 
-
 ## REQUIREMENTS
 
-* A  Linux Signalk boat-puter with System-D (NOTE: Most Linux installations support System-D)
+* A Linux Signalk boat-puter with System-D (NOTE: Most Linux installations support System-D)
 * A Bluetooth adapter
 * [Bluez](https://www.bluez.org) installed
 (Go here for [Snap installation instructions](https://snapcraft.io/bluez))
 * [Node-ble](https://www.npmjs.com/package/node-ble) (installs with the plugin)
-* [utilities-sk](https://github.com/naugehyde/utilities-sk)
 
 ## INSTALLATION
+
+NOTE: If you're running the 1.0.3 release, you will have to reconfigure your devices.<br>
+
 ### Signalk Appstore
-This will be the recommended installation when the code is ready for wider sharing. In the meantime, use the platform-specific developer install instructions below.
+The plugin is currently available in the Signalk Appstore. <br>
+
+### NPM
+
+See https://www.npmjs.com/package/bt-sensors-plugin-sk/v/1.1.0-beta.2 for more information. 
 
 ### Linux
-From a command prompt:<br>
+
+If you want to install directly from source (this is mostly of interest to custom sensor class developers) execute the following from a command prompt:<br>
 
 <pre>  cd ~/[some_dir]
   git clone https://github.com/naugehyde/bt-sensors-plugin-sk
   cd bt-sensors-plugin-sk
+  git switch '1.1.0'
   npm i
   [sudo] npm link
   cd [signalk_home] 

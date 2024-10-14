@@ -106,7 +106,10 @@ class XiaomiMiBeacon extends BTSensor{
         return this.GATTwarning
     }
     initGATT(){
-        this.debug(this.GATTwarning.toUpperCase())
+        if (!this?.gattWarningDelivered) {
+            this.debug(this.GATTwarning.toUpperCase())
+            this.gattWarningDelivered=true
+        }
         return new Promise((resolve,reject )=>{
             this.device.connect().then(async ()=>{
                 if (!this.gattServer) {

@@ -11,7 +11,7 @@ A typical use case is a Bluetooth thermometer like the Xiaomi LYWSD03MMC, an ine
 
 The reported temperature can then be displayed on a Signalk app like Kip, WilhelmSK or, with appropiate mapping to NMEA-2000, a NMEA 2000 Multi-function display. 
 
-It's pretty easy to write and deploy your own sensor class for any currently unsupported sensor. More on that in [the development README](./development.md).
+It's pretty easy to write and deploy your own sensor class for any currently unsupported sensor. More on that in [the development README](./sensor_classes/development.md).
 
 ## WHO IS IT FOR
 

@@ -209,6 +209,7 @@ module.exports = {
     0xA38B: "SmartShunt 2000A/50mV",
     0xA3A4: "Smart Battery Sense",
     0xA3A5: "Smart Battery Sense",
+    0xA3B0: "Smart Battery Protect",
     0xA3C0: "Orion Smart 12V|12V-18A Isolated DC-DC Charger",
     0xA3C8: "Orion Smart 12V|12V-30A Isolated DC-DC Charger",
     0xA3D0: "Orion Smart 12V|12V-30A Non-isolated DC-DC Charger",

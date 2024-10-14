@@ -171,7 +171,7 @@ module.exports =  function (app) {
 			},
 			discoveryInterval: {title: "Scan for new devices interval (in seconds-- 0 for no new device scanning)", 
 				type: "integer", 
-				default: 60,
+				default: 10,
 				minimum: 0,
 				multipleOf: 10
 			 },

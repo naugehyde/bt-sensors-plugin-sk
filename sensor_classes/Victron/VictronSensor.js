@@ -56,7 +56,7 @@ const VC = require('./VictronConstants.js')
         return this.constructor.AlarmReason[alarmValue]
     }
     getModelName(){
-        return VC.MODEL_ID_MAP[this.model_id]
+        return VC?.MODEL_ID_MAP[this.model_id]??this.constructor.name+" (Model ID:"+this.model_id+")"
     }
 
     decrypt(data){

@@ -1,6 +1,6 @@
 {
   "name": "bt-sensors-plugin-sk",
-  "version": "1.1.0-beta.2.1.1",
+  "version": "1.1.0-beta.2.1.2",
   "description": "Bluetooth Sensors for Signalk -- support for Victron devices, RuuviTag, Xiaomi, ATC and Inkbird",
   "main": "index.js",
   "dependencies": {

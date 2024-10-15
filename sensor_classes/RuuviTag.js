@@ -40,10 +40,10 @@ class RuuviTag extends BTSensor{
  **/
     _initModeV5(){
         this.addMetadatum("temp","K","temperature in Kelvin", 
-            (buffer)=>{ return (buffer.readInt16BE(1)*.005).toFixed(3)+273.15}
+            (buffer)=>{ return parseFloat((273.15+buffer.readInt16BE(1)*.005).toFixed(3))}
         )
         this.addMetadatum("humidity","ratio","humidity", 
-            (buffer)=>{ return ((buffer.readUInt16BE(3)*.0025)/100).toFixed(2)}
+            (buffer)=>{ return parseFloat(((buffer.readUInt16BE(3)*.0025)/100).toFixed(2))}
         )
         this.addMetadatum("pressure","Pa","atmospheric pressure", 
             (buffer)=>{ return buffer.readUInt16BE(5)+50000}

@@ -34,7 +34,9 @@ The plugin is currently available in the Signalk Appstore. <br>
 
 ### NPM
 
-See https://www.npmjs.com/package/bt-sensors-plugin-sk/v/1.1.0-beta.2 for more information. 
+Go to you signalk home (usually ~/.signalk) and run:
+
+npm i bt-sensors-plugin-sk@1.1.0-beta.2.1
 
 ### Linux
 

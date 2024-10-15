@@ -25,7 +25,7 @@ const int24 = require('int24')
 class VictronACCharger extends VictronSensor{
 
     static async identify(device){
-        return await this.identifyMode(device, 0x0A)
+        return await this.identifyMode(device, 0x08)
     }   
 
     async init(){

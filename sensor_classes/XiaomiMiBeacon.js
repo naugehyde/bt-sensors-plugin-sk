@@ -212,7 +212,7 @@ class XiaomiMiBeacon extends BTSensor{
         return this?.name??`${dt.name} ${dt.model}`
     }
 
-    async disconnectGattCharacteristic(){
+    async disconnectGATTCharacteristic(){
         if (this.gattCharacteristic  && await this.gattCharacteristic.isNotifying()) {
             await this.gattCharacteristic.stopNotifications()
             this.gattCharacteristic=null
@@ -220,7 +220,7 @@ class XiaomiMiBeacon extends BTSensor{
     }
     async stopListening(){
         super.stopListening()
-        await this.disconnectGattCharacteristic()
+        await this.disconnectGATTCharacteristic()
        
         if (await this.device.isConnected()){
                await this.device.disconnect()

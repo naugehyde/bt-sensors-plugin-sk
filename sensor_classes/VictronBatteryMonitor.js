@@ -1,5 +1,10 @@
+/**
+  
+ */
+
 const VictronSensor = require("./Victron/VictronSensor.js");
 const VC=require("./Victron/VictronConstants.js")
+const int24 = require('int24')
 class VictronBatteryMonitor extends VictronSensor{
 
 
@@ -81,8 +86,9 @@ class VictronBatteryMonitor extends VictronSensor{
             break;
         default:
             break
-        }      
-        this.emit("consumed",decData.readInt16LE(11) / 10 ); //TODO this ain't right
+        }
+        
+        this.emit("consumed",(int24.readInt24LE(decData, 11)&0xF) / 10 ); 
         var soc = decData.readUInt16LE(13)
         this.emit("soc", ((soc & 0x3FFF) >> 4) / 1000)
     }

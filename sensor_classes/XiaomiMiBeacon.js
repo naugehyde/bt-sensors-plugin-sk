@@ -105,7 +105,7 @@ class XiaomiMiBeacon extends BTSensor{
     getGATTDescription() {
         return this.GATTwarning
     }
-    initGATT(){
+    initGATTConnection(){
         if (!this?.gattWarningDelivered) {
             this.debug(this.GATTwarning.toUpperCase())
             this.gattWarningDelivered=true
@@ -218,8 +218,8 @@ class XiaomiMiBeacon extends BTSensor{
             this.gattCharacteristic=null
         }
     }
-    async disconnect(){
-        super.disconnect()
+    async stopListening(){
+        super.stopListening()
         await this.disconnectGattCharacteristic()
        
         if (await this.device.isConnected()){

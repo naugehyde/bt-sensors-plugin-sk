@@ -17,7 +17,7 @@ class ATC extends BTSensor{
     async init() {
         await super.init() 
         this.addMetadatum('temp','K', 'temperature',
-            (buff,offset)=>{return ((buff.readInt16LE(offset))/100) + 273.1})
+            (buff,offset)=>{return parseFloat((273.15+(buff.readInt16LE(offset))/100).toFixed(2))})
         this.addMetadatum('humidity','ratio', 'humidity',
             (buff,offset)=>{return ((buff.readUInt16LE(offset))/10000)})
         this.addMetadatum('voltage', 'V',  'sensor battery voltage',

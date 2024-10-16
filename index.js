@@ -48,8 +48,8 @@ class MissingSensor  {
 	getDisplayName(){
 		return `OUT OF RANGE DEVICE (${this.getName()} ${this.getMacAddress()})`
 	}
-	disconnect(){}
-	connect(){}
+	stopListening(){}
+	listen(){}
 }
 module.exports =  function (app) {
 	const adapterID = 'hci0'
@@ -159,7 +159,7 @@ module.exports =  function (app) {
 	plugin.schema = {			
 		type: "object",
 		description: "NOTE: \n 1) Plugin must be enabled to configure your sensors. \n"+
-		"2) You will have to wait until the scanner has found and connected to your device before seeing your device's config fields and saving the configuration. \n"+
+		"2) You will have to wait until the scanner has found your device before seeing your device's config fields and saving the configuration. \n"+
 		"3) To refresh the list of available devices and their configurations, just open and close the config screen by clicking on the arrow symbol in the config's top bar. \n"+
 		"4) If you submit and get errors it may be because the configured devices have not yet all been discovered.",
 		required:["discoveryTimeout", "discoveryInterval"],
@@ -310,7 +310,7 @@ module.exports =  function (app) {
 		})
 		.catch((e)=>{
 			if (s)
-				s.disconnect()		
+				s.stopListening()		
 			app.debug(`Unable to communicate with device ${deviceNameAndAddress(config)} Reason: ${e?.message??e}`)
 			reject( e?.message??e )	
 		})})
@@ -346,10 +346,10 @@ module.exports =  function (app) {
 				if (deviceConfig.active) {
 					createPaths(deviceConfig)
 					initPaths(deviceConfig)
-					const result = Promise.resolve(deviceConfig.sensor.connect())
+					const result = Promise.resolve(deviceConfig.sensor.listen())
 					result.then(() => {
-						app.debug(`Connected to ${deviceConfig.sensor.getDisplayName()}`);
-						app.setPluginStatus(`Initial scan complete. Connected to ${++found} sensors.`);
+						app.debug(`Listening for changes from ${deviceConfig.sensor.getDisplayName()}`);
+						app.setPluginStatus(`Initial scan complete. Listening to ${++found} sensors.`);
 					})
 				}
 
@@ -441,11 +441,11 @@ module.exports =  function (app) {
 		if ((sensorMap)){
 			sensorMap.forEach(async (sensor, mac)=> {
 				try{
-					await sensor.disconnect()
-					app.debug(`Disconnected from ${mac}`)
+					await sensor.stopListening()
+					app.debug(`No longer listening to ${mac}`)
 				}
 				catch (e){
-					app.debug(`Error disconnecting from ${mac}: ${e.message}`)
+					app.debug(`Error stopping listening to ${mac}: ${e.message}`)
 				}
 			})				
 		}

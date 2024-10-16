@@ -58,7 +58,7 @@ class RuuviTag extends BTSensor{
             (buffer)=>{ return buffer.readInt16BE(11)}
         )
         this.addMetadatum("battV","V","battery voltage", 
-            (buffer)=>{ return 1.6+(buffer.readUInt16BE(13)>>5)/1000}
+            (buffer)=>{ return parseFloat((1.6+(buffer.readUInt16BE(13)>>5)/1000).toFixed(2))}
         )
         this.addMetadatum("mc","","movement counter", 
             (buffer)=>{ return buffer.readUInt16BE(13) && 0x1F}

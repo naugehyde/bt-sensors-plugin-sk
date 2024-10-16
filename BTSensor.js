@@ -303,7 +303,7 @@ class BTSensor extends EventEmitter {
         this.device.disconnect().then(()=>{
             this.initPropertiesChanged()
             this.intervalID = setInterval( () => {
-                this.initGATT().then(()=>{
+                this.initGATTConnection().then(()=>{
                     this.emitGATT()
                     this.device.disconnect()
                         .then(()=>
@@ -331,14 +331,14 @@ class BTSensor extends EventEmitter {
         }))
      }
   /**
-   *  Connect to sensor.
-   *  This is where the logic for connecting to sensor, listening for changes in values and emitting those values go
+   *  Listen to sensor.
+   *  This is where the logic for listening for changes in values and emitting those values go
    */
-    connect(){
+    listen(){
         this.initPropertiesChanged()       
         this.propertiesChanged(this.currentProperties)
         if (this.usingGATT()){
-            this.initGATT().then(async ()=>{
+            this.initGATTConnection().then(async ()=>{
                 this.emitGATT()
                 if (this.pollFreq){
                     this.initGATTInterval()
@@ -351,11 +351,11 @@ class BTSensor extends EventEmitter {
         return this
     }
   /**
-   *  Discconnect from sensor.
-   *  Implemented by subclass if additional behavior necessary (like disconnect from device's GattServer etc.)
+   *  Stop Listening to sensor.
+   *  Implemented by subclass if additional behavior necessary (like disconnect() from device's GattServer etc.)
    */
 
-    disconnect(){
+    stopListening(){
         this.removeAllListeners()
         this.device.helper.removeListeners()
         if (this.intervalID){

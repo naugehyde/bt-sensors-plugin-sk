@@ -3,7 +3,7 @@
 
 ## WHAT IT IS
 
-BT Sensors Plugin for Signalk is a lightweight BLE (Bluetooth Low Energy) framework for connecting to Bluetooth sensors on your boat and sending deltas to Signalk paths with the values the sensors reports. <br>
+BT Sensors Plugin for Signalk is a lightweight BLE (Bluetooth Low Energy) framework for listening and connecting to Bluetooth sensors on your boat and sending deltas to Signalk paths with the values the sensors reports. <br>
 
 The Plugin currently supports every documented Victron device (AC Charger, Battery Monitor, DC-DC Converter, DC Energy Meter, GX Device, Inverter, Inverter RS, Lynx Smart BMS, Orion XS, Smart Battery Protect, Smart Lithium and VE Bus),  Xiaomi devices, [ATC devices](https://github.com/atc1441/ATC_MiThermometer), RuuviTags and Inkbird thermometers.
 
@@ -71,7 +71,7 @@ Then press the + button to add a sensor. Your screen should look something like 
 
 <br><br>
 
-Select the sensor you want to connect to from the drop down.<br>
+Select the sensor you want Signalk to listen to from the drop down.<br>
 
 If you don't see your device and you know that it's on and nearby to the server, it may not be currently supported. But fear not, you can add custom sensor classes yourself. (Check out [the development section](#development).). <br><br>
 

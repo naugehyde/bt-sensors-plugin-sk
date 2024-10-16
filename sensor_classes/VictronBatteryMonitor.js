@@ -87,11 +87,12 @@ class VictronBatteryMonitor extends VictronSensor{
         this.emit("soc", ((soc & 0x3FFF) >> 4) / 1000)
     }
     
-    initGATT() {
+    initGATTConnection() {
         return new Promise((resolve,reject )=>{
             if (!this.valueIfVariant(this.currentProperties.Paired))
                 reject(`${this.getName()} must be paired with the Signalk server to use GATT protocol`)
             this.device.connect().then(async ()=>{
+                this.debug(`${this.getName()} connected.`)
                 if (!this.gattServer) {
                     this.gattServer = await this.device.gatt()
                     this.gattService= await this.gattServer.getPrimaryService("65970000-4bda-4c1e-af4b-551c4cf74769")
@@ -133,9 +134,7 @@ class VictronBatteryMonitor extends VictronSensor{
         }})
         resolve(this)})
     }
-    propertiesChanged(props){
-        super.propertiesChanged(props)
-    }
+
     hasGATT(){
         return true
     }
@@ -144,14 +143,14 @@ class VictronBatteryMonitor extends VictronSensor{
         return "To use the GATT connection the SignalK server computer and the Smart Shunt must first be paired."
     }
 
-    async disconnect(){
-        super.disconnect()
+    async stopListening(){
+        super.stopListening()
         for (var c of this.characteristics){
             await c.stopNotifications()
         }
         if (await this.device.isConnected()){
-            console.log(`Disconnecting from ${ this.getMacAddress()}`)
             await this.device.disconnect()
+            this.debug(`Disconnected from ${ this.getName()}`)
         }
     }
 }

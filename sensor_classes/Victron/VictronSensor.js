@@ -95,7 +95,7 @@ const VC = require('./VictronConstants.js')
         }
     }
 
-    initGATT(){
+    initGATTConnection(){
         throw new Error( "GATT Connection unimplemented for "+this.getDisplayName())
     }
 

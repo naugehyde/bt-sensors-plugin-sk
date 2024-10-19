@@ -439,6 +439,8 @@ module.exports =  function (app) {
 		plugin.stopped=true
 		plugin.uiSchema.peripherals['ui:disabled']=true
 		if ((sensorMap)){
+			plugin.schema.properties.peripherals.items.properties.mac_address.enum=[]
+			plugin.schema.properties.peripherals.items.properties.mac_address.enumNames=[]
 			sensorMap.forEach(async (sensor, mac)=> {
 				try{
 					await sensor.stopListening()

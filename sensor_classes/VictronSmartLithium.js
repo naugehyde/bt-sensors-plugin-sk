@@ -27,6 +27,9 @@ class VictronSmartLithium extends VictronSensor{
 
     async init() {
         await super.init()
+        this.initMetadata()
+    }
+    initMetadata(){
         function _toCellVoltage(val){    
             return val==0x7F?NaN:2.6+(val/100)
         }
@@ -34,29 +37,29 @@ class VictronSmartLithium extends VictronSensor{
                         (buff)=>{return buff.readUInt32BE(0)})
 
         this.addMetadatum('smartLithiumErrors','', 'Smart Lithium Errors Flags',
-            (buff)=>{return buff.readUInt16BE(3)})
+            (buff)=>{return buff.readUInt16BE(4)})
         this.addMetadatum('cell1Voltage','V', 'cell #1 voltage', 
-            (buff)=>{return _toCellVoltage((buff.readUInt8(5))>>1)})
+            (buff)=>{return _toCellVoltage((buff.readUInt8(6))>>1)})
         this.addMetadatum('cell2Voltage','V', 'cell #2 voltage', 
-            (buff)=>{return _toCellVoltage((buff.subarray(5,7).readUInt16BE())&0x01fe>>2)})
+            (buff)=>{return _toCellVoltage(((buff.readUInt16BE(6))&0x01Fe)>>2)})
         this.addMetadatum('cell3Voltage','V', 'cell #3 voltage', 
-            (buff)=>{return _toCellVoltage(((buff.subarray(6,8).readUInt16BE())&0x03fe)>>3)})
+            (buff)=>{return _toCellVoltage(((buff.readUInt16BE(7))&0x03Fe)>>3)})
         this.addMetadatum('cell4Voltage','V', 'cell #4 voltage', 
-            (buff)=>{return _toCellVoltage(((buff.subarray(7,9).readUInt16BE())&0x07fe)>>4)})
+            (buff)=>{return _toCellVoltage(((buff.readUInt16BE(8))&0x07fe)>>4)})
         this.addMetadatum('cell5Voltage','V', 'cell #5 voltage', 
-            (buff)=>{return _toCellVoltage(((buff.subarray(8,10).readUInt16BE())&0x0ffe)>>5)})
+            (buff)=>{return _toCellVoltage(((buff.readUInt16BE(9))&0x0ffe)>>5)})
         this.addMetadatum('cell6Voltage','V', 'cell #6 voltage', 
-            (buff)=>{return _toCellVoltage(((buff.subarray(9,11).readUInt16BE())&0x1ffe)>>6)})
+            (buff)=>{return _toCellVoltage(((buff.readUInt16BE(10))&0x1ffe)>>6)})
         this.addMetadatum('cell7Voltage','V', 'cell #7 voltage', 
-            (buff)=>{return _toCellVoltage(((buff.subarray(10,12).readUInt16BE())&0x3ffe)>>7)})
+            (buff)=>{return _toCellVoltage(((buff.readUInt16BE(11))&0x3ffe)>>7)})
         this.addMetadatum('cell8Voltage','V', 'cell #8 voltage', 
-            (buff)=>{return _toCellVoltage((buff.readUInt8(11))&0x7f)})
+            (buff)=>{return _toCellVoltage((buff.readUInt8(12))&0x7e)})
         this.addMetadatum('batteryVoltage','V', 'battery voltage', 
-            (buff)=>{return this.NaNif((buff.readUInt16BE(14)>>4),0xFFF)/100})
+            (buff)=>{return this.NaNif((buff.readUInt16BE(13)>>4),0xFFF)/100})
         this.addMetadatum('balancerStatus','', 'balancer status', //TODO
-            (buff)=>{return this.NaNif((buff.readUInt16BE(14)&0xf),0xF)})
+            (buff)=>{return this.NaNif((buff.readUInt8(14)&0xf),0xF)})
         this.addMetadatum('batteryTemp','K', 'battery temperature', 
-            (buff)=>{return this.NaNif((buff.readInt8(15)>>1),0x7F)+233.15})          
+            (buff)=>{return this.NaNif((buff.readUInt8(15)>>1),0x7F)+233.15})          
     }
 }
 module.exports=VictronSmartLithium

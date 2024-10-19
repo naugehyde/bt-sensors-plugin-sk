@@ -2,13 +2,21 @@ const { Variant } = require('dbus-next');
 const { log } = require('node:console');
 const EventEmitter = require('node:events');
 
+/** 
+ * @author Andrew Gerngross <oh.that.andy@gmail.com>
+*/
+
 /**
- * A map of company names keyed by their Bluetooth ID
- * bt_co.json file derived from bluetooth-sig source:
- * https://bitbucket.org/bluetooth-SIG/public/src/main/assigned_numbers/company_identifiers/company_identifiers.yaml
+ * {@link module:node-ble}
  */
 
 const BTCompanies = require('./bt_co.json')
+/**
+ * @global A map of company names keyed by their Bluetooth ID
+ * {@link ./sensor_classes/bt_co.json} file derived from bluetooth-sig source:
+ * {@link https://bitbucket.org/bluetooth-SIG/public/src/main/assigned_numbers/company_identifiers/company_identifiers.yaml}
+ */
+
 const BTCompanyMap=new Map()
 
 BTCompanies.company_identifiers.forEach( (v) =>{
@@ -16,10 +24,12 @@ BTCompanies.company_identifiers.forEach( (v) =>{
 })
 
 /**
- * Utility function to convert RSSI (Bluetooth radio strength signal) 
+ * @function signalQualityPercentQuad
+ * 
+ * Utility to convert RSSI (Bluetooth radio strength signal) 
  * decibel values to a linear percentage 
  * 
- * See https://www.intuitibits.com/2016/03/23/dbm-to-percent-conversion/ 
+ * See {@link  https://www.intuitibits.com/2016/03/23/dbm-to-percent-conversion/ }
  * 
  * 
  */
@@ -43,15 +53,26 @@ function signalQualityPercentQuad(rssi, perfect_rssi=-20, worst_rssi=-85) {
 }
 
 /**
- * @classdesc Abstract class that all sensor classes should inherit from. Sensor subclasses monitor a 
- * BT peripheral and emit changes in the sensors's value like "temp" or "humidity"
+ * @classdesc Class that all sensor classes should inherit from. Sensor subclasses 
+ * monitor a BT peripheral and emit changes in the sensors's value like "temp" or "humidity"
  * @class BTSensor
- * @see EventEmitter, node-ble/Device
+ * @abstract
+ * @extends EventEmitter
+ * 
+ * @requires module:node-ble/Device
+ * @requires module:node-ble/BusHelper
+ * 
  */
 
 class BTSensor extends EventEmitter {
     static metadata=new Map()
 
+    /**
+     * 
+     * @param {module:node-ble/Device} device 
+     * @param {*} config 
+     * @param {*} gattConfig 
+     */
     constructor(device, config={}, gattConfig={}) {
         super()
   
@@ -65,12 +86,9 @@ class BTSensor extends EventEmitter {
         this.metadata = new Map()
     }
     /**
-     * function to test sensor parsing
+     * @function _test Test sensor parsing
      * 
-     * @param {String} data e.g. formatted as "AE FF 45..." (which is more or less how Bluetoothctl presents it)
-     * @param {String optional} key 
-     * 
-     * Example use:
+     * @example
      * 
      * 1) from a command line execute:
      *      bluetoothctl scan on
@@ -106,10 +124,15 @@ class BTSensor extends EventEmitter {
      * Unusual values are likely to appear if the data string is encrypted 
      * and you didn't provide a decryption key 
      * 
+     * @static 
+     * @param {string} data string formatted as "AE FF 45..." which is more or less how Bluetoothctl presents it
+     * @param {string|null} key encryption key (optional)
+     * 
      */
     static _test(data, key){
         var b = Buffer.from(data.replaceAll(" ",""),"hex")
         const d = new this()
+        d.initMetadata() 
         d.getPathMetadata().forEach((datum,tag)=>{
                 d.on(tag,(v)=>console.log(`${tag}=${v}`))
         })
@@ -124,8 +147,8 @@ class BTSensor extends EventEmitter {
     }
     static Metadatum = 
     /**
-     * Inner class for maintaining a sensor's metadata 
-     * TODO: refactor and/or just plain rethink constructor parameters
+     * @class encapsulates a sensor's metadata 
+     * @todo refactor and/or just plain rethink constructor parameters
      */
         class Metadatum{
         
@@ -177,7 +200,7 @@ class BTSensor extends EventEmitter {
      * Instances do not to call these functions at all. 
      * Instance device property gets are handled by the BTSensor class implementation
      * 
-     * @TODO duplicate and derive a better node-ble 
+     * @todo duplicate and derive a better {@link module:node-ble}
      * 
      */        
     static async _getPropsProxy(device){
@@ -317,7 +340,7 @@ class BTSensor extends EventEmitter {
      * 
      * Subclasses do NOT need to override this function
      * This function is only called when the property pollFreq is set to > 0
-     * The function calls ::emitGATT() at the specified interval then disconnects
+     * The function calls #emitGATT() at the specified interval then disconnects
      * from the device. 
      */
 

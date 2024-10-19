@@ -28,20 +28,6 @@ const VC = require('./VictronConstants.js')
         
     }
 
-    getAuxModeAndCurrent(offset, decData=null){
-        if (decData==null){
-            decData=this.getManufacturerData(0x2e1)
-            if (this.encryptionKey)
-                decData=this.decrypt(decData)
-            else 
-                return {current:NaN, auxMode:NaN}
-        } 
-        const auxModeAndCurrent = int24.readInt24LE(decData,offset)
-        return {
-            current : (this.NaNif(auxModeAndCurrent >> 2,0x3FFFFF))/1000,
-            auxMode : auxModeAndCurrent & 0b11
-        }
-    }
 
     async init(){
         await super.init()
@@ -85,10 +71,14 @@ const VC = require('./VictronConstants.js')
     propertiesChanged(props){
         super.propertiesChanged(props)
         if (this.usingGATT()) return
+        
         try{
-            const buff = this.getManufacturerData(0x2e1)             
-            const decData=this.decrypt(buff)
-            this.emitValuesFrom(decData)
+            const md = this.getManufacturerData(0x2e1)
+            if (md.length && md[0]==0x10){
+                const buff = this.getManufacturerData(0x2e1)        
+                const decData=this.decrypt(buff)
+                this.emitValuesFrom(decData)
+            }
         }
         catch (error) {
             throw new Error(`Unable to read data from ${ this.getDisplayName()}: ${error}` )

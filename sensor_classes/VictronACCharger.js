@@ -30,25 +30,28 @@ class VictronACCharger extends VictronSensor{
 
     async init(){
         await super.init()
+        this.initMetadata()
+    }
+    initMetadata(){
         this.addMetadatum('state','', 'device state', 
             (buff)=>{return VC.OperationMode.get(buff.readUInt8(0))})
         this.addMetadatum('error','', 'error code', 
             (buff)=>{return VC.ChargerError.get(buff.readUInt8(1))})
  
         this.addMetadatum('batt1','V', 'battery 1 voltage',
-            (buff)=>{return this.NaNif((buff.readUInt16BE(2)>>3), 0x1FFF)/100})
+            (buff)=>{return this.NaNif((buff.readUInt16LE(2)&0x1FFF), 0x1FFF)/100})
 
         this.addMetadatum('curr1','A', 'battery 1 current',
             (buff)=>{return this.NaNif(buff.readUInt16BE(3)&0x7FF,0x7FF)/10})
 
         this.addMetadatum('batt2','V', 'battery 2 voltage',
-            (buff)=>{return this.NaNif((buff.readUInt16BE(5)>>3), 0x1FFF)/100})
+            (buff)=>{return this.NaNif((buff.readUInt16LE(5)&0x1FFF), 0x1FFF)/100})
 
         this.addMetadatum('curr2','A', 'battery 2 current',
             (buff)=>{return this.NaNif(buff.readUInt16BE(7)&0x7FF,0x7FF)/10})
 
         this.addMetadatum('batt3','V', 'battery 3 voltage',
-            (buff)=>{return this.NaNif((buff.readUInt16BE(8)>>3), 0x1FFF)/100})
+            (buff)=>{return this.NaNif((buff.readUInt16LE(8)&0x1FFF), 0x1FFF)/100})
 
         this.addMetadatum('curr3','A', 'battery 3 current',
             (buff)=>{return this.NaNif(buff.readUInt16BE(9)&0x7FF,0x7FF)/10})
@@ -57,7 +60,7 @@ class VictronACCharger extends VictronSensor{
             (buff)=>{return this.NaNif(buff.readUInt8(11)>>1,0x7F)+233.15}) //-40 plus K conversion
 
         this.addMetadatum('acCurr','A', 'AC current',
-            (buff)=>{return this.NaNif((buff.readInt16BE(11))&0x1FFF,0x1FFF)})
+            (buff)=>{return this.NaNif((buff.readUInt16BE(11)&0x1FF),0x1FF)/10})
     }
 }
 module.exports=VictronACCharger

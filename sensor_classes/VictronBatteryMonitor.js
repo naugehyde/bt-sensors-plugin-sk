@@ -11,10 +11,35 @@ class VictronBatteryMonitor extends VictronSensor{
     static async identify(device){
         return await this.identifyMode(device, 0x02)
     }
+    static _test(data, key){
+        var b = Buffer.from(data.replaceAll(" ",""),"hex")
+        const d = new this()
+
+        if (key) {
+            d.encryptionKey = key
+        
+        }
+        d.currentProperties = {}
+        d.currentProperties.ManufacturerData={}
+        d.currentProperties.ManufacturerData[0x02e1]=b
+        d.initMetadata() 
+        d.getPathMetadata().forEach((datum,tag)=>{
+                d.on(tag,(v)=>console.log(`${tag}=${v}`))
+        })
+        b = d.decrypt(b)
+        console.log(b)
+        d.emitValuesFrom(b)
+        d.removeAllListeners()
+    
+    }
 
     characteristics=[]
     async init(){
         await super.init()
+        this.initMetadata()
+    }
+
+    initMetadata(){
         this.addMetadatum('current', 'A', 'house battery amperage', 
             (buff,offset=0)=>{return buff.readInt32LE(offset)/1000},
             '6597ed8c-4bda-4c1e-af4b-551c4cf74769')
@@ -38,9 +63,13 @@ class VictronBatteryMonitor extends VictronSensor{
 
         this.addMetadatum( 'ttg','s','time to go', 
                 (buff,offset=0)=>{return this.NaNif(buff.readUInt16LE(offset),0xFFFF)*60},
-                '65970ffe-4bda-4c1e-af4b-551c4cf74769')    
-        const modecurrent = this.getAuxModeAndCurrent()
-        this.auxMode= modecurrent.auxMode
+                '65970ffe-4bda-4c1e-af4b-551c4cf74769')
+        if (this.encryptionKey){
+            const decData = this.decrypt(this.getManufacturerData(0x02e1))
+            if (decData)
+                this.auxMode=decData.readInt8(8)&0x3   
+        }
+
         switch(this.auxMode){
             case VC.AuxMode.STARTER_VOLTAGE:
                 this.addMetadatum('starterVoltage','V', 'starter battery voltage', 
@@ -55,14 +84,14 @@ class VictronBatteryMonitor extends VictronSensor{
 
             case VC.AuxMode.TEMPERATURE:
                 this.addMetadatum('temperature','K', 'House battery temperature', 
-                    (buff,offset=0)=>{return buff.readInt16LE(offset)/100},
+                    (buff,offset=0)=>{return (buff.readInt16LE(offset)/1000)+273.15},
                     '6597ed7d-4bda-4c1e-af4b-551c4cf74769')
                 break;
             default:
                 break
         }
     }
-
+    
     emitValuesFrom(decData){
         this.emitData("ttg",decData,0)
         this.emitData("voltage",decData,2);
@@ -70,10 +99,8 @@ class VictronBatteryMonitor extends VictronSensor{
         if (alarm>0){
             this.emit(
                 `ALARM #${alarm} from ${this.getDisplayName()})`, 
-                { message: AlarmReason.get(alarm), state: 'alert'})
+                { message: VC.AlarmReason.get(alarm), state: 'alert'})
         }
-        
-        this.emit("current", (this.getAuxModeAndCurrent(8,decData)).current)
         switch(this.auxMode){
         case VC.AuxMode.STARTER_VOLTAGE:
             this.emitData("starterVoltage",decData,6);
@@ -87,10 +114,10 @@ class VictronBatteryMonitor extends VictronSensor{
         default:
             break
         }
+        this.emit("current", (this.NaNif(int24.readInt24LE(decData,  8)&0x3FFFFF,0x3FFFFF))/1000)  
+        this.emit("consumed",(this.NaNif(int24.readInt24LE(decData, 11)&0xFFFFF,0xFFFFF)) / 10) ; 
+        this.emit("soc", this.NaNif(((decData.readUInt16LE(13)& 0xFFF)>>2),0x3FF)/1000)
         
-        this.emit("consumed",(int24.readInt24LE(decData, 11)&0xF) / 10 ); 
-        var soc = decData.readUInt16LE(13)
-        this.emit("soc", ((soc & 0x3FFF) >> 4) / 1000)
     }
     
     initGATTConnection() {

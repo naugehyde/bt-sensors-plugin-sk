@@ -17,10 +17,14 @@ const VC = require('./VictronConstants.js')
             const md = await this.getDeviceProp(device,'ManufacturerData')
             if (!md) return null   
             const data = md[0x2e1]
+            if (data.value[0]==0x2) { //VE.Smart is on
+                throw new Error(`Disable VE.Smart on ${await this.getDeviceProp(device,'Address')} if you want to use it in Signal-K.`)
+            }
             if (data && data.value[0]==0x10 && data.value[4]==mode)
                 return this
-            else
+            else {
                 return null
+            }
         } catch (e){
             console.log(e)
             return null

@@ -94,6 +94,7 @@ module.exports =  function (app) {
 		try{
 		for (var [clsName, cls] of classMap) {
 			const c = await cls.identify(device)
+			if (c==-1) return -1
 			if (c) {
 				
 				if (c.name.startsWith("_")) continue
@@ -296,6 +297,7 @@ module.exports =  function (app) {
 		.then(async (device)=> { 
 			app.debug(`Found ${config.mac_address}`)
 			s = await instantiateSensor(device,config) 
+			if (s==-1) reject(-1)
 			sensorMap.set(config.mac_address,s)
 
 			if (s instanceof BLACKLISTED)
@@ -356,12 +358,14 @@ module.exports =  function (app) {
 			})
 			.catch((error)=>
 				{
+					
 					const msg =`Sensor at ${deviceConfig.mac_address} unavailable. Reason: ${error}`
 					app.debug(msg)
 					app.debug(error)
 					app.setPluginError(msg)
 					deviceConfig.sensor=new MissingSensor(deviceConfig)
 					addSensorToList(deviceConfig.sensor) //add sensor to list with known options
+				
 				})
 		}
 		function findDevices (discoveryTimeout) {

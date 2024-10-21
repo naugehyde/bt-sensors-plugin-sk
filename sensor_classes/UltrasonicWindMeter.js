@@ -100,4 +100,4 @@ class UltrasonicWindMeter extends BTSensor{
         }
     }
 }
-module.exports=UNKNOWN
+module.exports=UltrasonicWindMeter

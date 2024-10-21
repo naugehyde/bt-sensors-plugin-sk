@@ -129,9 +129,9 @@ class BTSensor extends EventEmitter {
      * @param {string|null} key encryption key (optional)
      * 
      */
-    static _test(data, key){
+    static _test(data, key, config={}){
         var b = Buffer.from(data.replaceAll(" ",""),"hex")
-        const d = new this()
+        const d = new this(null,config)
         d.initMetadata() 
         d.getPathMetadata().forEach((datum,tag)=>{
                 d.on(tag,(v)=>console.log(`${tag}=${v}`))
@@ -171,6 +171,7 @@ class BTSensor extends EventEmitter {
                     type:this?.type??'string', 
                     title: this?.description,
                     unit: this?.unit,
+                    enum: this?.enum,
                     default: this?.default
                 }
             }

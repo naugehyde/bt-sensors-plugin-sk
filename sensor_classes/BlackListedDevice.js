@@ -12,7 +12,13 @@ class BLACKLISTED extends BTSensor{
     reasonForBlacklisting() {
         switch ( this.getManufacturerID()){
             case (0x004C): return "Randomized MAC address"
+            case (0x02e1): return "Device is using VE.Smart" //NOTE: Victron/VictronSensor class 
+                                                             //determines if a device is using VE.Smart
+                                                             //in identify(). If so, identify() returns
+                                                             //BlackListedDevice
+        
             default: return ""
+            
         }
 
     }

@@ -94,7 +94,6 @@ module.exports =  function (app) {
 		try{
 		for (var [clsName, cls] of classMap) {
 			const c = await cls.identify(device)
-			if (c==-1) return -1
 			if (c) {
 				
 				if (c.name.startsWith("_")) continue
@@ -297,7 +296,6 @@ module.exports =  function (app) {
 		.then(async (device)=> { 
 			app.debug(`Found ${config.mac_address}`)
 			s = await instantiateSensor(device,config) 
-			if (s==-1) reject(-1)
 			sensorMap.set(config.mac_address,s)
 
 			if (s instanceof BLACKLISTED)

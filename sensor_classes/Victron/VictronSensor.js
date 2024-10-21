@@ -2,7 +2,8 @@ const BTSensor = require("../../BTSensor.js");
 const crypto = require('node:crypto');
 const int24 = require('int24')
 const util = require('util')
-const VC = require('./VictronConstants.js')
+const VC = require('./VictronConstants.js');
+const BLACKLISTED = require("../BlackListedDevice.js");
  
   class VictronSensor extends BTSensor{
 
@@ -18,7 +19,7 @@ const VC = require('./VictronConstants.js')
             if (!md) return null   
             const data = md[0x2e1]
             if (data.value[0]==0x2) { //VE.Smart is on
-                throw new Error(`Disable VE.Smart on ${await this.getDeviceProp(device,'Address')} if you want to use it in Signal-K.`)
+                return BLACKLISTED
             }
             if (data && data.value[0]==0x10 && data.value[4]==mode)
                 return this

@@ -114,9 +114,9 @@ class VictronBatteryMonitor extends VictronSensor{
         default:
             break
         }
-        this.emit("current", (this.NaNif(int24.readInt24LE(decData,  8)&0x3FFFFF,0x3FFFFF))/1000)  
+        this.emit("current", (this.NaNif(int24.readInt24LE(decData,  8)>>2,0x3FFFFF))/1000)  
         this.emit("consumed",(this.NaNif(int24.readInt24LE(decData, 11)&0xFFFFF,0xFFFFF)) / 10) ; 
-        this.emit("soc", this.NaNif(((decData.readUInt16LE(13)& 0xFFF)>>2),0x3FF)/1000)
+        this.emit("soc", this.NaNif(((decData.readUInt16LE(13)& 0x3FFF)>>4),0x3FF)/1000)
         
     }
     

@@ -55,11 +55,11 @@ class VictronSmartLithium extends VictronSensor{
         this.addMetadatum('cell8Voltage','V', 'cell #8 voltage', 
             (buff)=>{return _toCellVoltage((buff.readUInt8(12))&0x7e)})
         this.addMetadatum('batteryVoltage','V', 'battery voltage', 
-            (buff)=>{return this.NaNif((buff.readUInt16BE(13)>>4),0xFFF)/100})
+            (buff)=>{return this.NaNif((buff.readUInt16LE(13)&0xFFF),0xFFF)/100})
         this.addMetadatum('balancerStatus','', 'balancer status', //TODO
             (buff)=>{return this.NaNif((buff.readUInt8(14)&0xf),0xF)})
         this.addMetadatum('batteryTemp','K', 'battery temperature', 
-            (buff)=>{return this.NaNif((buff.readUInt8(15)>>1),0x7F)+233.15})          
+            (buff)=>{return this.NaNif((buff.readUInt8(15)&0x7F),0x7F)+233.15})          
     }
 }
 module.exports=VictronSmartLithium

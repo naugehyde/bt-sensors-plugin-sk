@@ -57,7 +57,7 @@ class VictronACCharger extends VictronSensor{
             (buff)=>{return this.NaNif(buff.readUInt16BE(9)&0x7FF,0x7FF)/10})
     
         this.addMetadatum('temp', 'K', 'battery temperature',
-            (buff)=>{return this.NaNif(buff.readUInt8(11)>>1,0x7F)+233.15}) //-40 plus K conversion
+            (buff)=>{return this.NaNif(buff.readUInt8(11)&0x7F,0x7F)+233.15}) //-40 plus K conversion
 
         this.addMetadatum('acCurr','A', 'AC current',
             (buff)=>{return this.NaNif((buff.readUInt16BE(11)&0x1FF),0x1FF)/10})

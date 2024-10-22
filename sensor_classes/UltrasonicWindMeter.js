@@ -32,42 +32,19 @@ class UltrasonicWindMeter extends BTSensor{
         )
 
     }
-    initGATTConnection(){
-        if (!this?.gattWarningDelivered) {
-            this.debug(this.GATTwarning.toUpperCase())
-            this.gattWarningDelivered=true
-        }
-        return new Promise((resolve,reject )=>{
-            this.device.connect().then(async ()=>{
-                if (!this.gattServer) {
-                    this.gattServer = await this.device.gatt()
-                    this.battService = await this.gattServer.getPrimaryService("180F")
-                    this.battCharacteristic = await this.gattService.getCharacteristic("2A19")
 
-                    this.envService = await this.gattServer.getPrimaryService("181A")
-                    this.awsCharacteristic = await this.gattService.getCharacteristic("2A72")
-                    this.awaCharacteristic = await this.gattService.getCharacteristic("2A73")
-                }
+    initGATTConnection(){ 
+        return new Promise((resolve,reject )=>{ this.device.connect().then(async ()=>{ 
+            if (!this.gattServer) { 
+                this.gattServer = await this.device.gatt() 
+                this.battService = await this.gattServer.getPrimaryService("0000180f-0000-1000-8000-00805f9b34fb") 
+                this.battCharacteristic = await this.battService.getCharacteristic("00002a19-0000-1000-8000-00805f9b34fb")
+                this.envService = await this.gattServer.getPrimaryService("0000181a-0000-1000-8000-00805f9b34fb") 
+                this.awsCharacteristic = await this.envService.getCharacteristic("00002a72-0000-1000-8000-00805f9b34fb") 
+                this.awaCharacteristic = await this.envService.getCharacteristic("00002a73-0000-1000-8000-00805f9b34fb") } 
                 resolve(this)
-            })
-            .catch((e)=>{
-                reject(e.message)
-            })
-        })
+             }) .catch((e)=>{ reject(e.message) }) }) 
     }
-
-    async init(){
-        await super.init()
-        this.addMetadatum("batt","","Battery strength",
-            (buffer)=>{return buffer.readUInt8()})
-        this.addMetadatum("awa","","Apparent Wind Angle",
-            (buffer)=>{return buffer.readInt16LE()}
-        )
-        this.addMetadatum("aws","","Apparent Wind Speed",
-        (buffer)=>{return buffer.readInt16LE()}
-        )
-    }
-
     initGATTNotifications() { 
         Promise.resolve(this.battCharacteristic.startNotifications().then(()=>{    
             this.battCharacteristic.on('valuechanged', buffer => {

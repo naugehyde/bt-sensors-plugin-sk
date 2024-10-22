@@ -47,7 +47,7 @@ class ATC extends BTSensor{
                 this.addMetadatum('batteryStrength', 'ratio',  'sensor battery strength',
                     (buff)=>{return ((buff.readUInt8(9))/100)})
                 this.addMetadatum('temp','K', 'temperature',
-                    (buff)=>{return parseFloat((273.15+(buff.readInt16BE(6))/100).toFixed(2))})
+                    (buff)=>{return parseFloat((273.15+(buff.readInt16BE(6))/10).toFixed(2))})
                 this.addMetadatum('humidity','ratio', 'humidity',
                     (buff)=>{return ((buff.readUInt8(8))/100)})
             

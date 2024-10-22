@@ -19,16 +19,16 @@ class UltrasonicWindMeter extends BTSensor{
     emitGatt(){
         this.battCharacteristic.readValue()
         .then((buffer)=>
-            this.emit("batt", buffer.toString())
+            this.emitData("batt", buffer)
         )
         this.awsCharacteristic.readValue()
         .then((buffer)=>
-            this.emit("aws", buffer.toString())
+            this.emit("aws", buffer)
             
         )
         this.awaCharacteristic.readValue()
         .then((buffer)=>
-            this.emit("awa", buffer.toString())   
+            this.emit("awa", buffer)   
         )
 
     }
@@ -58,25 +58,30 @@ class UltrasonicWindMeter extends BTSensor{
 
     async init(){
         await super.init()
-        this.addMetadatum("batt","","Battery strength")
-        this.addMetadatum("awa","","Apparent Wind Angle")
-        this.addMetadatum("aws","","Apparent Wind Speed")
+        this.addMetadatum("batt","","Battery strength",
+            (buffer)=>{return buffer.readUInt8()})
+        this.addMetadatum("awa","","Apparent Wind Angle",
+            (buffer)=>{return buffer.readInt16LE()}
+        )
+        this.addMetadatum("aws","","Apparent Wind Speed",
+        (buffer)=>{return buffer.readInt16LE()}
+        )
     }
 
-    async initGATTNotifications() { 
+    initGATTNotifications() { 
         Promise.resolve(this.battCharacteristic.startNotifications().then(()=>{    
             this.battCharacteristic.on('valuechanged', buffer => {
-                this.emit("batt",buffer.toString())
+                this.emitData("batt",buffer)
             })
         }))
         Promise.resolve(this.awaCharacteristic.startNotifications().then(()=>{    
             this.awaCharacteristic.on('valuechanged', buffer => {
-                this.emit("awa", buffer.toString())
+                this.emitData("awa", buffer)
             })
         }))
         Promise.resolve(this.awsCharacteristic.startNotifications().then(()=>{    
             this.awsCharacteristic.on('valuechanged', buffer => {
-                this.emit("aws", buffer.toString())
+                this.emitData("aws", buffer)
             })
         }))
     }

@@ -18,7 +18,7 @@ const BLACKLISTED = require("../BlackListedDevice.js");
             const md = await this.getDeviceProp(device,'ManufacturerData')
             if (!md) return null   
             const data = md[0x2e1]
-            if (data.value[0]==0x2) { //VE.Smart is on
+            if (data && data.value[0]==0x2) { //VE.Smart is on
                 return BLACKLISTED
             }
             if (data && data.value[0]==0x10 && data.value[4]==mode)

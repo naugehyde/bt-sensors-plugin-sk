@@ -181,7 +181,7 @@ class XiaomiMiBeacon extends BTSensor{
             this.emit("temp",(dec.readInt16LE(3)/10)+273.15)  
             break        
         case 0x06:
-            this.emit("humidity",(dec.readInt16LE(3)/10))          
+            this.emit("humidity",(dec.readInt16LE(3)/1000))          
             break
         default:
             throw new Error(`${this.getNameAndAddress()} unable to parse decrypted service data (${dec})`)

@@ -152,7 +152,7 @@ class BTSensor extends EventEmitter {
      */
         class Metadatum{
         
-            constructor(tag, unit, description, read=()=>{return null}, gatt=null, type){
+            constructor(tag, unit, description, read, gatt=null, type){
                 this.tag = tag
                 this.unit = unit
                 this.description = description

@@ -20,9 +20,9 @@ class VictronInverter extends VictronSensor{
         this.addMetadatum('acPower','W', 'AC power (in watts: Apparent Power * Power Factor)', 
             (buff)=>{return this.NaNif( buff.readUInt16LE(5), 0xFFFF )*this.powerFactor})
         this.addMetadatum('acVoltage','V','AC Voltage', 
-            (buff)=>{return this.NaNif((buff.readUInt16BE(5)>>1),0x7FFF)/10})
+            (buff)=>{return this.NaNif((buff.readUInt16LE(5)>>1),0x7FFF)/10})
         this.addMetadatum('acCurrent','A', 'AC Current',
-            (buff)=>{return this.NaNif(((buff.readUInt32BE(5)&0x7ffff)>>6),0x7FF)/10}
+            (buff)=>{return this.NaNif(((buff.readUInt32LE(5)&0x7ffff)>>6),0x7FF)/10}
         )
                 
     }

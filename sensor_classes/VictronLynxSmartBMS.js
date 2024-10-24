@@ -25,6 +25,9 @@ class VictronLynxSmartBMS extends VictronSensor{
 
     async init() {
         await super.init()
+        this.initMetadata()
+    }
+    initMetadata(){
         this.addMetadatum('error','', 'error code', 
             (buff)=>{return buff.readUInt8(0)})
  
@@ -37,11 +40,11 @@ class VictronLynxSmartBMS extends VictronSensor{
         this.addMetadatum('ioStatus','','IO Status', //TODO
             (buff)=>{return buff.readInt16LE(7)})
         this.addMetadatum('warningsAndAlarms','','warnings and alarms', //TODO
-            (buff)=>{return (int24.readUInt24BE(buff,9)>>6)})
+            (buff)=>{return (int24.readUInt24LE(buff,9)>>6)})
         this.addMetadatum('soc','','state of charge',
-            (buff)=>{return this.NaNif(((buff.readUInt16BE(11)&0x3fff)>>4),0x3FF)/1000})
+            (buff)=>{return this.NaNif(((buff.readUInt16LE(11)&0x3fff)>>4),0x3FF)/1000})
         this.addMetadatum('consumedAh','Ah','amp-hours consumed',
-            (buff)=>{return this.NaNif((int24.readUInt24BE(13)>>4),0xFFFFF)/10} )
+            (buff)=>{return this.NaNif((int24.readUInt24LE(13)>>4),0xFFFFF)/10} )
         this.addMetadatum('temp', 'K', 'battery temperature',
             (buff)=>{this.NaNif( buff.readUInt8(15)>>1,0x7f) +233.15})
     }

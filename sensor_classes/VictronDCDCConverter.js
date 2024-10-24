@@ -9,6 +9,9 @@ class VictronDCDCConverter extends VictronSensor{
    
     async init(){
         await super.init()
+        this.initMetadata()
+    }
+    initMetadata(){
         this.addMetadatum('deviceState','', 'device state', 
                 (buff)=>{return VC.OperationMode.get(buff.readUInt8(0))})
         this.addMetadatum('chargerError','', 'charger error',

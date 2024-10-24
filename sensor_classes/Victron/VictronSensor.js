@@ -79,9 +79,8 @@ const BLACKLISTED = require("../BlackListedDevice.js");
         
         try{
             const md = this.getManufacturerData(0x2e1)
-            if (md.length && md[0]==0x10){
-                const buff = this.getManufacturerData(0x2e1)        
-                const decData=this.decrypt(buff)
+            if (md && md.length && md[0]==0x10){
+                const decData=this.decrypt(md)
                 this.emitValuesFrom(decData)
             }
         }

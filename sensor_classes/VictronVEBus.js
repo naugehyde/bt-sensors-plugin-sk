@@ -40,7 +40,7 @@ class VictronVEBus extends VictronSensor{
             (buff)=>{return this.NaNif((buff.readInt8(10)&0x1FF)>>1,0x7F) +233.15})    
 
         this.addMetadatum('soc', 'ratio', 'state of charge',
-            (buff)=>{return this.NaNif((buff.readInt16BE(10)&0x1FF)>>2,0x7F)/100})    
+            (buff)=>{return this.NaNif((buff.readInt16LE(10)&0x1FF)>>2,0x7F)/100})    
             
     }
 }

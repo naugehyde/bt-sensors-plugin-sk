@@ -196,6 +196,7 @@ module.exports = {
     0xA2A2: "Phoenix Inverter 24V 3000VA 230V",
     0xA2A4: "Phoenix Inverter 48V 3000VA 230V",
     0xA31A: "Blue Smart AC Charger IP67",
+    0xA33B: "Blue Smart AC Charger IP65",
     0xA33C: "Blue Smart AC Charger IP65",
     0xA340: "Phoenix Smart IP43 Charger 12|50 (1+1)",
     0xA341: "Phoenix Smart IP43 Charger 12|50 (3)",

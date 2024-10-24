@@ -287,7 +287,7 @@ class MopekaTankSensor extends BTSensor{
             }).bind(this)
         )
         this.addMetadatum("battStrength","ratio","sensor battery strength", 
-            (buffer)=>{ return Math.max(0, Math.min(100, (((this.battVolt / 32.0) - 2.2) / 0.65))) }
+            (buffer)=>{ return Math.max(0, Math.min(1, (((this.battVolt) - 2.2) / 0.65))) }
         )
         this.addMetadatum("temp","K","temperature", 
             ((buffer)=>{ 

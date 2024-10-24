@@ -42,25 +42,25 @@ class VictronACCharger extends VictronSensor{
             (buff)=>{return this.NaNif((buff.readUInt16LE(2)&0x1FFF), 0x1FFF)/100})
 
         this.addMetadatum('curr1','A', 'battery 1 current',
-            (buff)=>{return this.NaNif(buff.readUInt16BE(3)&0x7FF,0x7FF)/10})
+            (buff)=>{return this.NaNif(buff.readUInt16LE(3)&0x7FF,0x7FF)/10})
 
         this.addMetadatum('batt2','V', 'battery 2 voltage',
             (buff)=>{return this.NaNif((buff.readUInt16LE(5)&0x1FFF), 0x1FFF)/100})
 
         this.addMetadatum('curr2','A', 'battery 2 current',
-            (buff)=>{return this.NaNif(buff.readUInt16BE(7)&0x7FF,0x7FF)/10})
+            (buff)=>{return this.NaNif(buff.readUInt16LE(7)&0x7FF,0x7FF)/10})
 
         this.addMetadatum('batt3','V', 'battery 3 voltage',
             (buff)=>{return this.NaNif((buff.readUInt16LE(8)&0x1FFF), 0x1FFF)/100})
 
         this.addMetadatum('curr3','A', 'battery 3 current',
-            (buff)=>{return this.NaNif(buff.readUInt16BE(9)&0x7FF,0x7FF)/10})
+            (buff)=>{return this.NaNif(buff.readUInt16LE(9)&0x7FF,0x7FF)/10})
     
         this.addMetadatum('temp', 'K', 'battery temperature',
             (buff)=>{return this.NaNif(buff.readUInt8(11)&0x7F,0x7F)+233.15}) //-40 plus K conversion
 
         this.addMetadatum('acCurr','A', 'AC current',
-            (buff)=>{return this.NaNif((buff.readUInt16BE(11)&0x1FF),0x1FF)/10})
+            (buff)=>{return this.NaNif((buff.readUInt16LE(11)&0x1FF),0x1FF)/10})
     }
 }
 module.exports=VictronACCharger

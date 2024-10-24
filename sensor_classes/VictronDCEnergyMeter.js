@@ -1,6 +1,6 @@
 const VictronSensor = require("./Victron/VictronSensor");
 const VC=require("./Victron/VictronConstants.js")
-
+const int24 = require("int24")
 class VictronDCEnergyMeter extends VictronSensor{
     
     static async identify(device){
@@ -14,9 +14,11 @@ class VictronDCEnergyMeter extends VictronSensor{
             (buff)=>{return buff.readInt16LE(2)/100})
         this.addMetadatum('alarm','', 'alarm', 
             (buff)=>{return buff.readUInt16LE(4)})
-        this.addMetadatum('current','A', 'current')    
-        const modeCurrent =  this.getAuxModeAndCurrent()
-        this.auxMode= modeCurrent.auxMode
+        if (this.encryptionKey){
+            const decData = this.decrypt(this.getManufacturerData(0x02e1))
+            if (decData)
+                this.auxMode=decData.readInt8(8)&0x3   
+        }
         switch(this.auxMode){
             case VC.AuxMode.STARTER_VOLTAGE:
                 this.addMetadatum('starterVoltage','V',  'starter battery voltage', 
@@ -36,6 +38,10 @@ class VictronDCEnergyMeter extends VictronSensor{
             default:
                 break
         }
+        this.addMetadatum('current','A', 'current',
+            this.emit("current", (this.NaNif(int24.readInt24LE(decData,  8)>>2,0x3FFFFF))/1000)  )
+        
+ 
     }
     
     emitValuesFrom(decData){

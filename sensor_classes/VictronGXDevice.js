@@ -31,13 +31,13 @@ TBD
         this.addMetadatum('voltage','V', 'channel #1 voltage', 
             (buff)=>{return this.NaNif(buff.readInt16LE(0),0xFFFF)/100})
         this.addMetadatum('pvPower','W','DC input power in watts', 
-            (buff)=>{return this.NaNif(int24.readInt24BE(buff,2)>>4,0xFFFFF)})
+            (buff)=>{return this.NaNif(int24.readInt24LE(buff,2)>>4,0xFFFFF)})
         this.addMetadatum('soc','ratio', 'state of charge', 
-            (buff)=>{ return ((buff.readUInt16BE(4)&0xfff)>>5)/100})
+            (buff)=>{ return ((buff.readUInt16LE(4)&0xfff)>>5)/100})
         this.addMetadatum('batteryPower','W', 'battery power', 
-            (buff)=>{return (this.NaNif(int24.readInt24BE(buff,5)&0x1ffff),0x0FFFFF )})    
+            (buff)=>{return (this.NaNif(int24.readInt24LE(buff,5)&0x1ffff),0x0FFFFF )})    
         this.addMetadatum('DCPower','W', 'DCpower', 
-            (buff)=>{return this.NaNif(int24.readInt24BE(buff,8)>>3,0x0FFFFF )})    
+            (buff)=>{return this.NaNif(int24.readInt24LE(buff,8)>>3,0x0FFFFF )})    
         }
 }
 module.exports=VictronGXDevice

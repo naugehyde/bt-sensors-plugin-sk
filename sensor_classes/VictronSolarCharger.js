@@ -24,7 +24,7 @@ class VictronSolarCharger extends VictronSensor{
     this.addMetadatum('solarPower','W', 'solar power', 
         (buff)=>{return this.NaNif(buff.readUInt16LE(8),0xFFFF)})    
     this.addMetadatum('externalDeviceLoad','A', 'external device load', 
-        (buff)=>{return this.NaNif(buff.readUInt16BE(10)>>7,0x1FF)})    
+        (buff)=>{return this.NaNif(buff.readUInt16LE(10)&0x1FF,0x1FF)/10})    
     }
 }
 module.exports=VictronSolarCharger 

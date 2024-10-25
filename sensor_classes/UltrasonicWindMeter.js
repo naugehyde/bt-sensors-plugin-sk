@@ -12,7 +12,7 @@ class UltrasonicWindMeter extends BTSensor{
     hasGATT(){
         return true
     }
-    emitGatt(){
+    emitGATT(){
         this.battCharacteristic.readValue()
         .then((buffer)=>
             this.emitData("batt", buffer)

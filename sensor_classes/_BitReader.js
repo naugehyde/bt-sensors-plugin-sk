@@ -1,4 +1,6 @@
-
+/*
+Ported from Python original by Keshav Varma https://github.com/keshavdv
+*/
 class _BitReader{
     constructor( data){
         this._data = data

@@ -36,9 +36,18 @@ class GoveeTH extends BTSensor{
 
     async init(){
         await super.init()
+    }
+    initMetadata(){
         this.addMetadatum('temp','K', 'temperature')
         this.addMetadatum('battery','ratio', 'battery strength')
         this.addMetadatum('humidity','ratio', 'humidity')
+    }
+
+    emitValuesFrom(buffer){
+        const th = decodeTempHumid(buffer.subarray(2,5))
+        this.emit("temp", parseFloat((273.15+th.t).toFixed(2))) ;
+        this.emit("humidity", th.h/100 )
+        this.emit('battery', buffer[5]/100)
     }
 
     getManufacturer(){
@@ -47,12 +56,9 @@ class GoveeTH extends BTSensor{
     async propertiesChanged(props){
         super.propertiesChanged(props)    
         if (props.ManufacturerData) {
-            const data = this.getManufacturerData(0x0001)
-            if (data) {
-                const th = decodeTempHumid(data.subarray(2,5))
-                this.emit("temp", parseFloat((273.15+th.t).toFixed(2))) ;
-                this.emit("humidity", th.h/100 )
-                this.emit('battery', data[5]/100)
+            const buffer = this.getManufacturerData(0x0001)
+            if (buffer) {
+               this.emitValuesFrom(buffer)
             }      
         }
    }                         

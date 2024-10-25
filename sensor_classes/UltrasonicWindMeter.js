@@ -28,6 +28,17 @@ class UltrasonicWindMeter extends BTSensor{
         )
 
     }
+    async init(){
+        await super.init()
+        this.addMetadatum("batt","","Battery strength",
+            (buffer)=>{return buffer.readUInt8()})
+        this.addMetadatum("awa","","Apparent Wind Angle",
+            (buffer)=>{return buffer.readInt16LE()}
+        )
+        this.addMetadatum("aws","","Apparent Wind Speed",
+        (buffer)=>{return buffer.readInt16LE()}
+        )
+    }
 
     initGATTConnection(){ 
         return new Promise((resolve,reject )=>{ this.device.connect().then(async ()=>{ 

@@ -4,7 +4,15 @@ const int24 = require('int24')
 const util = require('util')
 const VC = require('./VictronConstants.js');
 const BLACKLISTED = require("../BlackListedDevice.js");
- 
+const { resolve } = require("node:path");
+const { setMaxIdleHTTPParsers } = require("node:http");
+function sleep(x) {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve(x);
+      }, x);
+    });
+  }
   class VictronSensor extends BTSensor{
 
     constructor(device,config,gattConfig){
@@ -13,24 +21,19 @@ const BLACKLISTED = require("../BlackListedDevice.js");
     }
    
     static async identifyMode(device, mode){
-
-        try{
-            const md = await this.getDeviceProp(device,'ManufacturerData')
-            if (!md) return null   
+            
+        const md = await this.getDeviceProp(device,'ManufacturerData')
+        if (md==undefined) 
+            return null
+        else{
             const data = md[0x2e1]
-            if (data && data.value[0]==0x2) { //VE.Smart is on
-                return BLACKLISTED
-            }
             if (data && data.value[0]==0x10 && data.value[4]==mode)
                 return this
-            else {
-                return null
-            }
-        } catch (e){
-            console.log(e)
-            return null
-        }
-        
+        else {
+            if (data && data.value[0]!=0x10 ) {
+                return  BLACKLISTED
+            } 
+        }}
     }
 
 

@@ -1,15 +1,11 @@
 const BTSensor = require("../BTSensor");
 class RuuviTag extends BTSensor{
     static manufacturerID = 0x0499
-    static async identify(device){
-        try{
-            if (await this.getManufacturerID(device)==this.manufacturerID)
-                return this
-        } catch (e){
-            console.log(e)
+    static  async identify(device){
+        if (await this.getManufacturerID(device)==this.manufacturerID)
+            return this
+        else
             return null
-        }
-        return null
     }    
         
     async init(){

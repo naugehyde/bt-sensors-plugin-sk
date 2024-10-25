@@ -15,8 +15,7 @@ Start Bit	Nr of Bits	Meaning	Units	Range	NA Value	Remark
 
 const VictronSensor = require ("./Victron/VictronSensor.js") 
 const VC = require("./Victron/VictronConstants.js")
-const int24 = require('int24')
-
+const BitReader = require("./_BitReader")
 class VictronLynxSmartBMS extends VictronSensor{
 
     static async identify(device){
@@ -38,15 +37,24 @@ class VictronLynxSmartBMS extends VictronSensor{
         this.addMetadatum('current','A','channel 1 current', 
             (buff)=>{return this.NaNif(buff.readInt16LE(5),0x7FFF)/10})
         this.addMetadatum('ioStatus','','IO Status', //TODO
-            (buff)=>{return buff.readInt16LE(7)})
-        this.addMetadatum('warningsAndAlarms','','warnings and alarms', //TODO
-            (buff)=>{return (int24.readUInt24LE(buff,9)>>6)})
-        this.addMetadatum('soc','','state of charge',
-            (buff)=>{return this.NaNif(((buff.readUInt16LE(11)&0x3fff)>>4),0x3FF)/1000})
-        this.addMetadatum('consumedAh','Ah','amp-hours consumed',
-            (buff)=>{return this.NaNif((int24.readUInt24LE(13)>>4),0xFFFFF)/10} )
-        this.addMetadatum('temp', 'K', 'battery temperature',
-            (buff)=>{this.NaNif( buff.readUInt8(15)>>1,0x7f) +233.15})
+            (buff)=>{return buff.readUInt16LE(7)})
+        this.addMetadatum('warningsAndAlarms','','warnings and alarms')
+        this.addMetadatum('soc','','state of charge')
+        this.addMetadatum('consumedAh','Ah','amp-hours consumed')
+        this.addMetadatum('temp', 'K', 'battery temperature')
+    }
+    emitValuesFrom(buffer){
+        super.emitValuesFrom(buffer)
+        const br = new BitReader(buffer.subarray(9))
+
+        this.emit('warningsAndAlarms',br.read_unsigned_int(18))
+        this.emit('soc',
+            this.NaNif((br.read_unsigned_int(10),0x3FF)/1000))
+        this.emit('consumedAh',
+            this.NaNif(br.read_unsigned_int(20),0xFFFFF)/10 )
+        this.emit('temp', 
+            this.NaNif( br.read_unsigned_int(7),0x7f) +233.15)
+ 
     }
 }
 module.exports=VictronLynxSmartBMS

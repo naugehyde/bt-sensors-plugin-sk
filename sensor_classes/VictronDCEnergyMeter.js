@@ -1,6 +1,8 @@
+
 const VictronSensor = require("./Victron/VictronSensor");
 const VC=require("./Victron/VictronConstants.js")
-const int24 = require("int24")
+const int24 = require("int24");
+const _BitReader = require("./_BitReader.js");
 class VictronDCEnergyMeter extends VictronSensor{
     
     static async identify(device){
@@ -38,9 +40,7 @@ class VictronDCEnergyMeter extends VictronSensor{
             default:
                 break
         }
-        this.addMetadatum('current','A', 'current',
-            this.emit("current", (this.NaNif(int24.readInt24LE(decData,  8)>>2,0x3FFFFF))/1000)  )
-        
+        this.addMetadatum('current','A', 'current')        
  
     }
     
@@ -62,8 +62,10 @@ class VictronDCEnergyMeter extends VictronSensor{
                 break;
             default:
                 break
-            }      
-        this.emit("current", this.getAuxModeAndCurrent(8,decData).current)
+            } 
+
+        this.emit("current", 
+            this.NaNif( new _BitReader(decData.subarray(8,11)).read_signed_int(22),0x3FFFFF)/1000)
   
     }
     

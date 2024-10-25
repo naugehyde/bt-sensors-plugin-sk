@@ -3,7 +3,8 @@ class BLACKLISTED extends BTSensor{
     static async identify(device){
         if (await this.getManufacturerID(device)===0x004C)   //apple devices use 
             return this                                     //randomised macs and clog up our list
-        return null
+        else
+            return null
     }
     async init(){
         await super.init()

@@ -90,15 +90,13 @@ module.exports =  function (app) {
 		  }, x);
 		});
 	  }
-	async function instantiateSensor(device,config){
+	  async function instantiateSensor(device,config){
 		try{
 		for (var [clsName, cls] of classMap) {
+			if (clsName.startsWith("_")) continue
 			const c = await cls.identify(device)
 			if (c) {
-				
-				if (c.name.startsWith("_")) continue
 				c.debug=app.debug
-				c.debug.bind(c)
 				const sensor = new c(device,config?.params, config?.gattParams)
 				sensor.debug=app.debug
 				await sensor.init()
@@ -356,7 +354,6 @@ module.exports =  function (app) {
 			})
 			.catch((error)=>
 				{
-					
 					const msg =`Sensor at ${deviceConfig.mac_address} unavailable. Reason: ${error}`
 					app.debug(msg)
 					app.debug(error)

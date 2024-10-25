@@ -1,17 +1,13 @@
 const BTSensor = require("../BTSensor");
 class UltrasonicWindMeter extends BTSensor{
     static async identify(device){
-        try{
-            const uuids = await this.getDeviceProp(device,'UUIDs')
-            const name = await this.getDeviceProp(device,"Name")
-            if (name == 'ULTRASONIC'){
-                return this
-            }
-        } catch (e){
-            this.debug(e)
+        
+        const uuids = await this.getDeviceProp(device,'UUIDs')
+        const name = await this.getDeviceProp(device,"Name")
+        if (name == 'ULTRASONIC')
+            return this 
+        else
             return null
-        }
-        return null
     }
     hasGATT(){
         return true

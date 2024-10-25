@@ -20,7 +20,7 @@ Startbit Nr of bits Meaning Units Range NA value Remark
 
 const VictronSensor = require ("./Victron/VictronSensor.js") 
 const VC = require("./Victron/VictronConstants.js")
-const int24 = require('int24')
+const BitReader = require("./_BitReader")
 
 class VictronACCharger extends VictronSensor{
 
@@ -38,29 +38,36 @@ class VictronACCharger extends VictronSensor{
         this.addMetadatum('error','', 'error code', 
             (buff)=>{return VC.ChargerError.get(buff.readUInt8(1))})
  
-        this.addMetadatum('batt1','V', 'battery 1 voltage',
-            (buff)=>{return this.NaNif((buff.readUInt16LE(2)&0x1FFF), 0x1FFF)/100})
+        this.addMetadatum('batt1','V', 'battery 1 voltage')
 
-        this.addMetadatum('curr1','A', 'battery 1 current',
-            (buff)=>{return this.NaNif(buff.readUInt16LE(3)&0x7FF,0x7FF)/10})
+        this.addMetadatum('curr1','A', 'battery 1 current')
 
-        this.addMetadatum('batt2','V', 'battery 2 voltage',
-            (buff)=>{return this.NaNif((buff.readUInt16LE(5)&0x1FFF), 0x1FFF)/100})
+        this.addMetadatum('batt2','V', 'battery 2 voltage')
 
-        this.addMetadatum('curr2','A', 'battery 2 current',
-            (buff)=>{return this.NaNif(buff.readUInt16LE(7)&0x7FF,0x7FF)/10})
+        this.addMetadatum('curr2','A', 'battery 2 current')
 
-        this.addMetadatum('batt3','V', 'battery 3 voltage',
-            (buff)=>{return this.NaNif((buff.readUInt16LE(8)&0x1FFF), 0x1FFF)/100})
+        this.addMetadatum('batt3','V', 'battery 3 voltage')
 
-        this.addMetadatum('curr3','A', 'battery 3 current',
-            (buff)=>{return this.NaNif(buff.readUInt16LE(9)&0x7FF,0x7FF)/10})
+        this.addMetadatum('curr3','A', 'battery 3 current')
     
-        this.addMetadatum('temp', 'K', 'battery temperature',
-            (buff)=>{return this.NaNif(buff.readUInt8(11)&0x7F,0x7F)+233.15}) //-40 plus K conversion
+        this.addMetadatum('temp', 'K', 'battery temperature')
 
-        this.addMetadatum('acCurr','A', 'AC current',
-            (buff)=>{return this.NaNif((buff.readUInt16LE(11)&0x1FF),0x1FF)/10})
+        this.addMetadatum('acCurr','A', 'AC current')
+    }
+    emitValuesFrom(buffer){
+        super.emitValuesFrom(buffer)
+        
+        const br = new BitReader(buffer.subarray(2))
+        this.emit("batt1",  this.NaNif(br.read_unsigned_int(13),0x1FFF)/100)
+        this.emit("curr1", this.NaNif(br.read_unsigned_int(11),0x7FF)/10)
+
+        this.emit("batt2",  this.NaNif(br.read_unsigned_int(13),0x1FFF)/100)
+        this.emit("curr2", this.NaNif(br.read_unsigned_int(11),0x7FF)/10)
+
+        this.emit("batt3",  this.NaNif(br.read_unsigned_int(13),0x1FFF)/100)
+        this.emit("curr3", this.NaNif(br.read_unsigned_int(11),0x7FF)/10)
+        this.emit("temp", this.NaNif(br.read_unsigned_int(7),0x7F)+233.15)
+        this.emit("acCurr", this.NaNif(br.read_unsigned_int(9),0x1FF)/10)
     }
 }
 module.exports=VictronACCharger

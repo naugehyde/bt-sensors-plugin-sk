@@ -8,16 +8,12 @@ class ATC extends BTSensor{
         }
     }
     static async identify(device){
-        try{
-            const regex = /^ATC_[A-Fa-f0-9]{6}$/
-            const name = await this.getDeviceProp(device,"Name")
-            if (name && name.match(regex)){
-                return this
-            }
-        } catch (e){
+        const regex = /^ATC_[A-Fa-f0-9]{6}$/
+        const name = await this.getDeviceProp(device,"Name")
+        if (name && name.match(regex))
+            return this
+        else
             return null
-        }
-        return null
     }
   
     async init() {

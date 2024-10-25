@@ -2,18 +2,15 @@ const BTSensor = require("../BTSensor");
 
 class Inkbird extends BTSensor{
 
-    static async identify(device){
-        try{
-            const uuids = await this.getDeviceProp(device,'UUIDs')
-            const name = await this.getDeviceProp(device,"Name")
-            if ((name == 'tps' || name=='sps') && (uuids.length > 0 && uuids[0] == '0000fff0-0000-1000-8000-00805f9b34fb')){
-                return this
-            }
-        } catch (e){
-            this.debug(e)
+    static async  identify(device){
+
+        const uuids = await this.getDeviceProp(device,'UUIDs')
+        const name = await this.getDeviceProp(device,"Name")
+        if ((name == 'tps' || name=='sps') && (uuids.length > 0 && uuids[0] == '0000fff0-0000-1000-8000-00805f9b34fb'))
+            return  this
+        else
             return null
-        }
-        return null
+        
     }
 
     async init(){

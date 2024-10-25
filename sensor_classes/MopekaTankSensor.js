@@ -243,19 +243,14 @@ class MopekaTankSensor extends BTSensor{
 
     static manufacturerID = 0x0059
     static async identify(device){
-        try{
-            if (await this.getManufacturerID(device)==this.manufacturerID ){
-                const uuids = await this.getDeviceProp(device, 'UUIDs')
-                if (uuids != null && uuids.length>0) {
-                    if (uuids.includes(this.serviceID)) 
-                        return this
-                }
-            }
-            
-        } catch (e){
-            this.debug.log(e)
-        }
-        return null
+        if (await this.getManufacturerID(device)==this.manufacturerID ){
+            const uuids = await this.getDeviceProp(device, 'UUIDs')
+            if (uuids && uuids.length>0 && uuids.includes(this.serviceID)) 
+                return this
+            else
+                return null
+        } else
+            return null
     }    
         
     async init(){

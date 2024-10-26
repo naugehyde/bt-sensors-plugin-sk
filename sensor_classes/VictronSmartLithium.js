@@ -16,10 +16,19 @@ Start Bit	Nr of Bits	Meaning	Units	Range	NA Value	Remark
 152	7	Battery temperature	1°C	-40..86 °C	0x7F	VE_REG_BAT_TEMPERATURE Temperature = Record value - 40
 159	1	Unused				
 VE_REG_BATTERY_CELL_VOLTAGE 0x00 ( 0) when cell voltage < 2.61V 0x01 ( 1) when cell voltage == 2.61V 0x7D (125) when cell voltage == 3.85V 0x7E (126) when cell voltage > 3.85 0x7F (127) when cell voltage is not available / unknown
-*/const VictronSensor = require ("./Victron/VictronSensor") 
+*/
+
+const VictronSensor = require ("./Victron/VictronSensor") 
 const VC = require("./Victron/VictronConstants")
 const BitReader = require("./_BitReader")
 
+const BALANCERSTATUS = {
+    0:"Unknown",
+    1:"Balanced",
+    2:"Balancing",
+    3:"Cell imbalance",
+    0xF:"Not applicable"
+}
 function _toCellVoltage(val){    
     return val==0x7F?NaN:2.6+(val/100)
 }
@@ -51,14 +60,14 @@ class VictronSmartLithium extends VictronSensor{
         this.addMetadatum('batteryVoltage','V', 'battery voltage', 
             (buff)=>{return this.NaNif((buff.readUInt16LE(13)&0xFFF),0xFFF)/100})
         this.addMetadatum('balancerStatus','', 'balancer status', //TODO
-            (buff)=>{return this.NaNif((buff.readUInt8(14)>>4),0xF)})
+            (buff)=>{return BALANCERSTATUS[this.NaNif((buff.readUInt8(14)>>4),0xF)]})
         this.addMetadatum('batteryTemp','K', 'battery temperature', 
             (buff)=>{return this.NaNif((buff.readUInt8(15)&0x7F),0x7F)+233.15})          
     }
     emitValuesFrom(buffer){
         super.emitValuesFrom(buffer)
         const br = new BitReader(buffer.subarray(6,13))
-        for (let i = 1; i<8; i++)
+        for (let i = 0; i<8; i++)
             this.emit(`cell${i+1}Voltage`,_toCellVoltage(br.read_unsigned_int(7)))
     }
 }

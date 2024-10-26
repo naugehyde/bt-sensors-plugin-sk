@@ -267,7 +267,7 @@ class MopekaTankSensor extends BTSensor{
 
     _tankLevel( rawLevel ){
         const coefs= this.getMedium().coefficients
-        return rawLevel * (coefs[0] + (coefs[1] * this.temp) + (coefs[2] * (this.temp^2)))
+        return rawLevel * (coefs[0] + (coefs[1] * (this.temp-273.15)) + (coefs[2] * ((this.temp-273.15)^2)))
     }
     
     initMetadata(){
@@ -275,6 +275,9 @@ class MopekaTankSensor extends BTSensor{
         md.isParam=true
         md.enum=Object.keys(Media)
 
+        md = this.addMetadatum("tankHeight","mm","height of tank (in mm)")
+        md.isParam=true
+        
         this.addMetadatum("battVolt","V","sensor battery in volts", 
             ((buffer)=>{ 
                 this.battVolt = (buffer.readUInt8(1)/32) 
@@ -291,7 +294,7 @@ class MopekaTankSensor extends BTSensor{
             }).bind(this)
         )
         this.addMetadatum("tankLevel","m","tank level", 
-            (buffer)=>{ return this._tankLevel(((buffer.readUInt16LE(3))&0x3FFF)*10)/1000}
+            (buffer)=>{ return this._tankLevel(((buffer.readUInt16LE(3))&0x3FFF))}
         )
         this.addMetadatum("readingQuality","","quality of read", 
             (buffer)=>{ return buffer.readUInt8(4)>>6}

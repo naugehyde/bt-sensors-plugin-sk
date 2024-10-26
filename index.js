@@ -414,7 +414,7 @@ module.exports =  function (app) {
 			if (plugin.schema.properties.peripherals.items.dependencies)
 				plugin.schema.properties.peripherals.items.dependencies.mac_address.oneOf=[]
 		} else {
-			app.debug('Plugin build 2024.10.08 started');
+			app.debug('Plugin build Beta 2.4.1.2 started');
 			
 		}
 		starts++

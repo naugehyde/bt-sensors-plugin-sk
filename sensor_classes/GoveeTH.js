@@ -36,6 +36,7 @@ class GoveeTH extends BTSensor{
 
     async init(){
         await super.init()
+        this.initMetadata()
     }
     initMetadata(){
         this.addMetadatum('temp','K', 'temperature')

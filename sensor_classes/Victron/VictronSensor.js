@@ -1,11 +1,6 @@
 const BTSensor = require("../../BTSensor.js");
 const crypto = require('node:crypto');
-const int24 = require('int24')
-const util = require('util')
 const VC = require('./VictronConstants.js');
-const BLACKLISTED = require("../BlackListedDevice.js");
-const { resolve } = require("node:path");
-const { setMaxIdleHTTPParsers } = require("node:http");
 function sleep(x) {
     return new Promise((resolve) => {
       setTimeout(() => {
@@ -19,7 +14,6 @@ function sleep(x) {
         super(device,config,gattConfig)
         this.encryptionKey = config?.encryptionKey
     }
-    
     
     static async identifyMode(device, mode){
             
@@ -54,15 +48,10 @@ function sleep(x) {
                 return null
         } 
     }
-    
-
 
     async init(){
         await super.init()
-        var md = this.addMetadatum('encryptionKey','', "Encryption Key")
-        md.isParam = true
-        this.metadata = new Map(super.getMetadata())
-        md = this.addMetadatum('encryptionKey','', "Encryption Key")
+        const md =this.addMetadatum('encryptionKey','', "Encryption Key")
         md.isParam = true
         this.model_id=this.getManufacturerData(0x2e1).readUInt16LE(2)
     }

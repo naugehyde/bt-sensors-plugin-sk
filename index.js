@@ -3,7 +3,7 @@ const util = require('util')
 const path = require('path')
 const {createBluetooth} = require('node-ble')
 const {bluetooth, destroy} = createBluetooth()
-
+const packageInfo = require("./package.json")
 const BTSensor = require('./BTSensor.js')
 const BLACKLISTED = require('./sensor_classes/BlackListedDevice.js')
 
@@ -152,7 +152,7 @@ module.exports =  function (app) {
 		classMap = utilities_sk.loadClasses(path.join(__dirname, 'sensor_classes'))
 	}
 
-	app.debug('Loading plugin')
+	app.debug(`Loading plugin ${packageInfo.version}`)
 	
 	plugin.schema = {			
 		type: "object",

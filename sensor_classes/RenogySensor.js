@@ -27,6 +27,7 @@ function sleep(x) {
         if (!(name || name.match(regex))){
             return null
         }
+        const p = await this.getDeviceProps(device)
         device.connect().then(async ()=>{
             this.debug(`${this.getName()} connected.`)
            

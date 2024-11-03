@@ -4,36 +4,47 @@
 
 const RenogySensor = require("./Renogy/RenogySensor.js");
 const RC=require("./Renogy/RenogyConstants.js")
+const crc16Modbus = require('./Renogy/CRC')
 class RenogyRoverClient extends RenogySensor {
 
+    3
     static async identify(device){
-        if (await this.getModelID(device)=="RNG-CTRL-RVR")
-            return this           
-        else
-            return null
-    }
-    static _test(data, key){
-        var b = Buffer.from(data.replaceAll(" ",""),"hex")
-        const d = new this()
-
-        if (key) {
-            d.encryptionKey = key
-        
-        }
-        //d.currentProperties = {}
-        //d.currentProperties.ManufacturerData={}
-        //d.currentProperties.ManufacturerData[0x02e1]=b
-        d.initMetadata() 
-        d.getPathMetadata().forEach((datum,tag)=>{
-                d.on(tag,(v)=>console.log(`${tag}=${v}`))
-        })
-        b = d.decrypt(b)
-        console.log(b)
-        d.emitValuesFrom(b)
-        d.removeAllListeners()
+        return new Promise( async ( resolve, reject )=>{
+            if (!await super.identify(device)) resolve()
+            try {
+            await device.connect()
+            //error new Uint8Array([255, 3, 16, 0, 100, 0, 135, 0, 0, 20, 22, 0, 0, 0, 0, 86, 82, 52, 48, 109, 165])
+            //new Uint8Array([255, 3, 16, 32, 32, 82, 78, 71, 45, 67, 84, 82, 76, 45, 82, 86, 82, 52, 48, 55, 36])
+            const gattServer = await device.gatt()
+            const txService= await gattServer.getPrimaryService(this.TX_SERVICE)
+            const rxService= await gattServer.getPrimaryService(this.RX_SERVICE)
+            const readChar = await rxService.getCharacteristic(this.NOTIFY_CHAR_UUID)
+            const writeChar = await txService.getCharacteristic(this.WRITE_CHAR_UUID)
     
+            //RoverClient
+            var b = Buffer.from([0xFF,0x03,0x0,0xc,0x0,0x8])
+            var crc = crc16Modbus(b)
+        
+            await writeChar.writeValue(
+                Buffer.concat([b,Buffer.from([crc.h,crc.l])], b.length+2), 
+                { offset: 0, type: 'request' })
+            await readChar.startNotifications()
+            readChar.on('valuechanged', buffer => {
+                await device.disconnect()
+                if (buffer[5]==0x0) resolve()
+                
+                if (buffer.subarray(3,17).trim().toString()=="RNG-CTRL-RVR")
+                    resolve(this)           
+                else
+                    resolve()
+            })
+            
+        } catch (error) {
+            reject(error.message)
+        }
+        })
     }
-
+  
     characteristics=[]
     async init(){
         await super.init()
@@ -41,147 +52,105 @@ class RenogyRoverClient extends RenogySensor {
     }
 
     initMetadata(){
-        this.addMetadatum('current', 'A', 'house battery amperage', 
-            (buff,offset=0)=>{return buff.readInt32LE(offset)/1000},
-            '6597ed8c-4bda-4c1e-af4b-551c4cf74769')
-        this.addMetadatum('power','W', 'house battery wattage',
-                (buff,offset=0)=>{return buff.readInt16LE(offset)},
-                '6597ed8e-4bda-4c1e-af4b-551c4cf74769')
-        this.addMetadatum('voltage','V',  'house battery voltage', 
-                (buff,offset=0)=>{return this.NaNif(buff.readInt16LE(offset), 0x7FFF)/100},
-                '6597ed8d-4bda-4c1e-af4b-551c4cf74769',)
-        const alarmMD = this.addMetadatum('alarm','',  'alarm', 
-                (buff,offset=0)=>{return buff.readInt16LE(offset)})
-                alarmMD.notify=true
+        this.addMetadatum('batteryType', '', "battery type")
+        this.addMetadatum('battery_percentage', 'ratio', "battery percentage",
+             (buffer)=>{return buffer.readUInt16BE(3) })
+        this.addMetadatum('batteryVoltage', 'V', "battery voltage",
+            (buffer)=>{return buffer.readUInt16BE((5))/10})
+        this.addMetadatum('batteryCurrent', 'A', 'battery current',
+            (buffer)=>{return buffer.readUInt16BE((7))/100})
+        this.addMetadatum('controllerTemperature', 'K', 'controller temperature',
+            (buffer)=>{return buffer.readInt8((9))-128+273.15})
+        this.addMetadatum('battery_temperature', 'K', 'battery temperature',
+            (buffer)=>{return buffer.readInt8((10))-128+273.15})
+        this.addMetadatum('load_voltage', 'V', 'load voltage'
+            (buffer)=>{return buffer.readUInt16BE((11))/10})
+        this.addMetadatum('load_current',  'A', 'load current',
+            (buffer)=>{return buffer.readUInt16BE((13))/100})
+        this.addMetadatum('load_power', 'W', 'load power',
+            (buffer)=>{return buffer.readUInt16BE((15))})
+        this.addMetadatum('pv_voltage', 'V', 'pv voltage',
+            (buffer)=>{return buffer.readUInt16BE((17))/10})
+        this.addMetadatum('pv_current', 'A', 'pv current',
+            (buffer)=>{return buffer.readUInt16BE((19))/100})
+        this.addMetadatum('pv_power', 'W', 'pv power',
+            (buffer)=>{return buffer.readUInt16BE(21)})
+        this.addMetadatum('max_charging_power_today', 'W', 'max charging power today',
+            (buffer)=>{return buffer.readUInt16BE(33)})
+        this.addMetadatum('max_discharging_power_today', 'W', 'max discharging power today',
+            (buffer)=>{return buffer.readUInt16BE(35)})
+        this.addMetadatum('charging_amp_hours_today', 'Ah', 'charging amp hours today',
+            (buffer)=>{return buffer.readUInt16BE(37)})
+        this.addMetadatum('discharging_amp_hours_today', 'Ah', 'discharging amp hours today',
+            (buffer)=>{return buffer.readUInt16BE(39)})
+        this.addMetadatum('power_generation_today', 'W', 'power generation today',
+            (buffer)=>{return buffer.readUInt16BE(41)})
+        this.addMetadatum('power_consumption_today', 'W', 'power consumption today',
+            (buffer)=>{return buffer.readUInt16BE(43)})
+        this.addMetadatum('power_generation_total', 'W', 'power generation total',
+            (buffer)=>{return buffer.readUInt32BE(21)})
+        this.addMetadatum('load_status', '',  'load status',
+            (buffer)=>{return RC.LOAD_STATE[buffer.readUInt8(67)>>7]})
 
-        this.addMetadatum( 'consumed','C', 'amp-hours consumed', 
-                (buff,offset=0)=>{return buff.readInt32LE(offset)/10},
-                '6597eeff-4bda-4c1e-af4b-551c4cf74769',)
-
-        this.addMetadatum( 'soc','ratio', 'state of charge', 
-                (buff,offset=0)=>{return buff.readUInt16LE(offset)/10000},
-                '65970fff-4bda-4c1e-af4b-551c4cf74769')    
-
-        this.addMetadatum( 'ttg','s','time to go', 
-                (buff,offset=0)=>{return this.NaNif(buff.readUInt16LE(offset),0xFFFF)*60},
-                '65970ffe-4bda-4c1e-af4b-551c4cf74769')
-        if (this.encryptionKey){
-            const decData = this.decrypt(this.getManufacturerData(0x02e1))
-            if (decData)
-                this.auxMode=decData.readInt8(8)&0x3   
-        }
-
-        switch(this.auxMode){
-            case VC.AuxMode.STARTER_VOLTAGE:
-                this.addMetadatum('starterVoltage','V', 'starter battery voltage', 
-                    (buff,offset=0)=>{return buff.readInt16LE(offset)/100},
-                    '6597ed7d-4bda-4c1e-af4b-551c4cf74769')
-                break;
-            case VC.AuxMode.MIDPOINT_VOLTAGE:
-                this.addMetadatum('midpointVoltage','V', 'midpoint battery voltage', 
-                    (buff,offset=0)=>{return buff.readInt16LE(offset)/100},
-                    '6597ed7d-4bda-4c1e-af4b-551c4cf74769')
-                break;
-
-            case VC.AuxMode.TEMPERATURE:
-                this.addMetadatum('temperature','K', 'House battery temperature', 
-                    (buff,offset=0)=>{return (buff.readInt16LE(offset)/1000)+273.15},
-                    '6597ed7d-4bda-4c1e-af4b-551c4cf74769')
-                break;
-            default:
-                break
-        }
+        this.addMetadatum('charging_status', '', 'charging status',
+            (buffer)=>{return RC.CHARGING_STATE[buffer.readUInt8(68)]})
     }
     
-    emitValuesFrom(decData){
-        this.emitData("ttg",decData,0)
-        this.emitData("voltage",decData,2);
-        const alarm = this.getMetadatum("alarm").read(decData,4)
-        if (alarm>0){
-            this.emit(
-                `ALARM #${alarm} from ${this.getDisplayName()})`, 
-                { message: VC.AlarmReason.get(alarm), state: 'alert'})
-        }
-        switch(this.auxMode){
-        case VC.AuxMode.STARTER_VOLTAGE:
-            this.emitData("starterVoltage",decData,6);
-            break;
-        case VC.AuxMode.MIDPOINT_VOLTAGE:
-            this.emitData("midpointVoltage",decData,6);
-            break;
-        case VC.AuxMode.TEMPERATURE:
-            this.emitData("temperature",decData,6);
-            break;
-        default:
-            break
-        }
-        this.emit("current", (this.NaNif(int24.readInt24LE(decData,  8)>>2,0x3FFFFF))/1000)  
-        this.emit("consumed",(this.NaNif(int24.readInt24LE(decData, 11)&0xFFFFF,0xFFFFF)) / 10) ; 
-        this.emit("soc", this.NaNif(((decData.readUInt16LE(13)& 0x3FFF)>>4),0x3FF)/1000)
+    _getBatteryType(){
+        return new Promise( async ( resolve, reject )=>{
+
+        var b = Buffer.from([0xFF,3,224,4,0,1])
+        var crc = crc16Modbus(b)
         
-    }
-    
-    initGATTConnection() {
-        return new Promise((resolve,reject )=>{
-            if (!this.valueIfVariant(this.currentProperties.Paired))
-                reject(`${this.getName()} must be paired with the Signalk server to use GATT protocol`)
-            this.device.connect().then(async ()=>{
-                this.debug(`${this.getName()} connected.`)
-                if (!this.gattServer) {
-                    this.gattServer = await this.device.gatt()
-                    this.gattService= await this.gattServer.getPrimaryService("65970000-4bda-4c1e-af4b-551c4cf74769")
-                    const keepAlive = await this.gattService.getCharacteristic('6597ffff-4bda-4c1e-af4b-551c4cf74769')
-                    await keepAlive.writeValue(Buffer.from([0xFF,0xFF]), { offset: 0, type: 'request' })
-                }
-                resolve(this)
-            }).catch((e)=>reject(e.message))
+        await writeChar.writeValue(
+                Buffer.concat([b,Buffer.from([crc.h,crc.l])], b.length+2), 
+                { offset: 0, type: 'request' })
+        await readChar.startNotifications()
+        readChar.on('valuechanged', buffer => {
+            await readChar.stopNotifications()
+            resolve(RC.BATTERY_TYPE[(buffer.readUInt8(3))])
         })
+    })
+    }
+    async initGATTConnection() {
+        return await super.initGATTConnection()
+        this.batteryType = await _getBatteryType()
+        this.emit('batteryType', this.batteryType)
     }
     emitGATT(){
-        this.getPathMetadata().forEach( (datum, tag)=> {
-            if (datum.gatt) {
-            this.gattService.getCharacteristic(datum.gatt).then((gattCharacteristic)=>{
-                gattCharacteristic.readValue().then((buffer)=>{
-                    this.emitData(tag, buffer)
-                })
-            }).catch((e)=>{
-                throw new Error(e)
-            })}
-        })
-    }
-    initGATTNotifications(){
-        return new Promise((resolve,reject )=>{
 
-        this.getPathMetadata().forEach((datum, tag)=> {
-            if (datum.gatt) {
-            this.gattService.getCharacteristic(datum.gatt).then(async (gattCharacteristic)=>{
-                const buffer = await gattCharacteristic.readValue()
-                this.emitData(tag, buffer)
-                
-                gattCharacteristic.startNotifications().then(()=>{
-                    gattCharacteristic.on('valuechanged', buffer => {
-                        this.emitData(tag, buffer)
-                    })
-                    this.characteristics.push(gattCharacteristic)
-                })
-            })
-        }})
-        resolve(this)})
+    }
+    await initGATTNotifications(){
+        
+        var b = Buffer.from([0xFF,0x03,0x1,0x0,0x0,34])
+        var crc = crc16Modbus(b)
+    
+        await writeChar.writeValue(
+            Buffer.concat([b,Buffer.from([crc.h,crc.l])], b.length+2), 
+            { offset: 0, type: 'request' })
+
+        await readChar.startNotifications()
+        readChar.on('valuechanged', buffer => {
+            emitValuesFrom(buffer)
+        })
     }
 
     hasGATT(){
+        return false
+    }
+    usingGATT(){
         return true
     }
     
     getGATTDescription(){
-        return "To use the GATT connection the SignalK server computer and the Smart Shunt must first be paired."
+        return ""
     }
 
     async stopListening(){
         super.stopListening()
-        for (var c of this.characteristics){
-            await c.stopNotifications()
-        }
+    
+        await this.readChar.stopNotifications()
+        
         if (await this.device.isConnected()){
             await this.device.disconnect()
             this.debug(`Disconnected from ${ this.getName()}`)

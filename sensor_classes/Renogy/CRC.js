@@ -41,7 +41,7 @@ function crc16Modbus(data){
     var crc_high = 0xFF
     var crc_low = 0xFF
 
-    for (byte in data){
+    for (const byte of data){
         const index = crc_high ^ byte
         crc_high = crc_low ^ CRC16_HIGH_BYTES[index]
         crc_low = CRC16_LOW_BYTES[index]

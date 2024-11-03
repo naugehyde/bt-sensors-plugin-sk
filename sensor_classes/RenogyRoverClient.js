@@ -2,13 +2,15 @@
   
  */
 
-const Renogy = require("./Renogy/RenogySensor.js");
+const RenogySensor = require("./Renogy/RenogySensor.js");
 const RC=require("./Renogy/RenogyConstants.js")
-class RenogyRoverClient extends RenogySensor{
-
+class RenogyRoverClient extends RenogySensor {
 
     static async identify(device){
-        return null
+        if (await this.getModelID(device)=="RNG-CTRL-RVR")
+            return this           
+        else
+            return null
     }
     static _test(data, key){
         var b = Buffer.from(data.replaceAll(" ",""),"hex")

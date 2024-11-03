@@ -29,7 +29,7 @@ class RenogyRoverClient extends RenogySensor {
                 Buffer.concat([b,Buffer.from([crc.h,crc.l])], b.length+2), 
                 { offset: 0, type: 'request' })
             await readChar.startNotifications()
-            readChar.on('valuechanged', buffer => {
+            readChar.on('valuechanged', async (buffer) => {
                 await device.disconnect()
                 if (buffer[5]==0x0) resolve()
                 
@@ -63,7 +63,7 @@ class RenogyRoverClient extends RenogySensor {
             (buffer)=>{return buffer.readInt8((9))-128+273.15})
         this.addMetadatum('battery_temperature', 'K', 'battery temperature',
             (buffer)=>{return buffer.readInt8((10))-128+273.15})
-        this.addMetadatum('load_voltage', 'V', 'load voltage'
+        this.addMetadatum('load_voltage', 'V', 'load voltage',
             (buffer)=>{return buffer.readUInt16BE((11))/10})
         this.addMetadatum('load_current',  'A', 'load current',
             (buffer)=>{return buffer.readUInt16BE((13))/100})
@@ -99,28 +99,28 @@ class RenogyRoverClient extends RenogySensor {
     _getBatteryType(){
         return new Promise( async ( resolve, reject )=>{
 
-        var b = Buffer.from([0xFF,3,224,4,0,1])
-        var crc = crc16Modbus(b)
-        
-        await writeChar.writeValue(
-                Buffer.concat([b,Buffer.from([crc.h,crc.l])], b.length+2), 
-                { offset: 0, type: 'request' })
-        await readChar.startNotifications()
-        readChar.on('valuechanged', buffer => {
-            await readChar.stopNotifications()
-            resolve(RC.BATTERY_TYPE[(buffer.readUInt8(3))])
+            var b = Buffer.from([0xFF,3,224,4,0,1])
+            var crc = crc16Modbus(b)
+            
+            await writeChar.writeValue(
+                    Buffer.concat([b,Buffer.from([crc.h,crc.l])], b.length+2), 
+                    { offset: 0, type: 'request' })
+            await readChar.startNotifications()
+            readChar.on('valuechanged', async (buffer) => {
+                await readChar.stopNotifications()
+                resolve(RC.BATTERY_TYPE[(buffer.readUInt8(3))])
+            })
         })
-    })
     }
     async initGATTConnection() {
-        return await super.initGATTConnection()
+        await super.initGATTConnection()
         this.batteryType = await _getBatteryType()
         this.emit('batteryType', this.batteryType)
     }
     emitGATT(){
 
     }
-    await initGATTNotifications(){
+    async initGATTNotifications() {
         
         var b = Buffer.from([0xFF,0x03,0x1,0x0,0x0,34])
         var crc = crc16Modbus(b)

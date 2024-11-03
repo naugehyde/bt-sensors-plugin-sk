@@ -1,6 +1,8 @@
 const fs = require('fs')
 const util = require('util')
 const path = require('path')
+const packageInfo = require("./package.json")
+
 const {createBluetooth} = require('node-ble')
 const {bluetooth, destroy} = createBluetooth()
 
@@ -152,8 +154,8 @@ module.exports =  function (app) {
 		classMap = utilities_sk.loadClasses(path.join(__dirname, 'sensor_classes'))
 	}
 
-	app.debug('Loading plugin')
-	
+	app.debug(`Loading plugin ${packageInfo.version}`)	
+
 	plugin.schema = {			
 		type: "object",
 		description: "NOTE: \n 1) Plugin must be enabled to configure your sensors. \n"+
@@ -414,7 +416,7 @@ module.exports =  function (app) {
 			if (plugin.schema.properties.peripherals.items.dependencies)
 				plugin.schema.properties.peripherals.items.dependencies.mac_address.oneOf=[]
 		} else {
-			app.debug('Plugin build Beta 2.4.1.2 started');
+			app.debug(`Loading plugin ${packageInfo.version} started` )
 			
 		}
 		starts++

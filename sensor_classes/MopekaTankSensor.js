@@ -258,20 +258,22 @@ class MopekaTankSensor extends BTSensor{
         const md = this.valueIfVariant(this.getManufacturerData(this.constructor.manufacturerID))
         this.modelID = md[0]
         this.initMetadata()
-
     } 
 
     getMedium(){
         return Media[this?.medium??'PROPANE']
     }
+    getTankHeight(){
+        return this?.tankHeight??304.8 //Assume a foot
+    }
 
     _tankLevel( rawLevel ){
         const coefs= this.getMedium().coefficients
-        return rawLevel * (coefs[0] + (coefs[1] * (this.temp-273.15)) + (coefs[2] * ((this.temp-273.15)^2)))
+        return rawLevel * (coefs[0] + (coefs[1] * (this.temp-233.15)) + (coefs[2] * ((this.temp-233.15)^2)))
     }
     
     initMetadata(){
-        const md = this.addMetadatum("medium","","type of liquid in tank")
+        var md = this.addMetadatum("medium","","type of liquid in tank")
         md.isParam=true
         md.enum=Object.keys(Media)
 
@@ -293,8 +295,8 @@ class MopekaTankSensor extends BTSensor{
                 return this.temp
             }).bind(this)
         )
-        this.addMetadatum("tankLevel","m","tank level", 
-            (buffer)=>{ return this._tankLevel(((buffer.readUInt16LE(3))&0x3FFF))}
+        this.addMetadatum("tankLevel","ratio","tank level", 
+            (buffer)=>{ return (this._tankLevel(((buffer.readUInt16LE(3))&0x3FFF)))/this.getTankHeight()}
         )
         this.addMetadatum("readingQuality","","quality of read", 
             (buffer)=>{ return buffer.readUInt8(4)>>6}
@@ -312,6 +314,7 @@ class MopekaTankSensor extends BTSensor{
         if (props.ManufacturerData)
             this.emitValuesFrom( this.getManufacturerData(this.constructor.manufacturerID) )
     }
+
     getName(){
         if (this.name)
             return this.name

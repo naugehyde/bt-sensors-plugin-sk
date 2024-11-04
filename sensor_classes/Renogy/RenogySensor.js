@@ -48,6 +48,8 @@ class RenogySensor extends BTSensor{
         this.rxService= await this.gattServer.getPrimaryService(this.constructor.RX_SERVICE)
         this.readChar = await this.rxService.getCharacteristic(this.constructor.NOTIFY_CHAR_UUID)
         this.writeChar = await this.txService.getCharacteristic(this.constructor.WRITE_CHAR_UUID)
+        await this.readChar.startNotifications()
+
         return this
             
     }

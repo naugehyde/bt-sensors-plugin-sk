@@ -29,7 +29,8 @@ class RenogyRoverClient extends RenogySensor {
                 Buffer.concat([b,Buffer.from([crc.h,crc.l])], b.length+2), 
                 { offset: 0, type: 'request' })
             await readChar.startNotifications()
-            readChar.on('valuechanged', async (buffer) => {
+            readChar.once('valuechanged', async (buffer) => {
+                readChar.startNotifications()
                 await device.disconnect()
                 if (buffer[5]==0x0) resolve()
                 
@@ -105,11 +106,11 @@ class RenogyRoverClient extends RenogySensor {
             await this.writeChar.writeValue(
                     Buffer.concat([b,Buffer.from([crc.h,crc.l])], b.length+2), 
                     { offset: 0, type: 'request' })
-            await this.readChar.startNotifications()
-            this.readChar.on('valuechanged', async (buffer) => {
-                await this.readChar.stopNotifications()
+
+            const valChanged = async (buffer) => {
                 resolve(RC.BATTERY_TYPE[(buffer.readUInt8(4))])
-            })
+            }
+            this.readChar.once('valuechanged', valChanged )
         })
     }
     async initGATTConnection() {
@@ -129,14 +130,13 @@ class RenogyRoverClient extends RenogySensor {
             Buffer.concat([b,Buffer.from([crc.h,crc.l])], b.length+2), 
             { offset: 0, type: 'request' })
 
-        await this.readChar.startNotifications()
         this.readChar.on('valuechanged', buffer => {
             emitValuesFrom(buffer)
         })
     }
 
     hasGATT(){
-        return false
+        return false //No need to present GATT option as that's the Renogy's only mode 
     }
     usingGATT(){
         return true

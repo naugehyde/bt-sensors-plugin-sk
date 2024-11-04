@@ -124,7 +124,7 @@ class RenogyRoverClient extends RenogySensor {
         
         var b = Buffer.from([0xFF,0x03,0x1,0x0,0x0,34])
         var crc = crc16Modbus(b)
-        await this.device.connect()
+        
         await this.writeChar.writeValue(
             Buffer.concat([b,Buffer.from([crc.h,crc.l])], b.length+2), 
             { offset: 0, type: 'request' })

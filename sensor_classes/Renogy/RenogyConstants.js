@@ -29,3 +29,4 @@ BATTERY_TYPE: {
     5: 'custom'
 }
 }
+module.exports=RENOGY_CONSTANTS

@@ -33,7 +33,7 @@ class RenogyRoverClient extends RenogySensor {
                 await device.disconnect()
                 if (buffer[5]==0x0) resolve()
                 
-                if (buffer.subarray(3,17).trim().toString()=="RNG-CTRL-RVR")
+                if (buffer.subarray(3,17).toString().trim()=="RNG-CTRL-RVR")
                     resolve(this)           
                 else
                     resolve()
@@ -102,19 +102,19 @@ class RenogyRoverClient extends RenogySensor {
             var b = Buffer.from([0xFF,3,224,4,0,1])
             var crc = crc16Modbus(b)
             
-            await writeChar.writeValue(
+            await this.writeChar.writeValue(
                     Buffer.concat([b,Buffer.from([crc.h,crc.l])], b.length+2), 
                     { offset: 0, type: 'request' })
-            await readChar.startNotifications()
-            readChar.on('valuechanged', async (buffer) => {
-                await readChar.stopNotifications()
-                resolve(RC.BATTERY_TYPE[(buffer.readUInt8(3))])
+            await this.readChar.startNotifications()
+            this.readChar.on('valuechanged', async (buffer) => {
+                await this.readChar.stopNotifications()
+                resolve(RC.BATTERY_TYPE[(buffer.readUInt8(4))])
             })
         })
     }
     async initGATTConnection() {
         await super.initGATTConnection()
-        this.batteryType = await _getBatteryType()
+        this.batteryType = await this._getBatteryType()
         this.emit('batteryType', this.batteryType)
     }
     emitGATT(){
@@ -124,13 +124,13 @@ class RenogyRoverClient extends RenogySensor {
         
         var b = Buffer.from([0xFF,0x03,0x1,0x0,0x0,34])
         var crc = crc16Modbus(b)
-    
-        await writeChar.writeValue(
+        await this.device.connect()
+        await this.writeChar.writeValue(
             Buffer.concat([b,Buffer.from([crc.h,crc.l])], b.length+2), 
             { offset: 0, type: 'request' })
 
-        await readChar.startNotifications()
-        readChar.on('valuechanged', buffer => {
+        await this.readChar.startNotifications()
+        this.readChar.on('valuechanged', buffer => {
             emitValuesFrom(buffer)
         })
     }

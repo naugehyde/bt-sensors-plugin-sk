@@ -12,7 +12,7 @@ class RenogySensor extends BTSensor{
         super(device,config,gattConfig)
     }
     
-    static async getModelID(device){
+    static async identify(device){
        
         const regex = new RegExp(String.raw`${this.ALIAS_PREFIX}-[A-Fa-f0-9]{8}$`);
         const name = await this.getDeviceProp(device,"Name")
@@ -40,15 +40,15 @@ class RenogySensor extends BTSensor{
     }
 
     async initGATTConnection() {
-            await this.device.connect()
-            this.debug(`${this.getName()} connected.`)
+        await this.device.connect()
+        this.debug(`${this.getName()} connected.`)
 
-            this.gattServer = await device.gatt()
-            this.txService= await gattServer.getPrimaryService(this.TX_SERVICE)
-            this.rxService= await gattServer.getPrimaryService(this.RX_SERVICE)
-            this.readChar = await rxService.getCharacteristic(this.NOTIFY_CHAR_UUID)
-            this.writeChar = await txService.getCharacteristic(this.WRITE_CHAR_UUID)
-            resolve(this)
+        this.gattServer = await this.device.gatt()
+        this.txService= await this.gattServer.getPrimaryService(this.constructor.TX_SERVICE)
+        this.rxService= await this.gattServer.getPrimaryService(this.constructor.RX_SERVICE)
+        this.readChar = await this.rxService.getCharacteristic(this.constructor.NOTIFY_CHAR_UUID)
+        this.writeChar = await this.txService.getCharacteristic(this.constructor.WRITE_CHAR_UUID)
+        return this
             
     }
 

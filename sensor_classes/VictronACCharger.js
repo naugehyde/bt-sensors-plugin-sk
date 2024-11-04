@@ -67,7 +67,7 @@ class VictronACCharger extends VictronSensor{
         this.emit("batt3",  this.NaNif(br.read_unsigned_int(13),0x1FFF)/100)
         this.emit("curr3", this.NaNif(br.read_unsigned_int(11),0x7FF)/10)
         this.emit("temp", this.NaNif(br.read_unsigned_int(7),0x7F)+233.15)
-        this.emit("acCurr", this.NaNif(br.read_unsigned_int(9),0x1FF)/10)
+        this.emit("acCurr", this.NaNif(br.read_unsigned_int(9),0x1FF)/100)
     }
 }
 module.exports=VictronACCharger

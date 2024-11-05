@@ -7,7 +7,7 @@ const RC=require("./Renogy/RenogyConstants.js")
 const crc16Modbus = require('./Renogy/CRC')
 class RenogyRoverClient extends RenogySensor {
 
-    3
+    
     static async identify(device){
         return new Promise( async ( resolve, reject )=>{
             if (!await super.identify(device)) resolve()

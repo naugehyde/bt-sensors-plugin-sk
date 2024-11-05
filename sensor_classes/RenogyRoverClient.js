@@ -54,7 +54,7 @@ class RenogyRoverClient extends RenogySensor {
 
     initMetadata(){
         this.addMetadatum('batteryType', '', "battery type")
-        this.addMetadatum('battery_percentage', 'ratio', "battery percentage",
+        this.addMetadatum('batteryPercentage', 'ratio', "battery percentage",
              (buffer)=>{return buffer.readUInt16BE(3) })
         this.addMetadatum('batteryVoltage', 'V', "battery voltage",
             (buffer)=>{return buffer.readUInt16BE((5))/10})
@@ -62,38 +62,38 @@ class RenogyRoverClient extends RenogySensor {
             (buffer)=>{return buffer.readUInt16BE((7))/100})
         this.addMetadatum('controllerTemperature', 'K', 'controller temperature',
             (buffer)=>{return buffer.readInt8((9))-128+273.15})
-        this.addMetadatum('battery_temperature', 'K', 'battery temperature',
+        this.addMetadatum('batteryTemperature', 'K', 'battery temperature',
             (buffer)=>{return buffer.readInt8((10))-128+273.15})
-        this.addMetadatum('load_voltage', 'V', 'load voltage',
+        this.addMetadatum('loadVoltage', 'V', 'load voltage',
             (buffer)=>{return buffer.readUInt16BE((11))/10})
-        this.addMetadatum('load_current',  'A', 'load current',
+        this.addMetadatum('loadCurrent',  'A', 'load current',
             (buffer)=>{return buffer.readUInt16BE((13))/100})
-        this.addMetadatum('load_power', 'W', 'load power',
+        this.addMetadatum('loadPower', 'W', 'load power',
             (buffer)=>{return buffer.readUInt16BE((15))})
-        this.addMetadatum('pv_voltage', 'V', 'pv voltage',
+        this.addMetadatum('pvVoltage', 'V', 'pv voltage',
             (buffer)=>{return buffer.readUInt16BE((17))/10})
-        this.addMetadatum('pv_current', 'A', 'pv current',
+        this.addMetadatum('pvCurrent', 'A', 'pv current',
             (buffer)=>{return buffer.readUInt16BE((19))/100})
-        this.addMetadatum('pv_power', 'W', 'pv power',
+        this.addMetadatum('pvPower', 'W', 'pv power',
             (buffer)=>{return buffer.readUInt16BE(21)})
-        this.addMetadatum('max_charging_power_today', 'W', 'max charging power today',
+        this.addMetadatum('maxChargingPowerToday', 'W', 'max charging power today',
             (buffer)=>{return buffer.readUInt16BE(33)})
-        this.addMetadatum('max_discharging_power_today', 'W', 'max discharging power today',
+        this.addMetadatum('maxDischargingPowerToday', 'W', 'max discharging power today',
             (buffer)=>{return buffer.readUInt16BE(35)})
-        this.addMetadatum('charging_amp_hours_today', 'Ah', 'charging amp hours today',
+        this.addMetadatum('chargingAmpHoursToday', 'Ah', 'charging amp hours today',
             (buffer)=>{return buffer.readUInt16BE(37)})
-        this.addMetadatum('discharging_amp_hours_today', 'Ah', 'discharging amp hours today',
+        this.addMetadatum('dischargingAmpHoursToday', 'Ah', 'discharging amp hours today',
             (buffer)=>{return buffer.readUInt16BE(39)})
-        this.addMetadatum('power_generation_today', 'W', 'power generation today',
+        this.addMetadatum('powerGenerationToday', 'W', 'power generation today',
             (buffer)=>{return buffer.readUInt16BE(41)})
-        this.addMetadatum('power_consumption_today', 'W', 'power consumption today',
+        this.addMetadatum('powerConsumptionToday', 'W', 'power consumption today',
             (buffer)=>{return buffer.readUInt16BE(43)})
-        this.addMetadatum('power_generation_total', 'W', 'power generation total',
+        this.addMetadatum('powerGenerationTotal', 'W', 'power generation total',
             (buffer)=>{return buffer.readUInt32BE(21)})
-        this.addMetadatum('load_status', '',  'load status',
+        this.addMetadatum('loadStatus', '',  'load status',
             (buffer)=>{return RC.LOAD_STATE[buffer.readUInt8(67)>>7]})
 
-        this.addMetadatum('charging_status', '', 'charging status',
+        this.addMetadatum('chargingStatus', '', 'charging status',
             (buffer)=>{return RC.CHARGING_STATE[buffer.readUInt8(68)]})
     }
     

@@ -30,7 +30,7 @@ class RenogyRoverClient extends RenogySensor {
                 { offset: 0, type: 'request' })
             await readChar.startNotifications()
             readChar.once('valuechanged', async (buffer) => {
-                readChar.startNotifications()
+                readChar.stopNotifications()
                 await device.disconnect()
                 if (buffer[5]==0x0) resolve()
                 

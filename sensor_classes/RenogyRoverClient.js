@@ -4,7 +4,6 @@
 
 const RenogySensor = require("./Renogy/RenogySensor.js");
 const RC=require("./Renogy/RenogyConstants.js")
-const crc16Modbus = require('./Renogy/CRC')
 class RenogyRoverClient extends RenogySensor {
 
     
@@ -15,26 +14,21 @@ class RenogyRoverClient extends RenogySensor {
             await device.connect()
             //error new Uint8Array([255, 3, 16, 0, 100, 0, 135, 0, 0, 20, 22, 0, 0, 0, 0, 86, 82, 52, 48, 109, 165])
             //new Uint8Array([255, 3, 16, 32, 32, 82, 78, 71, 45, 67, 84, 82, 76, 45, 82, 86, 82, 52, 48, 55, 36])
-            const gattServer = await device.gatt()
-            const txService= await gattServer.getPrimaryService(this.TX_SERVICE)
-            const rxService= await gattServer.getPrimaryService(this.RX_SERVICE)
-            const readChar = await rxService.getCharacteristic(this.NOTIFY_CHAR_UUID)
-            const writeChar = await txService.getCharacteristic(this.WRITE_CHAR_UUID)
-    
-            //RoverClient
-            var b = Buffer.from([0xFF,0x03,0x0,0xc,0x0,0x8])
-            var crc = crc16Modbus(b)
-        
-            await writeChar.writeValue(
-                Buffer.concat([b,Buffer.from([crc.h,crc.l])], b.length+2), 
-                { offset: 0, type: 'request' })
-            await readChar.startNotifications()
-            readChar.once('valuechanged', async (buffer) => {
-                readChar.stopNotifications()
+            
+            const rw = await this.getReadWriteCharacteristics()
+            await this.sendReadFunctionRequest(rw.write,0xFF,0x0c,0x08)
+          
+            await rw.read.startNotifications()
+            rw.read.once('valuechanged', async (buffer) => {
+                rw.read.stopNotifications()
                 await device.disconnect()
-                if (buffer[5]==0x0) resolve()
-                
-                if (buffer.subarray(3,17).toString().trim()=="RNG-CTRL-RVR")
+                if (buffer[2]!=0x10) resolve() //???
+                const model = buffer.subarray(3,17).toString().trim()
+
+                console.log(`Found ${model}`)
+
+                if (model.startsWith('RNG-CTRL-RVR' ) || model.startsWith('RNG-CTRL-WND' )
+                    || model.startsWith('RNG-CTRL-ADV' ) )
                     resolve(this)           
                 else
                     resolve()
@@ -46,7 +40,6 @@ class RenogyRoverClient extends RenogySensor {
         })
     }
   
-    characteristics=[]
     async init(){
         await super.init()
         this.initMetadata()
@@ -89,7 +82,7 @@ class RenogyRoverClient extends RenogySensor {
         this.addMetadatum('powerConsumptionToday', 'W', 'power consumption today',
             (buffer)=>{return buffer.readUInt16BE(43)})
         this.addMetadatum('powerGenerationTotal', 'W', 'power generation total',
-            (buffer)=>{return buffer.readUInt32BE(21)})
+            (buffer)=>{return buffer.readUInt32BE(59)})
         this.addMetadatum('loadStatus', '',  'load status',
             (buffer)=>{return RC.LOAD_STATE[buffer.readUInt8(67)>>7]})
 
@@ -97,15 +90,20 @@ class RenogyRoverClient extends RenogySensor {
             (buffer)=>{return RC.CHARGING_STATE[buffer.readUInt8(68)]})
     }
     
-    _getBatteryType(){
+    retrieveDeviceID(){
         return new Promise( async ( resolve, reject )=>{
+            this.sendFunctionRequest(0x1A, 0x1)
 
-            var b = Buffer.from([0xFF,3,224,4,0,1])
-            var crc = crc16Modbus(b)
-            
-            await this.writeChar.writeValue(
-                    Buffer.concat([b,Buffer.from([crc.h,crc.l])], b.length+2), 
-                    { offset: 0, type: 'request' })
+            const valChanged = async (buffer) => {
+                resolve((buffer.readUInt8(4)))
+            }
+            this.readChar.once('valuechanged', valChanged )
+        })
+    }
+
+    getBatteryType(){
+        return new Promise( async ( resolve, reject )=>{
+            this.sendFunctionRequest(0xe004, 0x01)
 
             const valChanged = async (buffer) => {
                 resolve(RC.BATTERY_TYPE[(buffer.readUInt8(4))])
@@ -115,46 +113,25 @@ class RenogyRoverClient extends RenogySensor {
     }
     async initGATTConnection() {
         await super.initGATTConnection()
-        this.batteryType = await this._getBatteryType()
+        this.batteryType = await this.getBatteryType()
         this.emit('batteryType', this.batteryType)
     }
-    emitGATT(){
 
+
+    async getAllEmitterFunctions(){
+        return [this.getAndEmitChargeInfo]
     }
-    async initGATTNotifications() {
-        
-        var b = Buffer.from([0xFF,0x03,0x1,0x0,0x0,34])
-        var crc = crc16Modbus(b)
-        
-        await this.writeChar.writeValue(
-            Buffer.concat([b,Buffer.from([crc.h,crc.l])], b.length+2), 
-            { offset: 0, type: 'request' })
 
-        this.readChar.on('valuechanged', buffer => {
-            emitValuesFrom(buffer)
+    async getAndEmitChargeInfo(){
+        return new Promise( async ( resolve, reject )=>{
+            this.sendReadFunctionRequest(0x1000, 0x22)
+
+            this.readChar.once('valuechanged', buffer => {
+                emitValuesFrom(buffer)
+                resolve(this)
+            })
         })
     }
-
-    hasGATT(){
-        return false //No need to present GATT option as that's the Renogy's only mode 
-    }
-    usingGATT(){
-        return true
-    }
     
-    getGATTDescription(){
-        return ""
-    }
-
-    async stopListening(){
-        super.stopListening()
-    
-        await this.readChar.stopNotifications()
-        
-        if (await this.device.isConnected()){
-            await this.device.disconnect()
-            this.debug(`Disconnected from ${ this.getName()}`)
-        }
-    }
 }
 module.exports=RenogyRoverClient

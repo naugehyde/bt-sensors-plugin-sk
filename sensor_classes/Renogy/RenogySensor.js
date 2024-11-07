@@ -7,11 +7,29 @@ class RenogySensor extends BTSensor{
     static RX_SERVICE = "0000fff0-0000-1000-8000-00805f9b34fb"  
     static NOTIFY_CHAR_UUID = "0000fff1-0000-1000-8000-00805f9b34fb"
     static WRITE_CHAR_UUID  = "0000ffd1-0000-1000-8000-00805f9b34fb"
-
+    static READ_FUNC = 3
+    static WRITE_FUNC = 6
     constructor(device,config,gattConfig){
         super(device,config,gattConfig)
     }
-    
+    static async getReadWriteCharacteristics(){
+        const gattServer = await device.gatt()
+        const txService= await gattServer.getPrimaryService(this.TX_SERVICE)
+        const rxService= await gattServer.getPrimaryService(this.RX_SERVICE)
+        const readChar = await rxService.getCharacteristic(this.NOTIFY_CHAR_UUID)
+        const writeChar = await txService.getCharacteristic(this.WRITE_CHAR_UUID)
+        return {read: readChar, write: writeChar}
+    }
+
+    static async sendReadFunctionRequest(writeCharacteristic, deviceID, writeReq, words){
+        var b = Buffer.alloc(8)
+        b.writeUInt8(0xFF,0)
+        b.writeUInt8(this.READ_FUNC,1)
+        b.writeUInt16BE(writeReq,2)
+        b.writeUInt16BE(words,4)            
+        b.writeUInt16BE(crc16Modbus(b),6)
+        await writeCharacteristic.writeValue(b, { offset: 0, type: 'request' })
+    }
     static async identify(device){
        
         const regex = new RegExp(String.raw`${this.ALIAS_PREFIX}-[A-Fa-f0-9]{8}$`);
@@ -26,8 +44,24 @@ class RenogySensor extends BTSensor{
 
     async init(){
         await super.init()
+        var md = this.addMetadatum('refreshInterval','','refresh interval')
+        md.isParam = true
+
+        md = this.addMetadatum('deviceID', '', 'ID of device')
+        md.isParam = true
+
+        await this.device.connect()
+        this.debug(`${this.getName()} connected.`)
+        const rw = this.constructor.getReadWriteCharacteristics()
+
+        this.readChar = rw.read    
+        this.writeChar = rw.write
+        
     }
-    
+
+    emitGATT(){
+    }
+
     getModelName(){
         return "" //return VC?.MODEL_ID_MAP[this.model_id]??this.constructor.name+" (Model ID:"+this.model_id+")"
     }
@@ -39,19 +73,43 @@ class RenogySensor extends BTSensor{
         super.propertiesChanged(props)
     }
 
+    getAllEmitterFunctions(){
+        return []
+    }
+
+    getDeviceID()
+    {
+        return this?.deviceID??0xFF
+    }
+
+    async sendReadFunctionRequest(writeReq, words){
+        this.constructor.sendReadFunctionRequest(
+            this.writeChar, this.getDeviceID(), writeReq, words) 
+    }
+
+    async initGATTNotifications(){
+        this.intervalID = setInterval(()=>{
+            this.getAllEmitterFunctions(async (emitter)=>
+                await emitter()
+            )
+        }, 1000*this?.refreshInterval??60 )
+    }
+
+
     async initGATTConnection() {
-        await this.device.connect()
-        this.debug(`${this.getName()} connected.`)
-
-        this.gattServer = await this.device.gatt()
-        this.txService= await this.gattServer.getPrimaryService(this.constructor.TX_SERVICE)
-        this.rxService= await this.gattServer.getPrimaryService(this.constructor.RX_SERVICE)
-        this.readChar = await this.rxService.getCharacteristic(this.constructor.NOTIFY_CHAR_UUID)
-        this.writeChar = await this.txService.getCharacteristic(this.constructor.WRITE_CHAR_UUID)
         await this.readChar.startNotifications()
+        return this  
+    }
 
-        return this
-            
+    async stopListening(){
+        super.stopListening()
+    
+        await this.readChar.stopNotifications()
+        
+        if (await this.device.isConnected()){
+            await this.device.disconnect()
+            this.debug(`Disconnected from ${ this.getName()}`)
+        }
     }
 
 }

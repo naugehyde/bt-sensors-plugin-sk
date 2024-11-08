@@ -109,8 +109,17 @@ module.exports =  function (app) {
 			app.setPluginError(msg)
 		}
 		//if we're here ain't got no class for the device
-		const sensor = new (classMap.get('UNKNOWN'))(device)
-		await sensor.init()
+		if (config.sensorClass){
+			const c = classMap.get(config.sensorClass)
+			c.debug=app.debug
+			const sensor = new c(device,config?.params, config?.gattParams)
+			sensor.debug=app.debug
+			await sensor.init()
+			classMap.get(sensorClass)
+		} else{
+			const sensor = new (classMap.get('UNKNOWN'))(device)
+			await sensor.init()
+		}
 		return sensor
 	}
 
@@ -149,7 +158,10 @@ module.exports =  function (app) {
   	}  
 
 	function loadClassMap() {
-		classMap = utilities_sk.loadClasses(path.join(__dirname, 'sensor_classes'))
+		const _classMap = utilities_sk.loadClasses(path.join(__dirname, 'sensor_classes'))
+		classMap = new Map([..._classMap].filter(([k, v]) => k.startsWith("_") ))
+		classMap.get('UNKNOWN').classMap=classMap // share the classMap with Unknown for configuration purposes
+
 	}
 
 	app.debug(`Loading plugin ${packageInfo.version}`)

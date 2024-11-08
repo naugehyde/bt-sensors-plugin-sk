@@ -46,6 +46,7 @@ function crc16Modbus(data){
         crc_high = crc_low ^ CRC16_HIGH_BYTES[index]
         crc_low = CRC16_LOW_BYTES[index]
     }
-    return { h:crc_high, l:crc_low}
+    return Buffer.from([crc_high, crc_low]).readUInt16BE()
+    //return { h:crc_high, l:crc_low}
 }
 module.exports = crc16Modbus

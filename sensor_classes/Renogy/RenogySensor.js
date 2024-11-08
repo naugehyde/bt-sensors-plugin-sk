@@ -1,5 +1,6 @@
 const BTSensor = require("../../BTSensor.js");
 const VC = require('./RenogyConstants.js');
+const crc16Modbus = require('./CRC.js')
 class RenogySensor extends BTSensor{
 
     static ALIAS_PREFIX = 'BT-TH'
@@ -12,23 +13,25 @@ class RenogySensor extends BTSensor{
     constructor(device,config,gattConfig){
         super(device,config,gattConfig)
     }
-    static async getReadWriteCharacteristics(){
+    static async getReadWriteCharacteristics(device){
         const gattServer = await device.gatt()
         const txService= await gattServer.getPrimaryService(this.TX_SERVICE)
         const rxService= await gattServer.getPrimaryService(this.RX_SERVICE)
-        const readChar = await rxService.getCharacteristic(this.NOTIFY_CHAR_UUID)
-        const writeChar = await txService.getCharacteristic(this.WRITE_CHAR_UUID)
-        return {read: readChar, write: writeChar}
+        const rxChar = await rxService.getCharacteristic(this.NOTIFY_CHAR_UUID)
+        const txChar = await txService.getCharacteristic(this.WRITE_CHAR_UUID)
+        return {read: rxChar, write: txChar}
     }
 
     static async sendReadFunctionRequest(writeCharacteristic, deviceID, writeReq, words){
         var b = Buffer.alloc(8)
-        b.writeUInt8(0xFF,0)
+        b.writeUInt8(deviceID,0)
         b.writeUInt8(this.READ_FUNC,1)
         b.writeUInt16BE(writeReq,2)
-        b.writeUInt16BE(words,4)            
-        b.writeUInt16BE(crc16Modbus(b),6)
-        await writeCharacteristic.writeValue(b, { offset: 0, type: 'request' })
+        b.writeUInt16BE(words,4) 
+        b.writeUInt16BE(crc16Modbus(b.subarray(0,6)),6)          
+        
+        await writeCharacteristic.writeValueWithResponse(b,  0)
+    
     }
     static async identify(device){
        
@@ -52,7 +55,7 @@ class RenogySensor extends BTSensor{
 
         await this.device.connect()
         this.debug(`${this.getName()} connected.`)
-        const rw = this.constructor.getReadWriteCharacteristics()
+        const rw = await this.constructor.getReadWriteCharacteristics(this.device)
 
         this.readChar = rw.read    
         this.writeChar = rw.write
@@ -63,7 +66,7 @@ class RenogySensor extends BTSensor{
     }
 
     getModelName(){
-        return "" //return VC?.MODEL_ID_MAP[this.model_id]??this.constructor.name+" (Model ID:"+this.model_id+")"
+        return this?.modelID??`${this.constructor.name} Unknown model` 
     }
 
     getName(){
@@ -97,8 +100,15 @@ class RenogySensor extends BTSensor{
 
 
     async initGATTConnection() {
+        //this.device.connect() 
         await this.readChar.startNotifications()
         return this  
+    }
+    usingGATT(){
+        return true
+    }
+    hasGATT(){
+        return false
     }
 
     async stopListening(){

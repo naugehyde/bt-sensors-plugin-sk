@@ -271,7 +271,7 @@ class MopekaTankSensor extends BTSensor{
     }
     
     initMetadata(){
-        const md = this.addMetadatum("medium","","type of liquid in tank")
+        var md = this.addMetadatum("medium","","type of liquid in tank")
         md.isParam=true
         md.enum=Object.keys(Media)
 

@@ -9,10 +9,12 @@ class RenogyInverter extends RenogySensor {
     
     static async identify(device){
         return new Promise( async ( resolve, reject )=>{
-            if (!await super.identify(device)) resolve()
+            if (!await super.identify(device)) 
+                resolve()
+            else
             try {
             await device.connect()
-            const rw = await this.getReadWriteCharacteristics()
+            const rw = await this.getReadWriteCharacteristics(device)
             await this.sendReadFunctionRequest( rw.write, 0xFF, 0x10D7, 0x08)
           
             await rw.read.startNotifications()

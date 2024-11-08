@@ -4,31 +4,78 @@
 
 const RenogySensor = require("./Renogy/RenogySensor.js");
 const RC=require("./Renogy/RenogyConstants.js")
+const crc16Modbus = require('./Renogy/CRC.js')
+
 class RenogyRoverClient extends RenogySensor {
 
-    
     static async identify(device){
         return new Promise( async ( resolve, reject )=>{
-            if (!await super.identify(device)) resolve()
+            if (!await super.identify(device)) resolve() 
+                else 
             try {
             await device.connect()
             //error new Uint8Array([255, 3, 16, 0, 100, 0, 135, 0, 0, 20, 22, 0, 0, 0, 0, 86, 82, 52, 48, 109, 165])
             //new Uint8Array([255, 3, 16, 32, 32, 82, 78, 71, 45, 67, 84, 82, 76, 45, 82, 86, 82, 52, 48, 55, 36])
             
-            const rw = await this.getReadWriteCharacteristics()
+            const rw = await this.getReadWriteCharacteristics(device)
             await this.sendReadFunctionRequest(rw.write,0xFF,0x0c,0x08)
           
             await rw.read.startNotifications()
             rw.read.once('valuechanged', async (buffer) => {
-                rw.read.stopNotifications()
+                await rw.read.stopNotifications()
                 await device.disconnect()
-                if (buffer[2]!=0x10) resolve() //???
+                if (buffer[2]!=0x10) 
+                    resolve() //???
+                else{
                 const model = buffer.subarray(3,17).toString().trim()
 
                 console.log(`Found ${model}`)
 
                 if (model.startsWith('RNG-CTRL-RVR' ) || model.startsWith('RNG-CTRL-WND' )
                     || model.startsWith('RNG-CTRL-ADV' ) )
+                    resolve(this)           
+                else
+                    resolve()
+            }
+            })
+            
+        } catch (error) {
+            if (rw && await rw.read.isNotifying())
+                await rw.read.stopNotifications()
+            if (await device.isConnected())
+                await device.disconnect()
+            reject(error.message)
+        }
+        })
+    }
+    static async _identify(device){
+        return new Promise( async ( resolve, reject )=>{
+            if (!await super.identify(device)) resolve()
+                else
+            try {
+            await device.connect()
+            //error new Uint8Array([255, 3, 16, 0, 100, 0, 135, 0, 0, 20, 22, 0, 0, 0, 0, 86, 82, 52, 48, 109, 165])
+            //new Uint8Array([255, 3, 16, 32, 32, 82, 78, 71, 45, 67, 84, 82, 76, 45, 82, 86, 82, 52, 48, 55, 36])
+            const gattServer = await device.gatt()
+            const txService= await gattServer.getPrimaryService(this.TX_SERVICE)
+            const rxService= await gattServer.getPrimaryService(this.RX_SERVICE)
+            const readChar = await rxService.getCharacteristic(this.NOTIFY_CHAR_UUID)
+            const writeChar = await txService.getCharacteristic(this.WRITE_CHAR_UUID)
+    
+            //RoverClient
+            var b = Buffer.from([0xFF,0x03,0x0,0xc,0x0,0x8])
+            var crc = crc16Modbus(b)
+        
+            await writeChar.writeValue(
+                Buffer.concat([b,Buffer.from([crc.h,crc.l])], b.length+2), 
+                { offset: 0, type: 'request' })
+            await readChar.startNotifications()
+            readChar.once('valuechanged', async (buffer) => {
+                readChar.stopNotifications()
+                await device.disconnect()
+                if (buffer[5]==0x0) resolve()
+                
+                if (buffer.subarray(3,17).toString().trim()=="RNG-CTRL-RVR")
                     resolve(this)           
                 else
                     resolve()
@@ -39,7 +86,19 @@ class RenogyRoverClient extends RenogySensor {
         }
         })
     }
-  
+    async retrieveModelID(){
+        return new Promise( async ( resolve, reject )=>{
+
+        await this.sendReadFunctionRequest(0x0c,0x08)
+          
+        this.readChar.once('valuechanged', async (buffer) => {
+            if (buffer[2]!=0x10) 
+                reject("Unknown error retrieving model ID") //???
+            const model = buffer.subarray(3,17).toString().trim()
+            resolve(model)           
+        })
+    })
+    }
     async init(){
         await super.init()
         this.initMetadata()
@@ -92,7 +151,7 @@ class RenogyRoverClient extends RenogySensor {
     
     retrieveDeviceID(){
         return new Promise( async ( resolve, reject )=>{
-            this.sendFunctionRequest(0x1A, 0x1)
+            this.sendReadFunctionRequest(0x1A, 0x1)
 
             const valChanged = async (buffer) => {
                 resolve((buffer.readUInt8(4)))
@@ -101,9 +160,9 @@ class RenogyRoverClient extends RenogySensor {
         })
     }
 
-    getBatteryType(){
+    retrieveBatteryType(){
         return new Promise( async ( resolve, reject )=>{
-            this.sendFunctionRequest(0xe004, 0x01)
+            this.sendReadFunctionRequest(0xe004, 0x01)
 
             const valChanged = async (buffer) => {
                 resolve(RC.BATTERY_TYPE[(buffer.readUInt8(4))])
@@ -113,8 +172,12 @@ class RenogyRoverClient extends RenogySensor {
     }
     async initGATTConnection() {
         await super.initGATTConnection()
-        this.batteryType = await this.getBatteryType()
+        this.batteryType = await this.retrieveBatteryType()
         this.emit('batteryType', this.batteryType)
+        this.deviceID = await this.retrieveDeviceID()
+        this.emit('deviceID', this.deviceID)
+        this.modelID = await this.retrieveModelID()
+        
     }
 
 

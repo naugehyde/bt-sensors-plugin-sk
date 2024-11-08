@@ -7,22 +7,27 @@ class RenogyBattery extends RenogySensor {
     
     static async identify(device){
         return new Promise( async ( resolve, reject )=>{
-            if (!await super.identify(device)) resolve()
+            if (!await super.identify(device)) 
+                resolve()
+            else
             try {
             await device.connect()
-            const rw =  await this.getReadWriteCharacteristics()    
-            await this.sendReadFunctionRequest( rw.write, 0xFF, 0x1402, 0x08)
+            const rw =  await this.getReadWriteCharacteristics(device)    
+            await rw.read.startNotifications()
+            await this.sendReadFunctionRequest( rw.write, 0xFF, 0x0c, 0x08)
 
-            await readChar.startNotifications()
             rw.read.once('valuechanged', async (buffer) => {
-                rw.read.stopNotifications()
+                await rw.read.stopNotifications()
                 await device.disconnect()
-                if (buffer[2]!=0x10) resolve() //????
-                const model = buffer.subarray(3,15).toString().trim()
-                if (model.startsWith("RNG-BATT") || model.startsWith("RNGRBP"))
-                    resolve(this)           
-                else
-                    resolve()
+                if (buffer[2]!=0x10) 
+                    resolve() 
+                else {//????
+                    const model = buffer.subarray(3,15).toString().trim()
+                    if (model.startsWith("RNG-BATT") || model.startsWith("RNGRBP"))
+                        resolve(this)           
+                    else
+                        resolve()
+                }
             })
             
         } catch (error) {
@@ -33,11 +38,12 @@ class RenogyBattery extends RenogySensor {
   
     async init(){
         await super.init()
+        await this.device.connect()
         await this.readChar.startNotifications()
         this.numberOfCells = await this.retrieveNumberOfCells()
         this.deviceID = await this.retrieveDeviceID()
         await this.readChar.stopNotifications()
-
+        await this.device.disconnect()
         this.initMetadata()
     }
 

@@ -7,7 +7,7 @@ const RC=require("./Renogy/RenogyConstants.js")
 class RenogyInverter extends RenogySensor {
 
     
-    static async identify(device){
+    static async __identify(device){
         return new Promise( async ( resolve, reject )=>{
             if (!await super.identify(device)) 
                 resolve()

@@ -5,7 +5,7 @@
 const RenogySensor = require("./Renogy/RenogySensor.js");
 class RenogyBattery extends RenogySensor {
     
-    static async identify(device){
+    static async __identify(device){
         return new Promise( async ( resolve, reject )=>{
             if (!await super.identify(device)) 
                 resolve()
@@ -38,12 +38,8 @@ class RenogyBattery extends RenogySensor {
   
     async init(){
         await super.init()
-        await this.device.connect()
-        await this.readChar.startNotifications()
         this.numberOfCells = await this.retrieveNumberOfCells()
         this.deviceID = await this.retrieveDeviceID()
-        await this.readChar.stopNotifications()
-        await this.device.disconnect()
         this.initMetadata()
     }
 

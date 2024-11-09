@@ -33,7 +33,10 @@ class RenogySensor extends BTSensor{
         await writeCharacteristic.writeValueWithResponse(b,  0)
     
     }
-    static async identify(device){
+    static identify(device){
+        return null
+    }
+    static async __identify(device){
        
         const regex = new RegExp(String.raw`${this.ALIAS_PREFIX}-[A-Fa-f0-9]{8}$`);
         const name = await this.getDeviceProp(device,"Name")
@@ -59,6 +62,7 @@ class RenogySensor extends BTSensor{
 
         this.readChar = rw.read    
         this.writeChar = rw.write
+        await this.readChar.startNotifications()
         
     }
 
@@ -91,17 +95,18 @@ class RenogySensor extends BTSensor{
     }
 
     async initGATTNotifications(){
+        this.getAllEmitterFunctions().forEach(async (emitter)=>
+            await emitter()
+        )
         this.intervalID = setInterval(()=>{
-            this.getAllEmitterFunctions(async (emitter)=>
+            this.getAllEmitterFunctions().forEach(async (emitter)=>
                 await emitter()
             )
-        }, 1000*this?.refreshInterval??60 )
+        }, 1000*(this?.refreshInterval??60) )
     }
 
 
     async initGATTConnection() {
-        //this.device.connect() 
-        await this.readChar.startNotifications()
         return this  
     }
     usingGATT(){

@@ -7,34 +7,6 @@ const RC=require("./Renogy/RenogyConstants.js")
 class RenogyInverter extends RenogySensor {
 
     
-    static async __identify(device){
-        return new Promise( async ( resolve, reject )=>{
-            if (!await super.identify(device)) 
-                resolve()
-            else
-            try {
-            await device.connect()
-            const rw = await this.getReadWriteCharacteristics(device)
-            await this.sendReadFunctionRequest( rw.write, 0xFF, 0x10D7, 0x08)
-          
-            await rw.read.startNotifications()
-            rw.read.once('valuechanged', async (buffer) => {
-                rw.read.stopNotifications()
-                await device.disconnect()
-                if (buffer[2]!=0x10) resolve() //???
-                const model = buffer.subarray(3,15).toString().trim()
-                if (model.startsWith("RIV"))
-                    resolve(this)           
-                else
-                    resolve()
-            })
-            
-        } catch (error) {
-            reject(error.message)
-        }
-        })
-    }
-  
     async init(){
         await super.init()
         this.initMetadata()
@@ -55,7 +27,6 @@ class RenogyInverter extends RenogySensor {
             (buffer)=>{return buffer.readUInt16BE(11)/100})
         this.addMetadatum('temperature','K','temperature',
             (buffer)=>{return (buffer.readUInt16BE(13)/10)+273.15})
-    
 
         this.addMetadatum('solarVoltage','V', 'solar voltage',
             (buffer)=>{return buffer.readUInt16BE(3)/10})
@@ -129,9 +100,9 @@ class RenogyInverter extends RenogySensor {
     }
     getAllEmitterFunctions(){
         return [
-            this.getAndEmitInverterLoad, 
-            this.getAndEmitInverterStats, 
-            this.getAndEmitSolarCharging]
+            this.getAndEmitInverterLoad.bind(this), 
+            this.getAndEmitInverterStats.bind(this), 
+            this.getAndEmitSolarCharging.bind(this)]
     }
     async initGATTConnection() {
         await super.initGATTConnection()

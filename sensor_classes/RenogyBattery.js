@@ -5,36 +5,7 @@
 const RenogySensor = require("./Renogy/RenogySensor.js");
 class RenogyBattery extends RenogySensor {
     
-    static async __identify(device){
-        return new Promise( async ( resolve, reject )=>{
-            if (!await super.identify(device)) 
-                resolve()
-            else
-            try {
-            await device.connect()
-            const rw =  await this.getReadWriteCharacteristics(device)    
-            await rw.read.startNotifications()
-            await this.sendReadFunctionRequest( rw.write, 0xFF, 0x0c, 0x08)
-
-            rw.read.once('valuechanged', async (buffer) => {
-                await rw.read.stopNotifications()
-                await device.disconnect()
-                if (buffer[2]!=0x10) 
-                    resolve() 
-                else {//????
-                    const model = buffer.subarray(3,15).toString().trim()
-                    if (model.startsWith("RNG-BATT") || model.startsWith("RNGRBP"))
-                        resolve(this)           
-                    else
-                        resolve()
-                }
-            })
-            
-        } catch (error) {
-            reject(error.message)
-        }
-        })
-    }
+    
   
     async init(){
         await super.init()
@@ -44,9 +15,9 @@ class RenogyBattery extends RenogySensor {
     }
 
     async getAllEmitterFunctions(){
-        return [this.getAndEmitBatteryInfo, 
-                this.getAndEmitCellTemperatures, 
-                this.getAndEmitCellVoltages]
+        return [this.getAndEmitBatteryInfo.bind(this), 
+                this.getAndEmitCellTemperatures.bind(this), 
+                this.getAndEmitCellVoltages.bind(this)]
     }
     initMetadata(){
 

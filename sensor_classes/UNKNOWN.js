@@ -1,5 +1,7 @@
 const BTSensor = require("../BTSensor");
 class UNKNOWN extends BTSensor{
+    static isSystem = true
+
     static identify(device){
         return null
     }

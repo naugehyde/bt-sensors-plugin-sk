@@ -606,7 +606,7 @@ class BTSensor extends EventEmitter {
     NaNif(v1,v2) {  return this.constructor.NaNif(v1,v2) }
 
     valueIfVariant(obj){
-        if (obj.constructor && obj.constructor.name=='Variant') 
+        if (obj?.constructor && obj.constructor.name=='Variant') 
             return obj.value
         else
             return obj

@@ -160,7 +160,7 @@ module.exports =  function (app) {
 	function loadClassMap() {
 		const _classMap = utilities_sk.loadClasses(path.join(__dirname, 'sensor_classes'))
 		classMap = new Map([..._classMap].filter(([k, v]) => !k.startsWith("_") ))
-		classMap.get('UNKNOWN').classMap=classMap // share the classMap with Unknown for configuration purposes
+		classMap.get('UNKNOWN').classMap=new Map([...classMap].filter(([k, v]) => !v.isSystem )) // share the classMap with Unknown for configuration purposes
 
 	}
 
@@ -323,6 +323,7 @@ module.exports =  function (app) {
 				s.stopListening()
 
 			app.debug(`Unable to communicate with device ${deviceNameAndAddress(config)} Reason: ${e?.message??e}`)
+			app.debug(e)
 			reject( e?.message??e )	
 		})})
 	}

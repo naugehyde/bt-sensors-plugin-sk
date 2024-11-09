@@ -111,12 +111,17 @@ class RenogyRoverClient extends RenogySensor {
 
     async getAndEmitChargeInfo(){
         return new Promise( async ( resolve, reject )=>{
-            this.sendReadFunctionRequest(0x1000, 0x22)
+            try {
+                this.sendReadFunctionRequest(0x1000, 0x22)
 
-            this.readChar.once('valuechanged', buffer => {
-                emitValuesFrom(buffer)
-                resolve(this)
-            })
+                this.readChar.once('valuechanged', buffer => {
+                    this.emitValuesFrom(buffer)
+                    resolve(this)
+                })
+                                
+            } catch (error) {
+                reject(error?.message??error)
+            }
         })
     }
     

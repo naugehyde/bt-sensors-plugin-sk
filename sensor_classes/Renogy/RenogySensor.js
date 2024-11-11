@@ -36,17 +36,6 @@ class RenogySensor extends BTSensor{
     static identify(device){
         return null
     }
-    static async __identify(device){
-       
-        const regex = new RegExp(String.raw`${this.ALIAS_PREFIX}-[A-Fa-f0-9]{8}$`);
-        const name = await this.getDeviceProp(device,"Name")
-       
-        if (!(name && name.trim().match(regex))){
-            return null
-        }
-        return this
-        
-    }
 
     async init(){
         await super.init()

@@ -154,8 +154,8 @@ module.exports =  function (app) {
 		classMap = utilities_sk.loadClasses(path.join(__dirname, 'sensor_classes'))
 	}
 
-	app.debug(`Loading plugin ${packageInfo.version}`)	
-
+	app.debug(`Loading plugin ${packageInfo.version}`)
+	
 	plugin.schema = {			
 		type: "object",
 		description: "NOTE: \n 1) Plugin must be enabled to configure your sensors. \n"+
@@ -412,11 +412,11 @@ module.exports =  function (app) {
 		adapter = await bluetooth.getAdapter(app.settings?.btAdapter??adapterID)
 		await startScanner()
 		if (starts>0){
-			app.debug('Plugin restarting...');
+			app.debug(`Plugin ${packageInfo.version} restarting...`);
 			if (plugin.schema.properties.peripherals.items.dependencies)
 				plugin.schema.properties.peripherals.items.dependencies.mac_address.oneOf=[]
 		} else {
-			app.debug(`Loading plugin ${packageInfo.version} started` )
+			app.debug(`Plugin ${packageInfo.version} started` )
 			
 		}
 		starts++

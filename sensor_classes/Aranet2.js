@@ -7,16 +7,16 @@ class Aranet2 extends AranetSensor{
     static async identify(device){
         const name = await this.getDeviceProp(device,"Name")
         
-        if ((await super.identify(device)!=null) && name.startsWith("ARANET2")) {
-            return this
+        if ((await super.identify(device)!=null) && 
+            name.toLowerCase().startsWith("aranet2")) {
+            console.log("Aranet2 not currently supported")
+            return null //not supported for now
         }
     }
     async init() {
         await super.init()
         this.initMetadata()
     }
-
-
 
     initMetadata(){
             this.addMetadatum('c02', '',  'c02 concentration',

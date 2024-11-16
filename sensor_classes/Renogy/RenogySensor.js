@@ -46,7 +46,6 @@ class RenogySensor extends BTSensor{
         md.isParam = true
 
         await this.device.connect()
-        this.debug(`${this.getName()} connected.`)
         const rw = await this.constructor.getReadWriteCharacteristics(this.device)
 
         this.readChar = rw.read    

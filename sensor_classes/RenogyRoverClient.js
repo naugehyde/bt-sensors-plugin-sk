@@ -11,6 +11,7 @@ class RenogyRoverClient extends RenogySensor {
     async init(){
         await super.init()
         this.initMetadata()
+        this.modelID=await this.retrieveModelID()
     }
 
     initMetadata(){
@@ -24,9 +25,9 @@ class RenogyRoverClient extends RenogySensor {
         this.addMetadatum('batteryCurrent', 'A', 'battery current',
             (buffer)=>{return buffer.readUInt16BE((7))/100})
         this.addMetadatum('controllerTemperature', 'K', 'controller temperature',
-            (buffer)=>{return buffer.readInt8((9))-128+273.15})
+            (buffer)=>{return buffer.readInt8((9))+273.15})
         this.addMetadatum('batteryTemperature', 'K', 'battery temperature',
-            (buffer)=>{return buffer.readInt8((10))-128+273.15})
+            (buffer)=>{return buffer.readInt8((10))+273.15})
         this.addMetadatum('loadVoltage', 'V', 'load voltage',
             (buffer)=>{return buffer.readUInt16BE((11))/10})
         this.addMetadatum('loadCurrent',  'A', 'load current',
@@ -103,8 +104,8 @@ class RenogyRoverClient extends RenogySensor {
         this.batteryType = await this.retrieveBatteryType()
         this.emit('batteryType', this.batteryType)
         this.deviceID = await this.retrieveDeviceID()
-        this.emit('deviceID', this.deviceID)
-        this.modelID = await this.retrieveModelID()
+        //this.emit('deviceID', this.deviceID)
+        //this.modelID = await this.retrieveModelID()
         
     }
 

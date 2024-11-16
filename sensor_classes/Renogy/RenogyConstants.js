@@ -22,7 +22,7 @@ LOAD_STATE: {
 },
 
 BATTERY_TYPE: {
-    1: 'open',
+    1: 'flooded/open',
     2: 'sealed',
     3: 'gel',
     4: 'lithium',

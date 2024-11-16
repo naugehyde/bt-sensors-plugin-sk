@@ -1,5 +1,6 @@
 const BTSensor = require("../BTSensor");
 class BLACKLISTED extends BTSensor{
+    static isSystem = true
     static async identify(device){
         if (await this.getManufacturerID(device)===0x004C)   //apple devices use 
             return this                                     //randomised macs and clog up our list

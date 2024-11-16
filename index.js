@@ -111,8 +111,17 @@ module.exports =  function (app) {
 			app.setPluginError(msg)
 		}
 		//if we're here ain't got no class for the device
-		const sensor = new (classMap.get('UNKNOWN'))(device)
-		await sensor.init()
+		var sensor
+		if (config.params?.sensorClass){
+			const c = classMap.get(config.params.sensorClass)
+			c.debug=app.debug
+			sensor = new c(device,config?.params, config?.gattParams)
+			sensor.debug=app.debug
+			await sensor.init()
+		} else{
+			sensor = new (classMap.get('UNKNOWN'))(device)
+			await sensor.init()
+		}
 		return sensor
 	}
 
@@ -151,7 +160,10 @@ module.exports =  function (app) {
   	}  
 
 	function loadClassMap() {
-		classMap = utilities_sk.loadClasses(path.join(__dirname, 'sensor_classes'))
+		const _classMap = utilities_sk.loadClasses(path.join(__dirname, 'sensor_classes'))
+		classMap = new Map([..._classMap].filter(([k, v]) => !k.startsWith("_") ))
+		classMap.get('UNKNOWN').classMap=new Map([...classMap].filter(([k, v]) => !v.isSystem )) // share the classMap with Unknown for configuration purposes
+
 	}
 
 	app.debug(`Loading plugin ${packageInfo.version}`)
@@ -310,8 +322,10 @@ module.exports =  function (app) {
 		})
 		.catch((e)=>{
 			if (s)
-				s.stopListening()		
+				s.stopListening()
+
 			app.debug(`Unable to communicate with device ${deviceNameAndAddress(config)} Reason: ${e?.message??e}`)
+			app.debug(e)
 			reject( e?.message??e )	
 		})})
 	}

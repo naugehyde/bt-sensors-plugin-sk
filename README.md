@@ -1,5 +1,16 @@
 # Bluetooth Sensors for [Signal K](http://www.signalk.org)
 
+## BETA 2.2.0
+
+### What's New
+Support for Aranet4 environment sensor and Renogy Rover/Wanderer Controllers. Untested support for Renogy Battery and Inverter clients. If you have a Renogy Battery or Inverter with bluetooth support, please give it a try and let me know how it goes. 
+
+### RENOGY NOTES 
+
+The class of Renogy Devices cannot be reliably identified from their Bluetooth advertisements. <br>
+
+On the plugin config page, You will need to select the device from the Device dropdown, then select the appropriate class from the Class dropdown. After that, you will need to hit the Submit button. On restart of the plugin, the plugin should recognize the device. If you've selected the appropriate class (RenogyRoverClient for example), you should see configs for paths. <br>
+
 
 ## WHAT IT IS
 

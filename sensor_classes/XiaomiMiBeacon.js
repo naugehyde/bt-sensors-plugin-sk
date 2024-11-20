@@ -166,6 +166,9 @@ class XiaomiMiBeacon extends BTSensor{
         if (this.usingGATT()) return
         const data = this.getServiceData(this.constructor.SERVICE_MIBEACON)
         var dec
+        if (!this.encryptionKey){
+            throw new Error(`${this.getNameAndAddress()} requires an encryption key.`)
+        }
         if (this.encryptionVersion >= 4) {
             dec = this.decryptV4and5(data)
         } else {

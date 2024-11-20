@@ -64,7 +64,7 @@ function sleep(x) {
 
     decrypt(data){
         if (!this.encryptionKey)
-            throw Error("Unable to decrypt: no encryption key set")
+            throw new Error("Unable to decrypt: no encryption key set")
 
         const encMethod = 'aes-128-ctr';
         const iv = data.readUInt16LE(5); 

@@ -1,6 +1,6 @@
 {
   "name": "bt-sensors-plugin-sk",
-  "version": "1.1.0-beta.2.2.0",
+  "version": "1.1.0-beta.2.2.0.1",
   "description": "Bluetooth Sensors for Signalk -- support for Victron devices, RuuviTag, Xiaomi, ATC and Inkbird, Ultrasonic wind meters, Mopeka tank readers, Renogy Battery and Solar Controllers (new), Aranet4 environment sensors, and Govee GVH51xx temp sensors",
   "main": "index.js",
   "dependencies": {

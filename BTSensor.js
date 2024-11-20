@@ -374,16 +374,21 @@ class BTSensor extends EventEmitter {
      * NOTE: The function mucks about with node-ble internal functions to help make sure the
      * DBUS connection stays alive, doesn't tax resources and doesn't spit out spurious errors.
      */
-     initPropertiesChanged(){
+    initPropertiesChanged(){
 
         this.propertiesChanged.bind(this)
         this.device.helper._prepare()
         this.device.helper.on("PropertiesChanged",
             ((props)=> {
-                this.propertiesChanged(props)
+                try{
+                    this.propertiesChanged(props)
+                }
+                catch(error){
+                    this.debug(`Error occured on ${this.getNameAndAddress()}: ${error?.message??error}`)
+                    this.debug(error)
+                }
             }))
      }
-
     //END instance initialization functions
 
     //Metadata functions
@@ -569,8 +574,12 @@ class BTSensor extends EventEmitter {
 
 
     listen(){
-        this.initPropertiesChanged()       
-        this.propertiesChanged(this.currentProperties)
+        try{
+            this.initPropertiesChanged()       
+            this.propertiesChanged(this.currentProperties)
+        } catch(e){
+            this.debug(e)
+        }
         if (this.usingGATT()){
             this.initGATTConnection().then(async ()=>{
                 this.emitGATT()

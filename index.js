@@ -102,6 +102,8 @@ module.exports =  function (app) {
 				const sensor = new c(device,config?.params, config?.gattParams)
 				sensor.debug=app.debug
 				await sensor.init()
+				app.debug(`instantiated ${await BTSensor.getDeviceProp(device,"Address")}`)
+				
 				return sensor
 			}
 		}} catch(error){
@@ -358,13 +360,16 @@ module.exports =  function (app) {
 			createSensor(adapter, deviceConfig).then((sensor)=>{
 				deviceConfig.sensor=sensor
 				if (deviceConfig.active) {
-					createPaths(deviceConfig)
-					initPaths(deviceConfig)
+					if (deviceConfig.paths){
+						createPaths(deviceConfig)
+						initPaths(deviceConfig)
+					}
 					const result = Promise.resolve(deviceConfig.sensor.listen())
 					result.then(() => {
 						app.debug(`Listening for changes from ${deviceConfig.sensor.getDisplayName()}`);
 						app.setPluginStatus(`Initial scan complete. Listening to ${++found} sensors.`);
 					})
+
 				}
 
 			})

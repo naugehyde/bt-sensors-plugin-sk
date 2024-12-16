@@ -2,10 +2,13 @@ const BTSensor = require("../BTSensor");
 class BLACKLISTED extends BTSensor{
     static isSystem = true
     static async identify(device){
-        if (await this.getManufacturerID(device)===0x004C)   //apple devices use 
-            return this                                     //randomised macs and clog up our list
-        else
-            return null
+        const md = await this.getDeviceProp(device,'ManufacturerData')
+        if (md){
+            const keys = Object.keys(md)
+            if (keys.length==1 && keys[0]==0x004C)
+                return this
+        }
+        return null
     }
     async init(){
         await super.init()
@@ -13,7 +16,7 @@ class BLACKLISTED extends BTSensor{
     }
     reasonForBlacklisting() {
         switch ( this.getManufacturerID()){
-            case (0x004C): return "Randomized MAC address"
+            case (0x004C): return "Randomized MAC address (Apple)"
             case (0x02e1): return "Device is using VE.Smart" //NOTE: Victron/VictronSensor class 
                                                              //determines if a device is using VE.Smart
                                                              //in identify(). If so, identify() returns

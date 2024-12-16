@@ -1,4 +1,4 @@
-const BTSensor = require("../BTSensor");
+const BTSensor = require("bt-sensors-plugin-sk/BTSensor");
 function decodeTempHumid(tempHumidBytes) {
     // Convert the bytes to a 24-bit integer
     const baseNum = (tempHumidBytes[0] << 16) + (tempHumidBytes[1] << 8) + tempHumidBytes[2];
@@ -18,10 +18,10 @@ function decodeTempHumid(tempHumidBytes) {
       return {t: tempAsFloat, h: humid};
     }
   }
-class GoveeTH extends BTSensor{
+class GoveeH510x extends BTSensor{
 
     static async  identify(device){
-        const regex = /^GVH5[0-9]{3}_[a-f,A-F,0-9]{4}$/
+        const regex = /^GVH510[0-9]_[a-f,A-F,0-9]{4}$/
         const name = await this.getDeviceProp(device,"Name")
         const uuids = await this.getDeviceProp(device,'UUIDs')
 
@@ -64,4 +64,4 @@ class GoveeTH extends BTSensor{
         }
    }                         
 }
-module.exports=GoveeTH
+module.exports=GoveeH510x

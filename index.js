@@ -176,7 +176,7 @@ module.exports =  function (app) {
 		"2) You will have to wait until the scanner has found your device before seeing your device's config fields and saving the configuration. \n"+
 		"3) To refresh the list of available devices and their configurations, just open and close the config screen by clicking on the arrow symbol in the config's top bar. \n"+
 		"4) If you submit and get errors it may be because the configured devices have not yet all been discovered.",
-		required:["discoveryTimeout", "discoveryInterval"],
+		required:["adapter","discoveryTimeout", "discoveryInterval"],
 		properties: {
 			adapter: {title: "Bluetooth adapter",
 				type: "string", default: "hci0"},

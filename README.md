@@ -1,8 +1,16 @@
 # Bluetooth Sensors for [Signal K](http://www.signalk.org)
 
+## BETA 2.2.1
+
+### What's New
+
+GoveeH50xx sensor support. Selectable bluetooth adapter on config screen (in case you have more than bluetooth adapter on your server).
+
+
 ## BETA 2.2.0
 
 ### What's New
+
 Support for Aranet4 environment sensor and Renogy Rover/Wanderer Controllers. Untested support for Renogy Battery and Inverter clients. If you have a Renogy Battery or Inverter with bluetooth support, please give it a try and let me know how it goes. 
 
 ### RENOGY NOTES 
@@ -30,7 +38,7 @@ Signalk users with a Linux boat-puter (Windows and MacOS are NOT currently suppo
 
 ## REQUIREMENTS
 
-* A Linux Signalk boat-puter with System-D (NOTE: Most Linux installations support System-D)
+* A Linux Signalk boat-puter with bluetooth-DBUS support 
 * A Bluetooth adapter
 * [Bluez](https://www.bluez.org) installed
 (Go here for [Snap installation instructions](https://snapcraft.io/bluez))
@@ -57,6 +65,7 @@ If you want to install directly from source (this is mostly of interest to custo
   git clone https://github.com/naugehyde/bt-sensors-plugin-sk
   cd bt-sensors-plugin-sk
   git switch '1.1.0'
+  git pull
   npm i
   [sudo] npm link
   cd [signalk_home] 

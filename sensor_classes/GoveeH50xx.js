@@ -1,19 +1,20 @@
-const BTSensor = require("bt-sensors-plugin-sk/BTSensor");
+const BTSensor = require("../BTSensor");
 
-class GoveeH50xx extends BTSensor{
+class GoveeH50xx extends  BTSensor {
 
     static async  identify(device){
         const regex = /^Govee_H50[0-9]{2}_[a-f,A-F,0-9]{4}$/
+        //this.getManufacturer()
         const name = await this.getDeviceProp(device,"Name")
         const uuids = await this.getDeviceProp(device,'UUIDs')
-
+ 
         if (name && name.match(regex) && 
             uuids && uuids.length > 0 && 
             uuids[0] == '0000ec88-0000-1000-8000-00805f9b34fb')
             return this
         else
             return null
-        
+        t
     }
 
     async init(){

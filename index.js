@@ -178,6 +178,9 @@ module.exports =  function (app) {
 		"4) If you submit and get errors it may be because the configured devices have not yet all been discovered.",
 		required:["discoveryTimeout", "discoveryInterval"],
 		properties: {
+			adapter: {title: "Bluetooth adapter",
+				type: "string", default: "hci0"},
+
 			discoveryTimeout: {title: "Default device discovery timeout (in seconds)", 
 				type: "integer", default: 30,
 				minimum: 10,
@@ -422,13 +425,32 @@ module.exports =  function (app) {
 		sensorMap.clear()
 		deviceConfigs=options?.peripherals??[]
 
+		
+
 		if (plugin.stopped) {
 			await sleep(5000) //Make sure plugin.stop() completes first			
 						  //plugin.start is called asynchronously for some reason
 						  //and does not wait for plugin.stop to complete
 			plugin.stopped=false
 		}
-		adapter = await bluetooth.getAdapter(app.settings?.btAdapter??adapterID)
+		var adapterID=options.adapter
+
+		if (!adapterID || adapterID==="")
+			adapterID = "hci0"
+
+		app.debug(`Connecting to bluetooth adapter ${adapterID}`);
+
+		const activeAdapters = await bluetooth.activeAdapters()
+		plugin.schema.properties.adapter.enum=[]
+		plugin.schema.properties.adapter.enumNames=[]
+		for (a of activeAdapters){
+			plugin.schema.properties.adapter.enum.push(a.adapter)
+			plugin.schema.properties.adapter.enumNames.push(`${a.adapter} @ ${ await a.getAddress()} (${await a.getName()})`)
+		}
+
+		plugin.uiSchema.adapter={'ui:disabled': (activeAdapters.length==1)}
+
+		adapter = await bluetooth.getAdapter(adapterID)
 		await startScanner()
 		if (starts>0){
 			app.debug(`Plugin ${packageInfo.version} restarting...`);

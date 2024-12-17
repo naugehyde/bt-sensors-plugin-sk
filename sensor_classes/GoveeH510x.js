@@ -1,4 +1,4 @@
-const BTSensor = require("bt-sensors-plugin-sk/BTSensor");
+const BTSensor = require("../BTSensor");
 function decodeTempHumid(tempHumidBytes) {
     // Convert the bytes to a 24-bit integer
     const baseNum = (tempHumidBytes[0] << 16) + (tempHumidBytes[1] << 8) + tempHumidBytes[2];

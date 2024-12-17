@@ -227,7 +227,7 @@ class BTSensor extends EventEmitter {
         const _propsProxy = await this._getPropsProxy(device)
         try{
             const rawProps = await _propsProxy.Get(device.helper.iface,prop)
-            return rawProps?.value
+            return rawProps?.value 
         }
         catch(e){
             return null //Property $prop (probably) doesn't exist in $device

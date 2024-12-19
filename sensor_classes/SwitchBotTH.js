@@ -3,10 +3,8 @@ const BTSensor = require("../BTSensor");
 class SwitchBotTH extends  BTSensor {
     static async test(){
 
-        
-         this.getDeviceProp=async ()=>{
-            const p = {}
-            p[this.ID.toString()]=[0xd8, 0x35, 0x34, 0x38, 0x4f, 0x70, 0x07, 0x02, 0x04, 0x96, 0x2c, 0x00]
+        const p = {[this.ID.toString()]: [0xd8, 0x35, 0x34, 0x38, 0x4f, 0x70, 0x07, 0x02, 0x04, 0x96, 0x2c, 0x00]}
+        this.getDeviceProp=async ()=>{
             return p
         }
         const c = await this.identify()
@@ -15,10 +13,16 @@ class SwitchBotTH extends  BTSensor {
         sb.currentProperties={}
         sb.on("temp", (t)=>console.log(t))
         sb.on("humidity", (h)=>console.log(h))
-        sb.propertiesChanged( {ManufacturerData: await c.getDeviceProp()})
+        sb.on("battery", (b)=>console.log(b))
+
+        sb.propertiesChanged( {ManufacturerData: p})
+        
+        sb.propertiesChanged( {ServiceData: {[this.batteryService]:[0x77,0x00,0x64]}})
+
     
     }
     static ID = 0x0969
+    static batteryService = "0000fd3d-0000-1000-8000-00805f9b34fb"
     static async  identify(device){
         const md = await this.getDeviceProp(device,'ManufacturerData')
         if (!md) return null 
@@ -45,6 +49,10 @@ class SwitchBotTH extends  BTSensor {
         
             (buffer)=>{return (buffer[10] & 0x7F)/100    
         })
+        
+        this.addMetadatum("battery", "ratio", "battery strength",
+            (buffer)=>{return buffer[2]/100}
+         )
     }
 
     getManufacturer(){
@@ -58,8 +66,15 @@ class SwitchBotTH extends  BTSensor {
         if (props.ManufacturerData) {
             const buffer = this.getManufacturerData(this.constructor.ID)
             if (buffer) {
-               this.emitValuesFrom(buffer)
+                this.emitData("temp", buffer)
+                this.emitData("humidity", buffer)
             }      
+        }
+        if (props.ServiceData) {
+            const buffer = this.getServiceData(this.constructor.batteryService)
+            if (buffer){
+                this.emitData("battery", buffer)
+            }
         }
    }                         
 }

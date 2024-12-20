@@ -88,7 +88,7 @@ function sleep(x) {
     propertiesChanged(props){
         super.propertiesChanged(props)
         if (this.usingGATT()) return
-        
+        if (!props.hasOwnProperty("ManufacturerData")) return
         try{
             const md = this.getManufacturerData(0x2e1)
             if (md && md.length && md[0]==0x10){

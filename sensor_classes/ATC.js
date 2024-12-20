@@ -51,6 +51,8 @@ class ATC extends BTSensor{
     }
     propertiesChanged(props){
         super.propertiesChanged(props)    
+        if (!props.hasOwnProperty("ServiceData")) return
+
         const buff = this.getServiceData("0000181a-0000-1000-8000-00805f9b34fb")
         if (!buff)
             throw new Error("Unable to get service data for "+this.getDisplayName())

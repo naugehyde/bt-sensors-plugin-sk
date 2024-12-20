@@ -56,12 +56,12 @@ class GoveeH510x extends BTSensor{
     }
     async propertiesChanged(props){
         super.propertiesChanged(props)    
-        if (props.ManufacturerData) {
-            const buffer = this.getManufacturerData(0x0001)
-            if (buffer) {
-               this.emitValuesFrom(buffer)
-            }      
-        }
+        if (!props.hasOwnProperty("ManufacturerData")) return
+
+        const buffer = this.getManufacturerData(0x0001)
+        if (buffer) {
+            this.emitValuesFrom(buffer)
+        }      
    }                         
 }
 module.exports=GoveeH510x

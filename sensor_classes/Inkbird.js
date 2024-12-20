@@ -27,6 +27,7 @@ class Inkbird extends BTSensor{
     }
     async propertiesChanged(props){
         super.propertiesChanged(props)    
+        
         if (props.ManufacturerData) {
             const keys = Object.keys(this.currentProperties.ManufacturerData) 
             const key = keys[keys.length-1]

@@ -34,7 +34,9 @@ class Aranet2 extends AranetSensor{
         
     }
     propertiesChanged(props){
-        super.propertiesChanged(props)    
+        super.propertiesChanged(props)
+        if (!props.hasOwnProperty("ManufacturerData")) return
+
         const buff = this.getManufacturerData(0x0702)
         this.emitData("temp", buff)
         this.emitData("humidity", buff)

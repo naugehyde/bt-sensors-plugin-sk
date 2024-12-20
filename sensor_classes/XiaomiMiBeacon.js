@@ -1,7 +1,7 @@
-const { throws } = require("assert");
 const BTSensor = require("../BTSensor");
 
 const crypto = require('crypto');
+const util = require('util');
 const { isGeneratorFunction } = require("util/types");
 
 const DEVICE_TYPES = new Map([
@@ -96,7 +96,7 @@ class XiaomiMiBeacon extends BTSensor{
     
     emitValues(buffer){
         this.emitData("temp", buffer, 0)
-        this.emitData("humidity", buffer,2)
+        this.emit("humidity", buffer.readUInt8(2)/100)
         this.emitData("voltage",buffer,3);
     }
     getManufacturer(){
@@ -164,6 +164,8 @@ class XiaomiMiBeacon extends BTSensor{
     propertiesChanged(props){
         super.propertiesChanged(props)
         if (this.usingGATT()) return
+        if (!props.hasOwnProperty("ServiceData")) return
+        
         const data = this.getServiceData(this.constructor.SERVICE_MIBEACON)
         var dec
         if (!this.encryptionKey){
@@ -180,14 +182,22 @@ class XiaomiMiBeacon extends BTSensor{
             throw new Error(`${this.getNameAndAddress()} received empty decrypted packet. Check that the bind/encryption key in config is correct.`)
 
         switch(dec[0]){
+        case 0x0D:
+            this.emitData("temp",dec,3)  
+            this.emitData("humidity",dec,5)      
+            break    
+
+        case 0x0A:
+            this.emitData("batteryStrength",dec,3)
+            break
         case 0x04:    
-            this.emit("temp",(dec.readInt16LE(3)/10)+273.15)  
+            this.emitData("temp",dec,3)  
             break        
         case 0x06:
-            this.emit("humidity",(dec.readInt16LE(3)/1000))          
+            this.emitData("humidity",dec,3)          
             break
         default:
-            throw new Error(`${this.getNameAndAddress()} unable to parse decrypted service data (${dec})`)
+            throw new Error(`${this.getNameAndAddress()} unable to parse decrypted service data (${util.inspect(dec)})`)
             
         }
     }
@@ -197,8 +207,11 @@ class XiaomiMiBeacon extends BTSensor{
         const md = this.addMetadatum("encryptionKey", "", "encryptionKey (AKA bindKey) for decryption")
         md.isParam=true
         this.addMetadatum('temp','K', 'temperature',
-            (buff,offset)=>{return ((buff.readInt16LE(offset))/100) + 273.1})
+            (buff,offset)=>{return ((buff.readInt16LE(offset))/10) + 273.15})
         this.addMetadatum('humidity','ratio', 'humidity',
+            (buff,offset)=>{return buff.readInt16LE(offset)/1000})
+
+        this.addMetadatum('batteryStrength', 'ratio',  'sensor battery strength',
             (buff,offset)=>{return ((buff.readUInt8(offset))/100)})
         this.addMetadatum('voltage', 'V',  'sensor battery voltage',
             (buff,offset)=>{return ((buff.readUInt16LE(offset))/1000)})

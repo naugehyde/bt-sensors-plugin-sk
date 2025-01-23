@@ -19,12 +19,12 @@ class UltrasonicWindMeter extends BTSensor{
         )
         this.awsCharacteristic.readValue()
         .then((buffer)=>
-            this.emit("aws", buffer)
+            this.emitData("aws", buffer)
             
         )
         this.awaCharacteristic.readValue()
         .then((buffer)=>
-            this.emit("awa", buffer)   
+            this.emitData("awa", buffer)   
         )
 
     }

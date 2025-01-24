@@ -19,8 +19,7 @@ class UltrasonicWindMeter extends BTSensor{
         )
         this.awsCharacteristic.readValue()
         .then((buffer)=>
-            this.emitData("aws", buffer)
-            
+            this.emitData("aws", buffer)  
         )
         this.awaCharacteristic.readValue()
         .then((buffer)=>
@@ -30,13 +29,13 @@ class UltrasonicWindMeter extends BTSensor{
     }
     async init(){
         await super.init()
-        this.addMetadatum("batt","","Battery strength",
-            (buffer)=>{return buffer.readUInt8()})
-        this.addMetadatum("awa","","Apparent Wind Angle",
-            (buffer)=>{return buffer.readInt16LE()}
+        this.addMetadatum("batt","ratio","Battery strength",
+            (buffer)=>{return (buffer.readUInt8())/100})
+        this.addMetadatum("awa","rad","Apparent Wind Angle",
+            (buffer)=>{return (buffer.readInt16LE())/10000}
         )
-        this.addMetadatum("aws","","Apparent Wind Speed",
-        (buffer)=>{return buffer.readInt16LE()}
+        this.addMetadatum("aws","m/s","Apparent Wind Speed",
+        (buffer)=>{return (buffer.readInt16LE()/100)*.514444} //convert knots to m/s
         )
     }
 
@@ -85,7 +84,7 @@ class UltrasonicWindMeter extends BTSensor{
             this.awsCharacteristic=null
         }
         if (await this.device.isConnected()){
-               await this.device.disconnect()
+            await this.device.disconnect()
         }
     }
 }

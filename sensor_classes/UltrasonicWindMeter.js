@@ -32,7 +32,7 @@ class UltrasonicWindMeter extends BTSensor{
         this.addMetadatum("batt","ratio","Battery strength",
             (buffer)=>{return (buffer.readUInt8())/100})
         this.addMetadatum("awa","rad","Apparent Wind Angle",
-            (buffer)=>{return (buffer.readInt16LE())/10000}
+            (buffer)=>{return ((buffer.readInt16LE())/100)*(Math.PI/180)}
         )
         this.addMetadatum("aws","m/s","Apparent Wind Speed",
         (buffer)=>{return (buffer.readInt16LE()/100)*.514444} //convert knots to m/s

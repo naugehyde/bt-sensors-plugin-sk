@@ -10,6 +10,7 @@ class SwitchBotMeterPlus extends BTSensor{
 
     static ID = 0x0969
     static serviceDataKey = "0000fd3d-0000-1000-8000-00805f9b34fb"
+    static modelID = 0x69
 
     static async  identify(device){
         const md = await this.getDeviceProp(device,'ManufacturerData')
@@ -22,7 +23,7 @@ class SwitchBotMeterPlus extends BTSensor{
         const keys = Object.keys(md)
         if ( (keys && keys.length>0) && (sdKeys && sdKeys.length >0) ){
             const id = keys[keys.length-1]
-            if (parseInt(id)==this.ID && sdKeys[0] == this.serviceDataKey)
+            if (parseInt(id)==this.ID && md[id][0]==modelID && sdKeys[0] == this.serviceDataKey)
                return this
         }
         return null

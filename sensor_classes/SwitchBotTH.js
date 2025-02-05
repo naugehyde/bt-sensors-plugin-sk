@@ -22,6 +22,7 @@ class SwitchBotTH extends  BTSensor {
     
     }
     static ID = 0x0969
+    static modelID = 0x77
     static batteryService = "0000fd3d-0000-1000-8000-00805f9b34fb"
     static async  identify(device){
         const md = await this.getDeviceProp(device,'ManufacturerData')
@@ -29,7 +30,7 @@ class SwitchBotTH extends  BTSensor {
         const keys = Object.keys(md)
         if (keys && keys.length>0){
             const id = keys[keys.length-1]
-            if (parseInt(id)==this.ID && md[id].length==12)
+            if (parseInt(id)==this.ID && md[id].length==12 && md[id][0]==modelID)
                 return this
         } 
         return null

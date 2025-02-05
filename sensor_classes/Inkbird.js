@@ -32,12 +32,13 @@ class Inkbird extends BTSensor{
             const keys = Object.keys(this.currentProperties.ManufacturerData) 
             const key = keys[keys.length-1]
             const data = this.getManufacturerData(key)
+            const key_i = parseInt(key)
             if (!data)
                 throw new Error("Unable to get manufacturer data for "+this.getDisplayName())
-            this.emit("temp", parseFloat((273.15+parseInt(key)/100).toFixed(2))) ;
+            this.emit("temp", parseFloat((273.15+(key_i & 0x8000 ? key_i - 0x10000 : key_i)/100).toFixed(2))) ;
             this.emit('battery', data[5]/100)
             if (this.getMetadata().has('humidity')){
-                this.emit("temp", data.readUInt16LE(0)/100);
+                this.emit("humidity", data.readUInt16LE(0)/100);
             }
         }
    }                         

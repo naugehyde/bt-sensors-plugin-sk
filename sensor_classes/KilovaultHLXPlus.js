@@ -41,8 +41,13 @@ class KilovaultHLXPlus extends BTSensor{
     }
 
     static async identify(device){
-        const uuids = await this.getDeviceProp(device,'UUIDs')
-        if (uuids.includes("0000ffe0-0000-1000-8000-00805f9b34fb")) 
+        const regex = /^\d\d\-(12|24|36)00HLX\+\d{4}/
+	// This regex will match factory-assigned names (e.g. "21-2400HLX+0013").
+	// If you have renamed the battery, you will need to manually select the sensor
+	// type during configuration.
+
+        const name = await this.getDeviceProp(device,'Name')
+        if (name && name.match(regex))
             return this 
         else
             return null

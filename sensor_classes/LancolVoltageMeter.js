@@ -1,6 +1,6 @@
 const BTSensor = require("../BTSensor");
 
-class LancolVoltageReader extends BTSensor{
+class LancolVoltageMeter extends BTSensor{
 
     static async  identify(device){
 

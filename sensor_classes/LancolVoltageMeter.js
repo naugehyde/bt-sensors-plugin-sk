@@ -24,11 +24,10 @@ class LancolVoltageMeter extends BTSensor{
     }
     async propertiesChanged(props){
         super.propertiesChanged(props)    
-        const regex = /^[0-9]{1,3}\.[0-9]{1,2}V/
-        const name = await this.getDeviceProp(device,"Name")
-
         
         if (props.Name) {
+            const regex = /^[0-9]{1,3}\.[0-9]{1,2}V/
+            const name = await this.getDeviceProp(device,"Name")    
             this.emitData("voltage",parseFloat(name.match(regex)))
         }
    }                         

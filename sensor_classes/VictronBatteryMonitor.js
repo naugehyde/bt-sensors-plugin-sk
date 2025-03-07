@@ -78,13 +78,13 @@ class VictronBatteryMonitor extends VictronSensor{
                 break;
             case VC.AuxMode.MIDPOINT_VOLTAGE:
                 this.addMetadatum('midpointVoltage','V', 'midpoint battery voltage', 
-                    (buff,offset=0)=>{return buff.readInt16LE(offset)/100},
+                    (buff,offset=0)=>{return buff.readUInt16LE(offset)/100},
                     '6597ed7d-4bda-4c1e-af4b-551c4cf74769')
                 break;
 
             case VC.AuxMode.TEMPERATURE:
                 this.addMetadatum('temperature','K', 'House battery temperature', 
-                    (buff,offset=0)=>{return (buff.readInt16LE(offset)/1000)+273.15},
+                    (buff,offset=0)=>{return (buff.readUInt16LE(offset)/100)},
                     '6597ed7d-4bda-4c1e-af4b-551c4cf74769')
                 break;
             default:
@@ -114,7 +114,7 @@ class VictronBatteryMonitor extends VictronSensor{
         default:
             break
         }
-        this.emit("current", (this.NaNif(int24.readInt24LE(decData,  8)>>2,0x3FFFFF))/1000)  
+        this.emit("current", (this.NaNif(int24.readInt24LE(decData,  8)>>2,0x1FFFFF))/1000)  
         this.emit("consumed",(this.NaNif(int24.readInt24LE(decData, 11)&0xFFFFF,0xFFFFF)) / 10) ; 
         this.emit("soc", this.NaNif(((decData.readUInt16LE(13)& 0x3FFF)>>4),0x3FF)/1000)
         

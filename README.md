@@ -1,5 +1,11 @@
 # Bluetooth Sensors for [Signal K](http://www.signalk.org)
 
+## BETA 2.2.2
+### What's New
+Support for Lancol Battery Meters, Kilovault HLX+ smart batteries courtesy of [sdlee1963](https://github.com/sdlee1963) and baseline  support for BTHome devices as well as support for the ShellySBHT003C enviromental sensor courtesy of [Sebastian Haas](https://github.com/sebastianhaas) 
+
+Fixed incorrect reporting of Victron Battery Monitor -> aux temperature values. 
+
 ## BETA 2.2.1
 
 ### What's New
@@ -24,7 +30,7 @@ On the plugin config page, You will need to select the device from the Device dr
 
 BT Sensors Plugin for Signalk is a lightweight BLE (Bluetooth Low Energy) framework for listening and connecting to Bluetooth sensors on your boat and sending deltas to Signalk paths with the values the sensors reports. <br>
 
-The Plugin currently supports every documented Victron device (AC Charger, Battery Monitor, DC-DC Converter, DC Energy Meter, GX Device, Inverter, Inverter RS, Lynx Smart BMS, Orion XS, Smart Battery Protect, Smart Lithium and VE Bus),  Xiaomi devices, [ATC devices](https://github.com/atc1441/ATC_MiThermometer), RuuviTags and Inkbird thermometers.
+The Plugin currently supports every documented Victron device (AC Charger, Battery Monitor, DC-DC Converter, DC Energy Meter, GX Device, Inverter, Inverter RS, Lynx Smart BMS, Orion XS, Smart Battery Protect, Smart Lithium and VE Bus),  [Lancol Battery Meters ](https://www.lancol.com/product/12v-bluetooth-4-0-battery-tester-micro-10-c/), [Kilovault HLX+ smart batteries ](https://sunwatts.com/content/manual/KiloVault_HLX_PLUS_Datasheet_06252021%20%281%29.pdf?srsltid=AfmBOooY-cGnC_Qm6V1T9Vg5oZzBCJurS0AOGoWqWeyy-dwz2vA-l1Jb), Xiaomi devices, [ATC devices](https://github.com/atc1441/ATC_MiThermometer), RuuviTags, Renogy BMS, Ultrasonic Wind Meters, SwitchBotTH and Meterplus, Aranet 2/4 environmental sensors, Govee 50/51xx sensors, and Inkbird thermometers.
 
 A typical use case is a Bluetooth thermometer like the Xiaomi LYWSD03MMC, an inexpensive Bluetooth thermometer that runs on a 3V watch battery that can report the current temperature and humidity in your refrigerator or cabin or wherever you want to stick it (no judgement.) <br>
 

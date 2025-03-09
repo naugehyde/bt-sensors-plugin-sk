@@ -9,7 +9,7 @@ class BLACKLISTED extends BTSensor {
                 const buffer = new ArrayBuffer(23);
                 const md_array = new Uint8Array(buffer);
                 md_array.set(md[0x004c]);
-                if (md_array.slice(0,2) != 0x0215){ // iBeacons are exempt
+                if (md_array.slice(0,3) != 0x0215){ // iBeacons are exempt
                     return this;
                 }
             }

@@ -1,14 +1,20 @@
 const BTSensor = require("../BTSensor");
 
-class WGX_IBeacon extends BTSensor {
+class IBeacon extends BTSensor {
     static isSystem = true;
 
     static async identify(device) {
-        const appearance = await this.getDeviceProp(device, "Appearance");
-        if (appearance == 0x0240) {
-            return this;
-        }
+        const md = await this.getDeviceProp(device,'ManufacturerData');
+        if (md){
+            const buffer = new ArrayBuffer(23);
+            const md_array = new Uint8Array(buffer);
+            md_array.set(md[0x004c]);
+            if (md_array.slice(0,2) == 0x0215){
+                return this;
+            }
+            
         return null;
+        }
     }
 
     async init() {
@@ -29,8 +35,8 @@ class WGX_IBeacon extends BTSensor {
     }
 
     getManufacturer(){
-        return "WUHANXINXUSHENGDIANZISHANGWUYOUXIAN GONGSI";
+        return "Apple Inc. or clone";
     }
 }
 
-module.exports = WGX_IBeacon;
+module.exports = IBeacon;

@@ -3,15 +3,20 @@ class BLACKLISTED extends BTSensor {
     static isSystem = true;
     static async identify(device) {
         const md = await this.getDeviceProp(device, "ManufacturerData");
-        const ap = await this.getDeviceProp(device, "Appearance"); // For keyfinder with appearance 0x0240
         if (md) {
             const keys = Object.keys(md);
-            if (keys.length == 1 && keys[0] == 0x004c && ap != 0x0240) {
-                return this;
+            if (keys.length == 1 && keys[0] == 0x004c) {
+                const buffer = new ArrayBuffer(23);
+                const md_array = new Uint8Array(buffer);
+                md_array.set(md[0x004c]);
+                if (md_array.slice(0,2) != 0x0215){ // iBeacons are exempt
+                    return this;
+                }
             }
-        }
         return null;
+        }
     }
+
     async init() {
         await super.init();
         this.currentProperties.Name = `Unsupported device from ${this.getManufacturer()}`;

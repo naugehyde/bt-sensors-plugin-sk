@@ -19,7 +19,7 @@ class IBeacon extends BTSensor {
     }
 
     initMetadata(){
-        this.addMetadatum('battery','ratio', 'Battery Strength', (buffer)=>{return buffer[6]})
+        this.addMetadatum('battery','ratio', 'Battery charge state', (buffer)=>{return buffer[6]})
     }
 
     propertiesChanged(props){

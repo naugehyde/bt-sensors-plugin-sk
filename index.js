@@ -381,7 +381,8 @@ module.exports =  function (app) {
 					const msg =`Sensor at ${deviceConfig.mac_address} unavailable. Reason: ${error}`
 					app.debug(msg)
 					app.debug(error)
-					app.setPluginError(msg)
+					if (deviceConfig.active) 
+						app.setPluginError(msg)
 					deviceConfig.sensor=new MissingSensor(deviceConfig)
 					addSensorToList(deviceConfig.sensor) //add sensor to list with known options
 				

@@ -6,7 +6,7 @@ class IBeacon extends BTSensor {
     static async identify(device) {
         const md = await this.getDeviceProp(device,'ManufacturerData');
         if (md && Object.hasOwn(md, 0x004c)) {
-            if (md[0x004c].value[0] == 0x02 && md[0x004c].value[1] == 0x15) {
+            if (md[0x004c].value.slice(0,2).join() == [0x02, 0x15].join()) {
             return this
             }
         }

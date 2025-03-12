@@ -3,12 +3,9 @@ class BLACKLISTED extends BTSensor {
     static isSystem = true;
     static async identify(device) {
         const md = await this.getDeviceProp(device, "ManufacturerData");
-        if (md) {
-            const keys = Object.keys(md);
-            if (keys.length == 1 && keys[0] == 0x004c) {
-                if (md[0x004c].value[0] != 0x02 && md[0x004c].value[1] != 0x15){ // iBeacons are exempt
-                    return this;
-                }
+        if (md && Object.hasOwn(md, 0x004c)){
+            if (md[0x004c].value[0] != 0x02 && md[0x004c].value[1] != 0x15){ // iBeacons are exempt
+                return this;
             }
         return null;
         }

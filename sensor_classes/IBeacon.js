@@ -5,12 +5,12 @@ class IBeacon extends BTSensor {
 
     static async identify(device) {
         const md = await this.getDeviceProp(device,'ManufacturerData');
-        if (md){
-            if (md[0x004c].value[0] == 0x02 && md[0x004c].value[1] == 0x15){
-                return this;
-            } 
-        return null;
+        if (md && Object.hasOwn(md, 0x004c)) {
+            if (md[0x004c].value[0] == 0x02 && md[0x004c].value[1] == 0x15) {
+            return this
+            }
         }
+    return null
     }
 
     async init() {

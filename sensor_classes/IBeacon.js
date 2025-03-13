@@ -33,6 +33,10 @@ class IBeacon extends BTSensor {
     getManufacturer(){
         return "Apple Inc. or clone";
     }
+
+    getDescription(){
+        return `${this.getName()} iBeacon from Apple Inc. or a clone`
+    }
 }
 
 module.exports = IBeacon;

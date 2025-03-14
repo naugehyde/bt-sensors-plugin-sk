@@ -53,8 +53,10 @@ class MissingSensor  {
 	stopListening(){}
 	listen(){}
 }
-module.exports =  function (app) {
-	const adapterID = 'hci0'
+module.exports =   function (app) {
+	var adapterID = 'hci0'
+	
+
 	var deviceConfigs
 	var starts=0
 	var classMap
@@ -343,15 +345,19 @@ module.exports =  function (app) {
 	}
 
 	const sensorMap=new Map()
-	var adapter
+	
 	
 	plugin.started=false
 
 	loadClassMap()
 	var discoveryIntervalID
-
+	var adapter 
+	var adapterPower
 	plugin.start = async function (options, restartPlugin) {
-
+		plugin.started=true
+		
+		var adapterID=options.adapter
+		
 		function getDeviceConfig(mac){
 			return deviceConfigs.find((p)=>p.mac_address==mac) 
 		}	
@@ -421,12 +427,57 @@ module.exports =  function (app) {
 			discoveryIntervalID = setInterval( findDevices, discoveryInterval*1000, discoveryTimeout)
 		}
 	
-		plugin.started=true
+	
+		if (!adapterID || adapterID=="")
+			adapterID = "hci0"
+		//Check if Adapter has changed since last start()
+		if (adapter) {
+			const n = await adapter.getName()
+			if (n!=adapterID) {
+				adapter.helper.removeAllListeners()
+				adapter=null
+			}
+		}
+		//Connect to adapter
+
+		if (!adapter){
+			app.debug(`Connecting to bluetooth adapter ${adapterID}`);
+
+			adapter = await bluetooth.getAdapter(adapterID)
+
+			//Set up DBUS listener to monitor Powered status of current adapter
+
+			adapter.helper.options.usePropsEvents=true
+			adapter.helper._prepare()
+			adapter.helper.on('PropertiesChanged', async (changedProps) => {
+				if (Object.hasOwn(changedProps,"Powered")){
+					if (changedProps.Powered.value==false) {
+						if (plugin.started){ //only call stop() if plugin is started
+							app.setPluginStatus(`Bluetooth Adapter ${adapterID} turned off. Plugin disabled.`)
+							await plugin.stop()
+							adapterPower=false 
+						}
+					} else { 				
+						if (!adapterPower)	{ //only call start() once
+							adapterPower=true
+							await plugin.start(options,restartPlugin)
+						}
+					}
+				}
+			})
+			if (!await adapter.isPowered()) {
+				app.debug(`Bluetooth Adapter ${adapterID} not powered on.`)
+				app.setPluginError(`Bluetooth Adapter ${adapterID} not powered on.`)
+				adapterPower=false
+				await plugin.stop()
+				return
+			}
+		}
+		adapterPower=true
+	
 		plugin.uiSchema.peripherals['ui:disabled']=false
 		sensorMap.clear()
 		deviceConfigs=options?.peripherals??[]
-
-		
 
 		if (plugin.stopped) {
 			await sleep(5000) //Make sure plugin.stop() completes first			
@@ -434,12 +485,6 @@ module.exports =  function (app) {
 						  //and does not wait for plugin.stop to complete
 			plugin.stopped=false
 		}
-		var adapterID=options.adapter
-
-		if (!adapterID || adapterID==="")
-			adapterID = "hci0"
-
-		app.debug(`Connecting to bluetooth adapter ${adapterID}`);
 
 		const activeAdapters = await bluetooth.activeAdapters()
 		plugin.schema.properties.adapter.enum=[]
@@ -451,7 +496,7 @@ module.exports =  function (app) {
 
 		plugin.uiSchema.adapter={'ui:disabled': (activeAdapters.length==1)}
 
-		adapter = await bluetooth.getAdapter(adapterID)
+		
 		await startScanner()
 		if (starts>0){
 			app.debug(`Plugin ${packageInfo.version} restarting...`);
@@ -480,6 +525,7 @@ module.exports =  function (app) {
 	plugin.stop =  async function () {
 		app.debug("Stopping plugin")
 		plugin.stopped=true
+		plugin.started=false
 		plugin.uiSchema.peripherals['ui:disabled']=true
 		if ((sensorMap)){
 			plugin.schema.properties.peripherals.items.properties.mac_address.enum=[]

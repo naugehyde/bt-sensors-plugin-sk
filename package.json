@@ -5,7 +5,7 @@
   "main": "index.js",
   "dependencies": {
     "dbus-next": "^0.10.2",
-    "node-ble": "^1.12.0",
+    "node-ble": "^1.13.0",
     "int24":"^0.0.1",
     "kaitai-struct": "^0.10.0"
   },

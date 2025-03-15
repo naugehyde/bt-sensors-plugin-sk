@@ -340,12 +340,16 @@ module.exports =   function (app) {
 	async function startScanner() {
 		
 		app.debug("Starting scan...");
-		try{ await adapter.stopDiscovery() } catch(error){}
-		try{ await adapter.startDiscovery() } catch(error){}
+		//Use adapter.helper directly to get around Adapter::startDiscovery()
+		//filter options which can cause issues with Device::Connect() 
+		//turning off Discovery
+		try{ await adapter.helper.callMethod('StartDiscovery') } catch (error){	
+			app.debug(error)
+		}
+		
 	}
 
 	const sensorMap=new Map()
-	
 	
 	plugin.started=false
 
@@ -447,9 +451,8 @@ module.exports =   function (app) {
 
 			//Set up DBUS listener to monitor Powered status of current adapter
 
-			adapter.helper.options.usePropsEvents=true
-			adapter.helper._prepare()
-			adapter.helper.on('PropertiesChanged', async (changedProps) => {
+			await adapter.helper._prepare()
+			adapter.helper._propsProxy.on('PropertiesChanged', async (iface,changedProps,invalidated) => {
 				if (Object.hasOwn(changedProps,"Powered")){
 					if (changedProps.Powered.value==false) {
 						if (plugin.started){ //only call stop() if plugin is started

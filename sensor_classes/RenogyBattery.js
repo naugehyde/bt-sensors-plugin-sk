@@ -77,8 +77,8 @@ class RenogyBattery extends RenogySensor {
 
         
             this.readChar.once('valuechanged', (buffer) => {
-                ["current", "voltage", "remainingCharge", "capacity"].forEach(tag)
-                    this.emitData( tag, buffer )
+                ["current", "voltage", "remainingCharge", "capacity"].forEach((tag)=>
+                    this.emitData( tag, buffer ))
                 
                 resolve(this)
             })
@@ -87,7 +87,7 @@ class RenogyBattery extends RenogySensor {
     
     getAndEmitCellVoltages(){
         return new Promise( async ( resolve, reject )=>{
-            this.sendReadFunctionRequest(0x1388,0x11)
+            await this.sendReadFunctionRequest(0x1388,0x11)
 
             this.readChar.once('valuechanged', (buffer) => {
                 for (let i = 0; i++ ; i < this.numberOfCells) 
@@ -99,7 +99,7 @@ class RenogyBattery extends RenogySensor {
 
     getAndEmitCellTemperatures(){
         return new Promise( async ( resolve, reject )=>{
-            this.sendReadFunctionRequest(0x1399,0x22)
+            await this.sendReadFunctionRequest(0x1399,0x22)
 
             this.readChar.once('valuechanged', buffer => {
                 for (let i = 0; i++ ; i < this.numberOfCells) 

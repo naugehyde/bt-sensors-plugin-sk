@@ -63,8 +63,8 @@ class RenogyInverter extends RenogySensor {
             await this.sendReadFunctionRequest(0xfa0, 0x8)
         
             this.readChar.once('valuechanged', (buffer) => {
-                ["ueiVoltage","ueiCurrent", "voltage", "loadCurrent", "frequency","temperature"].forEach(tag)
-                    this.emitData( tag, buffer )
+                ["ueiVoltage","ueiCurrent", "voltage", "loadCurrent", "frequency","temperature"].forEach((tag)=>
+                    this.emitData( tag, buffer ))
                 
                 resolve(this)
             })
@@ -77,8 +77,8 @@ class RenogyInverter extends RenogySensor {
             await this.sendReadFunctionRequest(0x10e9, 0x5)
         
             this.readChar.once('valuechanged', (buffer) => {
-                ["solarVoltage","solarCurrent", "solarPower", "solarChargingStatus", "solarChargingPower"].forEach(tag)
-                    this.emitData( tag, buffer )
+                ["solarVoltage","solarCurrent", "solarPower", "solarChargingStatus", "solarChargingPower"].forEach((tag)=>
+                    this.emitData( tag, buffer ))
                 
                 resolve(this)
             })
@@ -91,8 +91,8 @@ class RenogyInverter extends RenogySensor {
             await this.sendReadFunctionRequest(0x113a, 0x2)
         
             this.readChar.once('valuechanged', (buffer) => {
-                ["loadPower", "chargingCurrent"].forEach(tag)
-                    this.emitData( tag, buffer )
+                ["loadPower", "chargingCurrent"].forEach((tag)=>
+                    this.emitData( tag, buffer ))
                 
                 resolve(this)
             })

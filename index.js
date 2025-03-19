@@ -10,7 +10,7 @@ const BTSensor = require('./BTSensor.js')
 const BLACKLISTED = require('./sensor_classes/BlackListedDevice.js')
 
 class MissingSensor  {
-	
+
 
 	constructor(config){
 		this.Metadatum = BTSensor.Metadatum
@@ -68,6 +68,8 @@ module.exports =   function (app) {
 	plugin.name = 'BT Sensors plugin';
 	plugin.description = 'Plugin to communicate with and update paths to BLE Sensors in Signalk';
 
+
+	
 	//Try and load utilities-sk NOTE: should be installed from App Store-- 
 	//But there's a fail safe because I'm a reasonable man.
 
@@ -164,10 +166,19 @@ module.exports =   function (app) {
   	}  
 
 	function loadClassMap() {
-		const _classMap = utilities_sk.loadClasses(path.join(__dirname, 'sensor_classes'))
-		classMap = new Map([..._classMap].filter(([k, v]) => !k.startsWith("_") ))
-		classMap.get('UNKNOWN').classMap=new Map([...classMap].filter(([k, v]) => !v.isSystem )) // share the classMap with Unknown for configuration purposes
-
+		import(app.config.appPath+"/lib/modules.js").then( (modulesjs)=>{
+			const _classMap = utilities_sk.loadClasses(path.join(__dirname, 'sensor_classes'))
+			classMap = new Map([..._classMap].filter(([k, v]) => !k.startsWith("_") ))
+			const { default:defaultExport} = modulesjs
+			const modules = defaultExport.modulesWithKeyword(app.config, "signalk-bt-sensor-class")
+			modules.forEach((module)=>{
+				module.metadata.classFiles.forEach((classFile)=>{
+					const cls = require(module.location+module.module+"/"+classFile);
+					classMap.set(cls.name, cls);
+				})
+			})
+			classMap.get('UNKNOWN').classMap=new Map([...classMap].sort().filter(([k, v]) => !v.isSystem )) // share the classMap with Unknown for configuration purposes
+		})
 	}
 
 	app.debug(`Loading plugin ${packageInfo.version}`)

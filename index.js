@@ -5,6 +5,8 @@ const packageInfo = require("./package.json")
 
 const {createBluetooth} = require('node-ble')
 const {bluetooth, destroy} = createBluetooth()
+const EventEmitter = require('node:events');
+
 
 const BTSensor = require('./BTSensor.js')
 const BLACKLISTED = require('./sensor_classes/BlackListedDevice.js')
@@ -105,6 +107,7 @@ module.exports =   function (app) {
 				c.debug=app.debug
 				const sensor = new c(device,config?.params, config?.gattParams)
 				sensor.debug=app.debug
+				sensor.app=app
 				await sensor.init()
 				app.debug(`instantiated ${await BTSensor.getDeviceProp(device,"Address")}`)
 				
@@ -123,47 +126,16 @@ module.exports =   function (app) {
 			c.debug=app.debug
 			sensor = new c(device,config?.params, config?.gattParams)
 			sensor.debug=app.debug
-			await sensor.init()
+			sensor.app=app
 		} else{
 			sensor = new (classMap.get('UNKNOWN'))(device)
-			await sensor.init()
+			sensor.app=app
 		}
+		await sensor.init()
 		return sensor
 	}
 
-	function createPaths(config){
-		config.sensor.getMetadata().forEach((metadatum, tag)=>{
-			if ((!(metadatum?.isParam)??false)){ //param metadata is passed to the sensor at 
-												 //create time through the constructor, and isn't a
-												 //a value you want to see in a path 
-				
-				const path = config.paths[tag]
-				if (!(path===undefined))
-					app.handleMessage(plugin.id, 
-					{
-					updates: 
-						[{ meta: [{path: path, value: { units: metadatum?.unit }}]}]
-					})
-			}
-			})
-	}
-
-	function initPaths(deviceConfig){
-		deviceConfig.sensor.getMetadata().forEach((metadatum, tag)=>{
-			const path = deviceConfig.paths[tag];
-			if (!(path === undefined))
-				deviceConfig.sensor.on(tag, (val)=>{
-					if (metadatum.notify){
-						app.notify(	tag, val, plugin.id )
-					} else {
-						updatePath(path,val)
-					}
-			})
-		})
-	}
-	function updatePath(path, val){
-		app.handleMessage(plugin.id, {updates: [ { values: [ {path: path, value: val }] } ] })
-  	}  
+	
 
 	function loadClassMap() {
 		import(app.config.appPath+"/lib/modules.js").then( (modulesjs)=>{
@@ -174,7 +146,9 @@ module.exports =   function (app) {
 			modules.forEach((module)=>{
 				module.metadata.classFiles.forEach((classFile)=>{
 					const cls = require(module.location+module.module+"/"+classFile);
+					cls.app=app
 					classMap.set(cls.name, cls);
+					
 				})
 			})
 			classMap.get('UNKNOWN').classMap=new Map([...classMap].sort().filter(([k, v]) => !v.isSystem )) // share the classMap with Unknown for configuration purposes
@@ -215,10 +189,8 @@ module.exports =   function (app) {
 					discoveryTimeout: {title: "Device discovery timeout (in seconds)", 
 						type: "integer", default:30,
 						minimum: 10,
-						maximum: 600 
-					}
-					}
-					
+						maximum: 600 }
+					}					
 				}
 			}
 		}
@@ -368,9 +340,10 @@ module.exports =   function (app) {
 	var discoveryIntervalID
 	var adapter 
 	var adapterPower
+
 	plugin.start = async function (options, restartPlugin) {
 		plugin.started=true
-		
+		app.registerResourceProvider(bluetoothManager)
 		var adapterID=options.adapter
 		
 		function getDeviceConfig(mac){
@@ -385,17 +358,14 @@ module.exports =   function (app) {
 				deviceConfig.sensor=sensor
 				if (deviceConfig.active) {
 					if (deviceConfig.paths){
-						createPaths(deviceConfig)
-						initPaths(deviceConfig)
+						sensor.createPaths(deviceConfig,plugin.id)
+						sensor.initPaths(deviceConfig,plugin.id)
 					}
-					const result = Promise.resolve(deviceConfig.sensor.listen())
-					result.then(() => {
-						app.debug(`Listening for changes from ${deviceConfig.sensor.getDisplayName()}`);
+					Promise.resolve(sensor.listen()).then(() => {
+						app.debug(`Listening for changes from ${sensor.getDisplayName()}`);
 						app.setPluginStatus(`Initial scan complete. Listening to ${++found} sensors.`);
 					})
-
 				}
-
 			})
 			.catch((error)=>
 				{
@@ -416,6 +386,7 @@ module.exports =   function (app) {
 				for (var mac of macs) {	
 					const deviceConfig = getDeviceConfig(mac)
 					const _mac = mac
+
 
 					if (deviceConfig && deviceConfig.sensor instanceof MissingSensor){
 						removeSensorFromList(deviceConfig.sensor)
@@ -464,6 +435,7 @@ module.exports =   function (app) {
 
 			await adapter.helper._prepare()
 			adapter.helper._propsProxy.on('PropertiesChanged', async (iface,changedProps,invalidated) => {
+				app.debug(changedProps)
 				if (Object.hasOwn(changedProps,"Powered")){
 					if (changedProps.Powered.value==false) {
 						if (plugin.started){ //only call stop() if plugin is started
@@ -523,7 +495,7 @@ module.exports =   function (app) {
 		starts++
 		if (!await adapter.isDiscovering())
 			try{
-				await adapter.startDiscovery()
+				await startScanner()
 			} catch (e){
 				app.debug(`Error starting scan: ${e.message}`)
 		}
@@ -570,6 +542,157 @@ module.exports =   function (app) {
 		app.debug('BT Sensors plugin stopped')
 
 	}
+	class BluetoothManager extends EventEmitter {
+		constructor(){
+			super()
+			this.type = 'bluetoothManager'
+			this.methods = { //Resource Provider "interface"
+				listResources: this.listResources,
+				getResource: this.getResource,
+				setResource: this.setResource,
+				deleteResource: this.deleteResource
+			}
+			this.bluetooth=createBluetooth()
+			this.adapters=new Map()
+		}
+		findDeviceLoop(adapterID, discoveryTimeout, discoveryInterval, immediate=true ){
+			if (immediate)
+				this.findDevices(adapterID, discoveryTimeout)
+			return setInterval( this.findDevices, discoveryInterval*1000, adapterID ,discoveryTimeout)
+		}
+
+		findDevices (adapterID, discoveryTimeout) {
+			const adapter=this.adapters.get(adapterID)
+			if (!adapter)
+				reject(`Adapter ${adapterID} not started or unavailable. Cannot start scan.`)
 	
+			app.setPluginStatus("Scanning for new Bluetooth devices...");
+
+			adapter.devices().then( (macs)=>{
+				for (var mac of macs) {	
+					emit("deviceFound", mac)
+				}
+			})
+		}
+		getAdapter( adapterID ){
+			const a = adapters.get(adapterID)
+			if (a) return a
+			return new Promise( ( resolve, reject )=>{
+				bluetooth.getAdapter(adapterID).then(async (adapter)=>{
+					adapters.set(adapterID, adapter)
+					await adapter.helper._prepare()
+					adapter.helper._propsProxy.on('PropertiesChanged', async (iface,changedProps,invalidated) => {
+						app.debug(changedProps)
+						if (Object.hasOwn(changedProps,"Powered")){
+							this.emit("adapterPower", adapter,changedProps.Powered.value )
+						}
+					})
+					resolve(adapter)
+				})
+				.catch((error)=>{
+					reject(`Unable to get adapter: ${error.message}`)
+				})
+			})
+		}
+
+		startScanner(adapterID){
+		//Use adapter.helper directly to get around Adapter::startDiscovery()
+		//filter options which can cause issues with Device::Connect() 
+		//turning off Discovery
+			return new Promise( ( resolve, reject )=>{
+				const adapter=this.adapters.get(adapterID)
+				if (!adapter)
+					reject(`Adapter ${adapterID} not started or unavailable. Cannot start scan.`)
+				adapter.helper.callMethod('StartDiscovery').then(()=>{
+					app.debug(`Scanner started ${adapter}`)
+				}) 
+
+				.catch ((error)=>{	
+					reject(error.message)
+				})
+			
+			})
+			
+		}
+				
+		listResources (params) { 
+		}
+		getResource (id, property) { 
+			if (!property) return this
+		}
+		setResource  (id, value ) {}	
+		deleteResource(id) {}
+
+		async instantiateSensor(cls, device, config){
+			try{
+				const sensor = new cls(device,config?.params, config?.gattParams)
+				sensor.debug=app.debug
+				sensor.app=app
+				await sensor.init()
+				app.debug(`instantiated ${await BTSensor.getDeviceProp(device,"Address")}`)
+				return sensor
+			}
+			catch(error){
+				const msg = `Unable to instantiate ${await BTSensor.getDeviceProp(device,"Address")}: ${error.message} `
+				app.debug(msg)
+				app.debug(error)
+				app.setPluginError(msg)
+				return null
+			}
+		}
+	
+		async createSensor(cls, adapter, config) {
+			return new Promise( ( resolve, reject )=>{
+			var s
+			
+			app.debug(`Waiting on ${deviceNameAndAddress(config)}`)
+			adapter.waitDevice(config.mac_address,config.discoveryTimeout*1000)
+			.then(async (device)=> { 
+				app.debug(`Found ${config.mac_address}`)
+		
+				resolve( await instantiateSensor(cls, device,config) 	)
+			})
+			.catch((e)=>{
+				app.debug(`Unable to communicate with device ${deviceNameAndAddress(config)} Reason: ${e?.message??e}`)
+				app.debug(e)
+				reject( e?.message??e )	
+			})})
+		}
+		
+		initConfiguredDevice(cls, deviceConfig){
+			return new Promise( ( resolve, reject )=>{
+				app.setPluginStatus(`Initializing ${deviceNameAndAddress(deviceConfig)}`);
+				if (!deviceConfig.discoveryTimeout)
+					deviceConfig.discoveryTimeout = options.discoveryTimeout
+				this.createSensor(cls, adapter, deviceConfig).then((sensor)=>{
+					if (deviceConfig.active) {
+						if (deviceConfig.paths){
+							sensor.createPaths(deviceConfig,plugin.id)
+							sensor.initPaths(deviceConfig,plugin.id)
+						}
+						Promise.resolve(sensor.listen()).then(() => {
+							app.debug(`Listening for changes from ${sensor.getDisplayName()}`);
+							app.setPluginStatus(`Initial scan complete. Listening to ${++found} sensors.`);
+						})
+					}
+					resolve(sensor)
+
+				})
+				.catch((error)=>
+					{
+						const msg =`Sensor at ${deviceConfig.mac_address} unavailable. Reason: ${error}`
+						app.debug(msg)
+						app.debug(error)
+						if (deviceConfig.active) 
+							app.setPluginError(msg)
+						resolve( new MissingSensor(deviceConfig))
+
+						//addSensorToList(deviceConfig.sensor) //add sensor to list with known options
+					
+					})
+			}
+		)}
+	}
+	const bluetoothManager = new BluetoothManager()
 	return plugin;
 }

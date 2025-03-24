@@ -622,6 +622,40 @@ class BTSensor extends EventEmitter {
         
     }
     //End instance utility functions
+
+     createPaths(config, id){
+		this.getMetadata().forEach((metadatum, tag)=>{
+			if ((!(metadatum?.isParam)??false)){ //param metadata is passed to the sensor at 
+												 //create time through the constructor, and isn't a
+												 //a value you want to see in a path 
+				
+				const path = config.paths[tag]
+				if (!(path===undefined))
+					this.app.handleMessage(id, 
+					{
+					updates: 
+						[{ meta: [{path: path, value: { units: metadatum?.unit }}]}]
+					})
+			}
+			})
+	}
+
+	 initPaths(deviceConfig, id){
+		this.getMetadata().forEach((metadatum, tag)=>{
+			const path = deviceConfig.paths[tag];
+			if (!(path === undefined))
+				this.on(tag, (val)=>{
+					if (metadatum.notify){
+						this.app.notify(	tag, val, id )
+					} else {
+						this.updatePath(path,val,id)
+					}
+			})
+		})
+	}
+	 updatePath(path, val,id){
+		this.app.handleMessage(id, {updates: [ { values: [ {path: path, value: val }] } ] })
+  	}  
 }
 
 module.exports = BTSensor   

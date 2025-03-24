@@ -130,3 +130,7 @@ dist
 .pnp.*
 bt-sensors-plugin-sk.json.bak
 package-lock.json
+bt-sensors-plugin-sk.json
+plugin-config-data
+ss-api
+test-bt-class

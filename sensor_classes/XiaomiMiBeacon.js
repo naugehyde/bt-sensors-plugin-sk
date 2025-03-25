@@ -2,7 +2,6 @@ const BTSensor = require("../BTSensor");
 
 const crypto = require('crypto');
 const util = require('util');
-const { isGeneratorFunction } = require("util/types");
 
 const DEVICE_TYPES = new Map([
     [0x0C3C, { name: "Alarm Clock", model: "CGC1" }],

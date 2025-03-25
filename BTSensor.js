@@ -643,14 +643,16 @@ class BTSensor extends EventEmitter {
 	 initPaths(deviceConfig, id){
 		this.getMetadata().forEach((metadatum, tag)=>{
 			const path = deviceConfig.paths[tag];
-			if (!(path === undefined))
-				this.on(tag, (val)=>{
+			if (!(path === undefined)) {
+                this.app.debug(`${tag} => ${path}` )
+                this.on(tag, (val)=>{
 					if (metadatum.notify){
-						this.app.notify(	tag, val, id )
+						this.app.notify(tag, val, id )
 					} else {
 						this.updatePath(path,val,id)
 					}
-			})
+                })
+			}
 		})
 	}
 	 updatePath(path, val,id){

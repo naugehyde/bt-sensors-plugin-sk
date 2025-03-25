@@ -343,7 +343,6 @@ module.exports =   function (app) {
 
 	plugin.start = async function (options, restartPlugin) {
 		plugin.started=true
-		app.registerResourceProvider(bluetoothManager)
 		var adapterID=options.adapter
 		
 		function getDeviceConfig(mac){
@@ -505,6 +504,7 @@ module.exports =   function (app) {
 				initConfiguredDevice(deviceConfig)
 			}
 		}
+		bluetoothManager.start()
 		if (options.discoveryInterval && !discoveryIntervalID) 
 			findDeviceLoop(options.discoveryTimeout, options.discoveryInterval)
 	} 
@@ -545,41 +545,25 @@ module.exports =   function (app) {
 	class BluetoothManager extends EventEmitter {
 		constructor(){
 			super()
-			this.type = 'bluetoothManager'
-			this.methods = { //Resource Provider "interface"
-				listResources: this.listResources,
-				getResource: this.getResource,
-				setResource: this.setResource,
-				deleteResource: this.deleteResource
-			}
+			
 			this.bluetooth=createBluetooth()
 			this.adapters=new Map()
 		}
-		findDeviceLoop(adapterID, discoveryTimeout, discoveryInterval, immediate=true ){
-			if (immediate)
-				this.findDevices(adapterID, discoveryTimeout)
-			return setInterval( this.findDevices, discoveryInterval*1000, adapterID ,discoveryTimeout)
+
+		
+		start(){
+			this.loopIntervalID= this.findDeviceLoop("hci0", 30, 15 )
 		}
 
-		findDevices (adapterID, discoveryTimeout) {
-			const adapter=this.adapters.get(adapterID)
-			if (!adapter)
-				reject(`Adapter ${adapterID} not started or unavailable. Cannot start scan.`)
-	
-			app.setPluginStatus("Scanning for new Bluetooth devices...");
 
-			adapter.devices().then( (macs)=>{
-				for (var mac of macs) {	
-					emit("deviceFound", mac)
-				}
-			})
-		}
 		getAdapter( adapterID ){
-			const a = adapters.get(adapterID)
-			if (a) return a
 			return new Promise( ( resolve, reject )=>{
+
+				const a = this.adapters.get(adapterID)
+				if(a) 
+					resolve(a)
+				else 
 				bluetooth.getAdapter(adapterID).then(async (adapter)=>{
-					adapters.set(adapterID, adapter)
 					await adapter.helper._prepare()
 					adapter.helper._propsProxy.on('PropertiesChanged', async (iface,changedProps,invalidated) => {
 						app.debug(changedProps)
@@ -587,6 +571,7 @@ module.exports =   function (app) {
 							this.emit("adapterPower", adapter,changedProps.Powered.value )
 						}
 					})
+					this.adapters.set(adapterID, adapter)
 					resolve(adapter)
 				})
 				.catch((error)=>{
@@ -595,6 +580,30 @@ module.exports =   function (app) {
 			})
 		}
 
+		findDeviceLoop(adapterID, discoveryTimeout, discoveryInterval, immediate=true ){
+			if (immediate)
+				this.findDeviceMacs(adapterID, discoveryTimeout)
+			var that = this
+			return setInterval( ()=>{
+				that.findDeviceMacs(adapterID, discoveryTimeout)
+			}, discoveryInterval*1000)
+		}
+
+		findDeviceMacs (adapterID, discoveryTimeout) {
+			this.getAdapter(adapterID).then((adapter)=>{
+			if (!adapter)
+				app.debug(`Adapter ${adapterID} not started or unavailable. Cannot start scan.`)
+	
+			app.setPluginStatus("Scanning for new Bluetooth devices...");
+
+			adapter.devices().then( (macs)=>{
+				for (var mac of macs) {	
+					this.emit("deviceFound", mac)
+				}
+			})
+			})
+		}
+	
 		startScanner(adapterID){
 		//Use adapter.helper directly to get around Adapter::startDiscovery()
 		//filter options which can cause issues with Device::Connect() 
@@ -615,13 +624,6 @@ module.exports =   function (app) {
 			
 		}
 				
-		listResources (params) { 
-		}
-		getResource (id, property) { 
-			if (!property) return this
-		}
-		setResource  (id, value ) {}	
-		deleteResource(id) {}
 
 		async instantiateSensor(cls, device, config){
 			try{
@@ -640,11 +642,29 @@ module.exports =   function (app) {
 				return null
 			}
 		}
-	
-		async createSensor(cls, adapter, config) {
+		getDevice(adapterID, mac, timeout ){
 			return new Promise( ( resolve, reject )=>{
-			var s
-			
+				const adapter=this.adapters.get(adapterID)
+				if (!adapter)
+					reject(`Adapter ${adapterID} not started or unavailable. Cannot find sensor.`)
+	
+				app.debug(`Waiting on ${mac}`)
+				adapter.waitDevice(mac,timeout*1000).then(async (device)=> { 
+					app.debug(`Found ${config.mac_address}`)
+					resolve(device)
+				})
+				.catch((e)=>{
+					app.debug(`Unable to communicate with device ${mac} Reason: ${e?.message??e}`)
+					app.debug(e)
+					reject( e?.message??e )	
+				})})
+		}
+		async createSensor(cls, adapterID, config) {
+			return new Promise( ( resolve, reject )=>{
+			const adapter=this.adapters.get(adapterID)
+			if (!adapter)
+				reject(`Adapter ${adapterID} not started or unavailable. Cannot find sensor.`)
+
 			app.debug(`Waiting on ${deviceNameAndAddress(config)}`)
 			adapter.waitDevice(config.mac_address,config.discoveryTimeout*1000)
 			.then(async (device)=> { 
@@ -692,7 +712,17 @@ module.exports =   function (app) {
 					})
 			}
 		)}
+		toString(){
+			"Bluetooth Manager"
+		}
 	}
+	
 	const bluetoothManager = new BluetoothManager()
+	app.handleMessage(plugin.id, 
+		{
+		updates: 
+			[{ meta: [{path: "__bluetooth-manager__", value: {}}]}]
+		})
+	app.handleMessage(plugin.id, {updates: [ { values: [ {path: "__bluetooth-manager__", value: bluetoothManager }] } ] })
 	return plugin;
 }

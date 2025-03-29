@@ -361,7 +361,7 @@ module.exports =   function (app) {
 		//try {await adapter.startDiscovery()}
 		try{ 
 			if (transport)
-				await this.helper.callMethod('SetDiscoveryFilter', {
+				await adapter.helper.callMethod('SetDiscoveryFilter', {
 					Transport: new Variant('s', transport)
 				  })
 			await adapter.helper.callMethod('StartDiscovery') 

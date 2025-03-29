@@ -4,6 +4,7 @@ const path = require('path')
 const packageInfo = require("./package.json")
 
 const {createBluetooth} = require('node-ble')
+const { Variant } = require('dbus-next')
 const {bluetooth, destroy} = createBluetooth()
 
 const BTSensor = require('./BTSensor.js')
@@ -193,12 +194,15 @@ module.exports =   function (app) {
 		properties: {
 			adapter: {title: "Bluetooth adapter",
 				type: "string", default: "hci0"},
+			transport: {title: "Transport ",
+					type: "string", enum: ["dual","le","bredr"]},
 
 			discoveryTimeout: {title: "Default device discovery timeout (in seconds)", 
 				type: "integer", default: 30,
 				minimum: 10,
 				maximum: 3600 
 			},
+			
 			discoveryInterval: {title: "Scan for new devices interval (in seconds-- 0 for no new device scanning)", 
 				type: "integer", 
 				default: 10,
@@ -348,13 +352,21 @@ module.exports =   function (app) {
 		})})
 	}
 	
-	async function startScanner() {
+	async function startScanner(transport) {
 		
 		app.debug("Starting scan...");
 		//Use adapter.helper directly to get around Adapter::startDiscovery()
 		//filter options which can cause issues with Device::Connect() 
 		//turning off Discovery
-		try{ await adapter.helper.callMethod('StartDiscovery') } catch (error){	
+		//try {await adapter.startDiscovery()}
+		try{ 
+			if (transport)
+				await this.helper.callMethod('SetDiscoveryFilter', {
+					Transport: new Variant('s', transport)
+				  })
+			await adapter.helper.callMethod('StartDiscovery') 
+		} 
+		catch (error){	
 			app.debug(error)
 		}
 		
@@ -511,7 +523,7 @@ module.exports =   function (app) {
 		plugin.uiSchema.adapter={'ui:disabled': (activeAdapters.length==1)}
 
 		
-		await startScanner()
+		await startScanner(options.transport)
 		if (starts>0){
 			app.debug(`Plugin ${packageInfo.version} restarting...`);
 			if (plugin.schema.properties.peripherals.items.dependencies)

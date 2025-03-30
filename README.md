@@ -1,5 +1,9 @@
 # Bluetooth Sensors for [Signal K](http://www.signalk.org)
 
+## BETA 2.2.4
+### What's New
+Fix to 2.2.3 scan and connect issues. Added Transport option to Config page. Default is Bluetooth LE (was Auto in 2.2.3). 
+
 ## BETA 2.2.3
 ### What's New
 Support for [JBD/Jiabaida/Xiaoxiang Battery management systems](https://jiabaida-bms.com/), IBeacon and clone devices courtesy of [Arjen R](https://github.com/ArjenR). 

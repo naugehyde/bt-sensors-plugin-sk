@@ -195,7 +195,7 @@ module.exports =   function (app) {
 			adapter: {title: "Bluetooth adapter",
 				type: "string", default: "hci0"},
 			transport: {title: "Transport ",
-					type: "string", enum: ["auto","le","bredr"], enumNames:["Auto (default)", "LE-Bluetooth Low Energy", "BR/EDR Bluetooth basic rate/enhanced data rate"]},
+					type: "string", enum: ["auto","le","bredr"], default: "le", enumNames:["Auto", "LE-Bluetooth Low Energy", "BR/EDR Bluetooth basic rate/enhanced data rate"]},
 
 			discoveryTimeout: {title: "Default device discovery timeout (in seconds)", 
 				type: "integer", default: 30,

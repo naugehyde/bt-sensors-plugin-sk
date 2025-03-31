@@ -58,7 +58,7 @@ module.exports = {
       exposes: {
         './PluginConfigurationPanel': './src/components/PluginConfigurationPanel',
       },
-      shared: [{ react: { singleton: true } }],
+      shared: [{ react: { singleton: false, strictVersion:true } }],
     }),
     new WatchIgnorePlugin({
       paths: [path.resolve(__dirname, 'public/')]

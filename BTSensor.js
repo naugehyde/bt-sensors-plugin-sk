@@ -311,6 +311,44 @@ class BTSensor extends EventEmitter {
         this.getMetadata().set(tag, metadatum)
         return metadatum
     }
+    getJSONSchema(){
+        const schema = {
+            properties:{}
+        }
+        schema.properties.params={
+			title:`Device parameters`,
+			description: this.getDescription(),
+			type:"object",
+			properties:{}
+		}
+		this.getParamMetadata().forEach((metadatum,tag)=>{
+			schema.properties.params.properties[tag]=metadatum.asJSONSchema()
+		})
+
+		if (this.hasGATT()){
+
+			schema.properties.gattParams={
+				title:`GATT Specific device parameters`,
+				description: this.getGATTDescription(),
+				type:"object",
+				properties:{}
+			}
+			this.getGATTParamMetadata().forEach((metadatum,tag)=>{
+				schema.properties.gattParams.properties[tag]=metadatum.asJSONSchema()
+			})
+		}
+
+		schema.properties.paths={
+			title:"Signalk Paths",
+			description: `Signalk paths to be updated when ${this.getName()}'s values change`,
+			type:"object",
+			properties:{}
+		}
+		this.getPathMetadata().forEach((metadatum,tag)=>{
+				schema.properties.paths.properties[tag]=metadatum.asJSONSchema()
+		})
+        return schema
+    }
 
     //GATT Initialization functions
     /**

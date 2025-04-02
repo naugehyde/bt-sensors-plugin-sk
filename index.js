@@ -511,8 +511,6 @@ module.exports =   function (app) {
 		plugin.stopped=true
 		plugin.started=false
 		if ((sensorMap)){
-			plugin.schema.properties.peripherals.items.properties.mac_address.enum=[]
-			plugin.schema.properties.peripherals.items.properties.mac_address.enumNames=[]
 			sensorMap.forEach(async (sensor, mac)=> {
 				try{
 					await sensor.stopListening()

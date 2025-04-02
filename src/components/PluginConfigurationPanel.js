@@ -138,7 +138,7 @@ export default (props) => {
       <p></p>
       <p></p>
       <div style={{maxwidth: '50px'}}>
-      <BS.Select size="lg"
+      <BS.Select htmlSize="10"
         onChange = {(e)=> 
           {
             const data = sensorMap.get(e.target.value).config

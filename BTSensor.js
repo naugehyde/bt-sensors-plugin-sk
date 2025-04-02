@@ -84,6 +84,8 @@ class BTSensor extends EventEmitter {
         
         this.Metadatum = this.constructor.Metadatum
         this.metadata = new Map()
+
+        this.state = null
     }
     /**
      * @function _test Test sensor parsing
@@ -281,7 +283,7 @@ class BTSensor extends EventEmitter {
         //create the 'RSSI' parameter 
         this.currentProperties = await this.constructor.getDeviceProps(this.device)
         this.addMetadatum("RSSI","db","Signal strength in db")
-        this.getMetadatum("RSSI").default=`sensors.${this.getMacAddress().replaceAll(':', '')}.rssi`
+        this.getMetadatum("RSSI").default=`sensors.${this.getName().replaceAll(':', '-')}-${this.getMacAddress().replaceAll(':', '-')}.rssi`
         this.getMetadatum("RSSI").read=()=>{return this.getRSSI()}
         this.getMetadatum("RSSI").read.bind(this)
         //create GATT params (iff sensor is GATT-ish)
@@ -313,7 +315,14 @@ class BTSensor extends EventEmitter {
     }
     getJSONSchema(){
         const schema = {
-            properties:{}
+            properties:{
+
+                active: {title: "Active", type: "boolean", default: true },
+                discoveryTimeout: {title: "Device discovery timeout (in seconds)", 
+                    type: "integer", default:30,
+                    minimum: 10,
+                    maximum: 600 }
+            }
         }
         schema.properties.params={
 			title:`Device parameters`,
@@ -346,6 +355,7 @@ class BTSensor extends EventEmitter {
 		}
 		this.getPathMetadata().forEach((metadatum,tag)=>{
 				schema.properties.paths.properties[tag]=metadatum.asJSONSchema()
+                schema.properties.paths.properties[tag].pattern="^[a-zA-Z0-9]+\.([a-zA-Z0-9]+\.)*[a-zA-Z0-9]+$"
 		})
         return schema
     }
@@ -467,7 +477,9 @@ class BTSensor extends EventEmitter {
         return `${this.getName()} from ${this.getManufacturer()}`
     }
     getName(){
-        return this?.name??this.currentProperties.Name
+        const name = this?.name??this.currentProperties.Name
+        return name?name:"Unknown"
+
     }
 
     getNameAndAddress(){
@@ -528,6 +540,15 @@ class BTSensor extends EventEmitter {
         return signalQualityPercentQuad(rssi)
     }
 
+    getState(){
+        return this.state
+    }
+    isInactive(){
+        return this.state=="ASLEEP"
+    }
+    isActive(){
+        return this.state=="ACTIVE"
+    }
     getBars(){
         const ss =  this.getSignalStrength()
         var bars = ""
@@ -629,6 +650,7 @@ class BTSensor extends EventEmitter {
             })
             .catch((e)=>this.debug(`GATT services unavailable for ${this.getName()}. Reason: ${e}`))
         }
+        this.state="ACTIVE"
         return this
     }
 
@@ -639,12 +661,13 @@ class BTSensor extends EventEmitter {
    *  Called automatically by Plugin::plugin.stop()
    */
 
-    stopListening(){
+    async stopListening(){
         this.removeAllListeners()
         this.device.helper.removeListeners()
         if (this.intervalID){
             clearInterval(this.intervalID)
-        }    
+        }
+        this.state="ASLEEP"
     }
     //END Sensor listen-to-changes functions
     

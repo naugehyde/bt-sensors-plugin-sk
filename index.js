@@ -11,7 +11,7 @@ const openapi = require('./openApi.json');
 
 const BTSensor = require('./BTSensor.js')
 const BLACKLISTED = require('./sensor_classes/BlackListedDevice.js')
-const { createSession } = require("better-sse");
+const { createChannel, createSession } = require("better-sse");
 
 class MissingSensor  {
 
@@ -122,15 +122,12 @@ module.exports =   function (app) {
 	
 	plugin.schema = {			
 		type: "object",
-		description: "NOTE: \n 1) Plugin must be enabled to configure your sensors. \n"+
-		"2) You will have to wait until the scanner has found your device before seeing your device's config fields and saving the configuration. \n"+
-		"3) To refresh the list of available devices and their configurations, just open and close the config screen by clicking on the arrow symbol in the config's top bar. \n"+
-		"4) If you submit and get errors it may be because the configured devices have not yet all been discovered.",
 		required:["adapter","discoveryTimeout", "discoveryInterval"],
 		properties: {
 			adapter: {title: "Bluetooth adapter",
 				type: "string", default: "hci0"},
-
+			transport: {title: "Transport ",
+				type: "string", enum: ["auto","le","bredr"], default: "le", enumNames:["Auto", "LE-Bluetooth Low Energy", "BR/EDR Bluetooth basic rate/enhanced data rate"]},
 			discoveryTimeout: {title: "Default device discovery timeout (in seconds)", 
 				type: "integer", default: 30,
 				minimum: 10,
@@ -139,32 +136,10 @@ module.exports =   function (app) {
 			discoveryInterval: {title: "Scan for new devices interval (in seconds-- 0 for no new device scanning)", 
 				type: "integer", 
 				default: 10,
-				minimum: 0,
-				multipleOf: 10
+				minimum: 0
 			 },
-			peripherals:
-				{ type: "array", title: "Sensors", items:{
-					title: "", type: "object",
-					required:["mac_address", "discoveryTimeout"],
-					properties:{
-					active: {title: "Active", type: "boolean", default: true },
-					mac_address: {title: "Bluetooth Sensor",  type: "string" },
-					discoveryTimeout: {title: "Device discovery timeout (in seconds)", 
-						type: "integer", default:30,
-						minimum: 10,
-						maximum: 600 }
-					}					
-				}
-			}
 		}
 	}
-	const UI_SCHEMA =  
-	{ "peripherals": {
-		'ui:disabled': !plugin.started
- 	}
-	}
-	plugin.uiSchema=UI_SCHEMA
-
 
 	const sensorMap=new Map()
 	
@@ -174,22 +149,79 @@ module.exports =   function (app) {
 	var discoveryIntervalID
 	var adapter 
 	var adapterPower
+	const channel = createChannel()
 
 	plugin.start = async function (options, restartPlugin) {
 		plugin.started=true
 		var adapterID=options.adapter
-		var session
+		app.debug("")
 		plugin.registerWithRouter = function(router) {
 
-			router.get('/schema', (req, res) => {
-				res.status(200).json(plugin.schema);
+			router.post('/sendSensorData', async (req, res) => {
+				app.debug(req.body)
+				const i = deviceConfigs.findIndex((p)=>p.mac_address==req.body.mac_address) 
+				if (i<0){
+					options.peripherals.push(req.body)
+				} else {
+					options.peripherals[i] = req.body
+				}
+				app.savePluginOptions(
+					options, async () => {
+						app.debug('Plugin options saved')
+						res.status(200).json({message: "Sensor updated"})
+						const sensor = sensorMap.get(req.body.mac_address)
+						if (sensor) {
+							if (sensor.isActive()) {
+								sensor.stopListening().then(()=> 
+									initConfiguredDevice(req.body)
+								)
+							} else {
+								if (req.body.active)
+									initConfiguredDevice(req.body)
+							}	
+						} 
+						
+					}
+				)
+				
+			});
+
+			router.post('/sendBaseData', async (req, res) => {
+				
+				app.debug(req.body)
+				Object.assign(options,req.body)
+				app.savePluginOptions(
+					options, () => {
+						app.debug('Plugin options saved')
+						res.status(200).json({message: "Plugin updated"})
+						channel.broadcast({},"pluginRestarted")
+						restartPlugin(options)
+					}
+				)
+			});
+		
+		
+			router.get('/base', (req, res) => {
+				
+				res.status(200).json(
+					{
+					schema: plugin.schema,
+					data: {
+						adapter: options.adapter,
+						transport: options.transport,
+						discoveryTimeout: options.discoveryTimeout,
+						discoveryInterval: options.discoveryInterval
+					}
+					}
+				);
 			})
-			router.get('/devices', (req, res) => {
+			router.get('/sensors', (req, res) => {
 				const t = sensorsToJSON()
 				res.status(200).json(t)
 			  });
 			router.get("/sse", async (req, res) => {
-				 session = await createSession(req, res);
+				 const session = await createSession(req, res);
+				 channel.register(session)
 			});
 		};
 
@@ -210,114 +242,40 @@ module.exports =   function (app) {
 			
 				}
 		}
-		async function startScanner() {
+		async function startScanner(transport) {
 		
 			app.debug("Starting scan...");
 			//Use adapter.helper directly to get around Adapter::startDiscovery()
 			//filter options which can cause issues with Device::Connect() 
 			//turning off Discovery
-			try{ await adapter.helper.callMethod('StartDiscovery') } catch (error){	
+			//try {await adapter.startDiscovery()}
+			try{ 
+				if (transport) {
+					app.debug(`Setting Bluetooth transport option to ${transport}`)
+					await adapter.helper.callMethod('SetDiscoveryFilter', {
+						Transport: new Variant('s', transport)
+					  })
+					}
+				await adapter.helper.callMethod('StartDiscovery') 
+			} 
+			catch (error){	
 				app.debug(error)
 			}
 			
 		}
-				
+		
 		function updateSensorDisplayName(sensor){
 			const mac_address =  sensor.getMacAddress()
 			const displayName =  sensor.getDisplayName()
-			if (session){
-				session.push({mac:mac_address, name: displayName},"sensordisplayname")
-			}
-			return
-
-			const mac_addresses_list = plugin.schema.properties.peripherals.items.properties.
-			mac_address.enum
-			const mac_addresses_names = plugin.schema.properties.peripherals.items.properties.
-			mac_address.enumNames
-
-			var index = mac_addresses_list.indexOf(mac_address)
-			if (index!=-1)
-				mac_addresses_names[index]= displayName
+			channel.broadcast({mac:mac_address, name: displayName},"sensordisplayname")			
 		}
 
 		function removeSensorFromList(sensor){
-			if (session){
-				session.push({mac:sensor.getMacAddress()},"removesensor")
-			}
-			return
-
-			const mac_addresses_list = plugin.schema.properties.peripherals.items.properties.mac_address.enum
-			const mac_addresses_names = plugin.schema.properties.peripherals.items.properties.mac_address.enumNames
-			const oneOf = plugin.schema.properties.peripherals.items.dependencies.mac_address.oneOf
-			const mac_address = sensor.getMacAddress()
-			
-			const i = mac_addresses_list.indexOf(mac_address)
-			if (i<0) return // n'existe pas
-
-			mac_addresses_list.splice(i,1)
-			mac_addresses_names.splice(i,1)
-			oneOf.splice(oneOf.findIndex((p)=>p.properties.mac_address.enum[0]==mac_address),1)
-
+			channel.broadcast({mac:sensor.getMacAddress()},"removesensor")
 		}
 		
 		function addSensorToList(sensor){
-			if (session){
-				session.push(sensorToJSON(sensor),"newsensor");
-				return
-			}
-			if (!plugin.schema.properties.peripherals.items.dependencies)
-				plugin.schema.properties.peripherals.items.dependencies={mac_address:{oneOf:[]}}
-			
-			if(plugin.schema.properties.peripherals.items.properties.mac_address.enum==undefined) {
-				plugin.schema.properties.peripherals.items.properties.mac_address.enum=[]
-				plugin.schema.properties.peripherals.items.properties.mac_address.enumNames=[]
-			}
-			const mac_addresses_names = plugin.schema.properties.peripherals.items.properties.mac_address.enumNames
-			const mac_addresses_list = plugin.schema.properties.peripherals.items.properties.mac_address.enum
-			const mac_address =  sensor.getMacAddress()
-			const displayName =  sensor.getDisplayName()
-	
-			var index = mac_addresses_list.indexOf(mac_address)
-			if (index==-1)
-				index = mac_addresses_list.push(mac_address)-1
-			mac_addresses_names[index]= displayName
-			var oneOf = {properties:{mac_address:{enum:[mac_address]}}}
-			
-			oneOf.properties.params={
-				title:`Device parameters`,
-				description: sensor.getDescription(),
-				type:"object",
-				properties:{}
-			}
-			sensor.getParamMetadata().forEach((metadatum,tag)=>{
-				oneOf.properties.params.properties[tag]=metadatum.asJSONSchema()
-			})
-	
-			if (sensor.hasGATT()){
-	
-				oneOf.properties.gattParams={
-					title:`GATT Specific device parameters`,
-					description: sensor.getGATTDescription(),
-					type:"object",
-					properties:{}
-				}
-				sensor.getGATTParamMetadata().forEach((metadatum,tag)=>{
-					oneOf.properties.gattParams.properties[tag]=metadatum.asJSONSchema()
-				})
-			}
-	
-			oneOf.properties.paths={
-				title:"Signalk Paths",
-				description: `Signalk paths to be updated when ${sensor.getName()}'s values change`,
-				type:"object",
-				properties:{}
-			}
-			sensor.getPathMetadata().forEach((metadatum,tag)=>{
-					oneOf.properties.paths.properties[tag]=metadatum.asJSONSchema()
-			})
-			plugin.schema.properties.peripherals.items.dependencies.mac_address.oneOf.push(oneOf)
-			//plugin.schema.properties.peripherals.items.title=sensor.getName()
-	
+			channel.broadcast(sensorToJSON(sensor),"newsensor");
 		}
 		function deviceNameAndAddress(config){
 			return `${config?.name??""}${config.name?" at ":""}${config.mac_address}`
@@ -505,7 +463,6 @@ module.exports =   function (app) {
 		}
 		adapterPower=true
 	
-		plugin.uiSchema.peripherals['ui:disabled']=false
 		sensorMap.clear()
 		deviceConfigs=options?.peripherals??[]
 
@@ -523,15 +480,10 @@ module.exports =   function (app) {
 			plugin.schema.properties.adapter.enum.push(a.adapter)
 			plugin.schema.properties.adapter.enumNames.push(`${a.adapter} @ ${ await a.getAddress()} (${await a.getName()})`)
 		}
-
-		plugin.uiSchema.adapter={'ui:disabled': (activeAdapters.length==1)}
-
 		
-		await startScanner()
+		await startScanner(options.transport)
 		if (starts>0){
 			app.debug(`Plugin ${packageInfo.version} restarting...`);
-			if (plugin.schema.properties.peripherals.items.dependencies)
-				plugin.schema.properties.peripherals.items.dependencies.mac_address.oneOf=[]
 		} else {
 			app.debug(`Plugin ${packageInfo.version} started` )
 			
@@ -558,7 +510,6 @@ module.exports =   function (app) {
 		app.debug("Stopping plugin")
 		plugin.stopped=true
 		plugin.started=false
-		plugin.uiSchema.peripherals['ui:disabled']=true
 		if ((sensorMap)){
 			plugin.schema.properties.peripherals.items.properties.mac_address.enum=[]
 			plugin.schema.properties.peripherals.items.properties.mac_address.enumNames=[]

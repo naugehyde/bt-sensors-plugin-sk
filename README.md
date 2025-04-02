@@ -1,5 +1,12 @@
 # Bluetooth Sensors for [Signal K](http://www.signalk.org)
 
+ ## BETA 2.2.3
+ ### What's New
+ Support for [JBD/Jiabaida/Xiaoxiang Battery management systems](https://jiabaida-bms.com/), IBeacon and clone devices courtesy of [Arjen R](https://github.com/ArjenR). 
+ 
+ ### What's New for Developers
+ Runtime loading of external device modules. See (https://github.com/naugehyde/bt-sensors-plugin-sk/discussions/26) 
+ 
 ## BETA 2.2.2
 ### What's New
 Support for Lancol Battery Meters, Kilovault HLX+ smart batteries courtesy of [sdlee1963](https://github.com/sdlee1963) and baseline  support for BTHome devices as well as support for the ShellySBHT003C enviromental sensor courtesy of [Sebastian Haas](https://github.com/sebastianhaas) 

@@ -40,8 +40,12 @@ class GoveeH510x extends BTSensor{
     }
     initMetadata(){
         this.addMetadatum('temp','K', 'temperature')
-        this.addMetadatum('battery','ratio', 'battery strength')
+            .default="environment.<location>.temperature"
         this.addMetadatum('humidity','ratio', 'humidity')
+            .default="environment.<location>.humidity"
+        this.addMetadatum('battery','ratio', 'battery strength')
+            .default=`sensors.${this.getName().replaceAll(':', '-')}-${this.getMacAddress().replaceAll(':', '-')}.battery.strength`
+        
     }
 
     emitValuesFrom(buffer){

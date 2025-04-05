@@ -1,0 +1,57 @@
+{
+    "params":{
+        "name":{
+            "description": "Sensor name"
+        },
+        "location":{
+            "description": "Sensor location",
+            "examples": ["inside", "outside", "galley", "freezer", "refrigerator", "head", "cabin", "engine", "deck", "cockpit"]
+        }
+    },
+    "environment":{
+        "temperature":
+            {
+                "unit":"K",
+                "default": "environment.{location}.temperature"
+            },
+        "humidity":
+            {
+                "unit":"ratio",
+                "default":"environment.{location}.humidity"
+            }
+    },
+    "electrical":{
+        "current":{
+            "unit": "A",
+            "default":"electrical.batteries.0.current"
+        },
+        "voltage":
+        { 
+            "unit": "V",
+            "default": "electrical.batteries.0.voltage"
+        }
+    },
+    "sensors":{
+        "RSSI":
+        {
+            "unit":"db",
+            "default":"sensors.{macAndName}.RSSI",
+            "description": "Sensor signal strength in decibels"
+        },
+        "batteryStrength":
+        {
+            "unit":"ratio",
+            "default":"sensors.{macAndName}.battery.strength",
+            "description":"Sensor battery strength" 
+        },
+    
+        "batteryVoltage":
+        {
+            "unit":"V",
+            "default":"sensors.{macAndName}.battery.voltage",
+            "description":"Sensor battery voltage"
+        }
+
+    }
+
+}

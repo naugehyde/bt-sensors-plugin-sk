@@ -35,7 +35,7 @@ class VictronInverter extends VictronSensor{
             this.NaNif(br.read_unsigned_int(15),0x7FFF)/100)
         this.addMetadatum('acCurrent',
             this.NaNif(br.read_unsigned_int(11),0x7FF)/10)
-        const alarm = this.getMetadatum("alarmReason").read(decData)
+        const alarm = this.getPath("alarmReason").read(decData)
         if (alarm>0){
             this.emit(
                 `ALARM #${alarm} from ${this.getDisplayName()})`, 

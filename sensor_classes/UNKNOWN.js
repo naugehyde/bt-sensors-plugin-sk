@@ -9,10 +9,13 @@ class UNKNOWN extends BTSensor{
         await super.init()
         if (!this.currentProperties.Name) 
             this.currentProperties.Name= `Unknown device from ${this.getManufacturer()}`
-        var md =this.addMetadatum("sensorClass",'',"Sensor Class")
-        md.isParam=true
-        md.enum=Array.from(this.constructor.classMap.keys())
-        //md.enumNames=this.constructor.classMap
+        this.addParameter(
+            "sensorClass",
+            {
+                title: "Sensor Class",
+                enum:Array.from(this.constructor.classMap.keys())
+            }
+        )
 
     }
 

@@ -51,8 +51,12 @@ function sleep(x) {
 
     async init(){
         await super.init()
-        const md =this.addMetadatum('encryptionKey','', "Encryption Key")
-        md.isParam = true
+        this.addParameter(
+            "encryptionKey",
+            {
+                title:"Encryption Key"
+            }
+        )
         this.model_id=this.getManufacturerData(0x2e1)?.readUInt16LE(2)??"Unknown"
     }
     alarmReason(alarmValue){

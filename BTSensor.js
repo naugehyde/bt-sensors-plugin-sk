@@ -10,7 +10,8 @@ const EventEmitter = require('node:events');
  * {@link module:node-ble}
  */
 
-const BTCompanies = require('./bt_co.json')
+const BTCompanies = require('./bt_co.json');
+
 /**
  * @global A map of company names keyed by their Bluetooth ID
  * {@link ./sensor_classes/bt_co.json} file derived from bluetooth-sig source:
@@ -51,6 +52,38 @@ function signalQualityPercentQuad(rssi, perfect_rssi=-20, worst_rssi=-85) {
     }
     return Math.ceil(signal_quality);
 }
+function preparePath(obj, str) {
+    const regex = /\{([^}]+)\}/g;
+    let match;
+    let resultString = "";
+    let lastIndex = 0;
+  
+    while ((match = regex.exec(str)) !== null) {
+      const fullMatch = match[0];
+      const keyToAccess = match[1].trim();
+  
+      // Append the text before the current curly braces
+      resultString += str.substring(lastIndex, match.index);
+      lastIndex = regex.lastIndex;
+  
+      try {
+        let evalResult = obj[keyToAccess];
+        if (typeof evalResult === 'function'){
+            evalResult= evalResult.call(obj)
+        }
+
+        resultString += evalResult !== undefined ? evalResult : `${keyToAccess}_value_undefined`;
+      } catch (error) {
+        console.error(`Error accessing key '${keyToAccess}':`, error);
+        resultString += fullMatch; // Keep the original curly braces on error
+      }
+    }
+  
+    // Append any remaining text after the last curly braces
+    resultString += str.substring(lastIndex);
+  
+    return resultString || str; // Return original string if no replacements were made
+  }
 
 /**
  * @classdesc Class that all sensor classes should inherit from. Sensor subclasses 
@@ -65,8 +98,9 @@ function signalQualityPercentQuad(rssi, perfect_rssi=-20, worst_rssi=-85) {
  */
 
 class BTSensor extends EventEmitter {
-    static metadata=new Map()
-
+    //static metadata=new Map()
+    static DEFAULTS = require('./plugin_defaults.json');
+    
     /**
      * 
      * @param {module:node-ble/Device} device 
@@ -77,14 +111,11 @@ class BTSensor extends EventEmitter {
         super()
   
         this.device=device
-        this.name = config?.name
-  
-        this.useGATT = gattConfig?.useGATT
-        this.pollFreq = gattConfig?.pollFreq
-        
-        this.Metadatum = this.constructor.Metadatum
-        this.metadata = new Map()
 
+        Object.assign(this,config)
+        Object.assign(this,gattConfig)
+    
+        
         this.state = null
     }
     /**
@@ -135,7 +166,7 @@ class BTSensor extends EventEmitter {
         var b = Buffer.from(data.replaceAll(" ",""),"hex")
         const d = new this(null,config)
         d.initMetadata() 
-        d.getPathMetadata().forEach((datum,tag)=>{
+        Object.keys(d.getPaths()).forEach((tag)=>{
                 d.on(tag,(v)=>console.log(`${tag}=${v}`))
         })
         if (key) {
@@ -147,38 +178,7 @@ class BTSensor extends EventEmitter {
         d.removeAllListeners()
     
     }
-    static Metadatum = 
-    /**
-     * @class encapsulates a sensor's metadata 
-     * @todo refactor and/or just plain rethink constructor parameters
-     */
-        class Metadatum{
-        
-            constructor(tag, unit, description, read, gatt=null, type){
-                this.tag = tag
-                this.unit = unit
-                this.description = description
-                this.read = read
-                this.gatt = gatt
-                this.type = type //schema type e.g. 'number'
-           } 
-           /**
-            * 
-            * @returns A JSON object passed by plugin to the plugin's schema 
-            *          dynamically updated at runtime upon discovery and interrogation
-            *          of the device
-            */
-            asJSONSchema(){
-                return {
-                    type:this?.type??'string', 
-                    title: this?.description,
-                    unit: this?.unit,
-                    enum: this?.enum,
-                    default: this?.default
-                }
-            }
-        }  
-
+    
     //static utility Functions
     /**
      * 
@@ -276,28 +276,61 @@ class BTSensor extends EventEmitter {
      *  
      */
 
-    async init(){
-        //create the 'name' parameter
-        var md = this.addMetadatum("name", "string","Name of sensor" )
-        md.isParam=true
-        //create the 'RSSI' parameter 
-        this.currentProperties = await this.constructor.getDeviceProps(this.device)
-        this.addMetadatum("RSSI","db","Signal strength in db")
-        this.getMetadatum("RSSI").default=`sensors.${this.getName().replaceAll(':', '-')}-${this.getMacAddress().replaceAll(':', '-')}.rssi`
-        this.getMetadatum("RSSI").read=()=>{return this.getRSSI()}
-        this.getMetadatum("RSSI").read.bind(this)
-        //create GATT params (iff sensor is GATT-ish)
-        if (this.hasGATT()) {
-            md = this.addMetadatum("useGATT", "boolean", "Use GATT connection")
-            md.type="boolean"
-            md.isParam=true
-            md.isGATT=true
-
-            md = this.addMetadatum("pollFreq", "s", "Polling frequency in seconds")
-            md.type="number"
-            md.isParam=true
-            md.isGATT=true
+    initSchema(){
+        this._schema = {
+            properties:{
+                active: {title: "Active", type: "boolean", default: true },
+                discoveryTimeout: {title: "Device discovery timeout (in seconds)", 
+                    type: "integer", default:30,
+                    minimum: 10,
+                    maximum: 600 },
+            
+                params:{
+                    title:`Device parameters`,
+                    description: this.getDescription(),
+                    type:"object",
+                    properties:{}
+                },
+                paths:{
+                    title:"Signalk Paths",
+                    description: `Signalk paths to be updated when ${this.getName()}'s values change`,
+                    type:"object",
+                    properties:{}
+                }
+            }
         }
+
+		if (this.hasGATT()){
+
+			this_schema.properties.gattParams={
+				title:`GATT Specific device parameters`,
+				description: this.getGATTDescription(),
+				type:"object",
+				properties:{
+                    useGATT: {title: "Use GATT connection", type: "boolean", default: true },
+                    pollFreq: { type: "number", title: "Polling frequency in seconds"}
+                }
+			}
+		}
+
+    }
+    async init(){
+        this.currentProperties = await this.constructor.getDeviceProps(this.device)
+        this.initSchema()
+
+
+        //create the 'name' parameter
+        this.addDefaultParam("name")
+
+        //create the 'location' parameter
+
+        this.addDefaultParam("location")
+
+        //create the 'RSSI' parameter 
+        this.addDefaultPath("RSSI","sensors.RSSI")
+        this.getPath("RSSI").read=()=>{return this.getRSSI()}
+        this.getPath("RSSI").read.bind(this)
+    
     }
 
     /**
@@ -309,55 +342,54 @@ class BTSensor extends EventEmitter {
      */
 
     addMetadatum(tag, ...args){
-        var metadatum = new this.Metadatum(tag, ...args)
-        this.getMetadata().set(tag, metadatum)
-        return metadatum
+
+        const md = {}
+        if (args[0]) md.tag = args[0]
+        if (args[1]) md.unit = args[1]
+        if (args[2]) md.title = args[2]
+        if (args[3]) md.read = args[3]
+        if (args[4]) md.gatt = args[4]
+        if (args[5]) md.type = args[5]
+     
+        return this.addPath(tag,md)
     }
+
+    addParameter(tag, param){
+
+        if (!param.type)
+            param.type="string"
+
+        return this._schema.properties.params.properties[tag]=param
+    }
+
+    addPath(tag, path){
+        if (!path.type)
+            path.type="string"
+
+        if (!path.pattern)
+            path.pattern="^(?:[^{}\\s]*\\{[a-zA-Z0-9]+\\}[^{}\\s]*|[^{}\\s]*)$"
+        return this._schema.properties.paths.properties[tag]=path
+    }
+
+    addGATTParameter(tag, param){
+
+        if (!param.type)
+            param.type="string"
+        
+        return this._schema.properties.gattParams.properties[tag]=param
+    }
+
+    addDefaultPath(tag,defaultPath){
+        const path = eval(`BTSensor.DEFAULTS.${defaultPath}`)
+        return this.addPath(tag,Object.assign({}, path))
+    }
+
+    addDefaultParam(tag){        
+        return this.addParameter(tag,Object.assign({}, BTSensor.DEFAULTS.params[tag]))
+    }
+
     getJSONSchema(){
-        const schema = {
-            properties:{
-
-                active: {title: "Active", type: "boolean", default: true },
-                discoveryTimeout: {title: "Device discovery timeout (in seconds)", 
-                    type: "integer", default:30,
-                    minimum: 10,
-                    maximum: 600 }
-            }
-        }
-        schema.properties.params={
-			title:`Device parameters`,
-			description: this.getDescription(),
-			type:"object",
-			properties:{}
-		}
-		this.getParamMetadata().forEach((metadatum,tag)=>{
-			schema.properties.params.properties[tag]=metadatum.asJSONSchema()
-		})
-
-		if (this.hasGATT()){
-
-			schema.properties.gattParams={
-				title:`GATT Specific device parameters`,
-				description: this.getGATTDescription(),
-				type:"object",
-				properties:{}
-			}
-			this.getGATTParamMetadata().forEach((metadatum,tag)=>{
-				schema.properties.gattParams.properties[tag]=metadatum.asJSONSchema()
-			})
-		}
-
-		schema.properties.paths={
-			title:"Signalk Paths",
-			description: `Signalk paths to be updated when ${this.getName()}'s values change`,
-			type:"object",
-			properties:{}
-		}
-		this.getPathMetadata().forEach((metadatum,tag)=>{
-				schema.properties.paths.properties[tag]=metadatum.asJSONSchema()
-                schema.properties.paths.properties[tag].pattern="^[a-zA-Z0-9]+\.([a-zA-Z0-9]+\.)*[a-zA-Z0-9]+$"
-		})
-        return schema
+        return this._schema
     }
 
     //GATT Initialization functions
@@ -440,30 +472,20 @@ class BTSensor extends EventEmitter {
     //END instance initialization functions
 
     //Metadata functions
-    getMetadata(){
-        if (this.metadata==undefined)
-            this.metadata= new Map(this.constructor.getMetadata())
-        return this.metadata
+
+    getPath(tag){
+        return this._schema.properties.paths.properties[tag]
     }
 
-    getMetadatum(tag){
-        return this.getMetadata().get(tag)
+    getPaths(){
+        return this._schema.properties.paths.properties
     }
-
-    getPathMetadata(){
-        return new Map(
-            [...this.getMetadata().entries()].filter(([key,value]) => !(value?.isParam??false))
-        )
+    getParams(){
+        return this._schema.properties.params.properties
     }
-    getParamMetadata(){
-        return new Map(
-            [...this.getMetadata().entries()].filter(([key,value]) => (value?.isParam??false) && !(value?.isGATT??false))
-        )
-    }
-    getGATTParamMetadata(){
-        return new Map(
-            [...this.getMetadata().entries()].filter(([key,value]) => (value?.isParam??false) && (value?.isGATT??false))
-        )
+    getGATTParams(){
+        return this._schema.properties.gattParams.properties
+       
     }
     //End metadata functions
 
@@ -481,7 +503,9 @@ class BTSensor extends EventEmitter {
         return name?name:"Unknown"
 
     }
-
+    macAndName(){
+        return `${this.getName().replaceAll(':', '-').replaceAll(" ","_")}-${this.getMacAddress().replaceAll(':', '-')}`
+    }
     getNameAndAddress(){
         return `${this.getName()} at ${this.getMacAddress()}`
     }
@@ -525,6 +549,8 @@ class BTSensor extends EventEmitter {
         else
             return null
     }
+
+ 
     //END Device property functions
 
     //Sensor RSSI state functions
@@ -614,14 +640,17 @@ class BTSensor extends EventEmitter {
     }
 
     emitData(tag, buffer, ...args){
-        this.emit(tag, this.getMetadatum(tag).read(buffer, ...args))
+        const md = this.getPath(tag)
+        if (md && md.read)
+            this.emit(tag, this.getPath(tag).read(buffer, ...args))
+        
     }
 
     emitValuesFrom(buffer){
-        this.getMetadata().forEach((datum, tag)=>{
-            if (!(datum.isParam||datum.notify) && datum.read)
-            this.emit(tag, datum.read(buffer))
-        })
+        Object.keys(this.getPaths())
+            .forEach(
+                (tag)=>this.emitData(tag,buffer)
+        )
     }
 
   /**
@@ -685,32 +714,29 @@ class BTSensor extends EventEmitter {
     //End instance utility functions
 
      createPaths(config, id){
-		this.getMetadata().forEach((metadatum, tag)=>{
-			if ((!(metadatum?.isParam)??false)){ //param metadata is passed to the sensor at 
-												 //create time through the constructor, and isn't a
-												 //a value you want to see in a path 
-				
-				const path = config.paths[tag]
-				if (!(path===undefined))
-					this.app.handleMessage(id, 
-					{
-					updates: 
-						[{ meta: [{path: path, value: { units: metadatum?.unit }}]}]
-					})
-			}
-			})
+		Object.keys(this.getPaths()).forEach((tag)=>{
+            const pathMeta=this.getPath(tag)
+            const path = config.paths[tag]
+            if (!(path===undefined))
+                this.app.handleMessage(id, 
+                {
+                updates: 
+                    [{ meta: [{path: preparePath(this, path), value: { units: pathMeta?.unit }}]}]
+                })
+        })
 	}
 
 	 initPaths(deviceConfig, id){
-		this.getMetadata().forEach((metadatum, tag)=>{
+		Object.keys(this.getPaths()).forEach((tag)=>{
+            const pathMeta=this.getPath(tag)
 			const path = deviceConfig.paths[tag];
 			if (!(path === undefined)) {
                 this.app.debug(`${tag} => ${path}` )
                 this.on(tag, (val)=>{
-					if (metadatum.notify){
+					if (pathMeta.notify){
 						this.app.notify(tag, val, id )
 					} else {
-						this.updatePath(path,val,id)
+						this.updatePath(preparePath(this,path),val,id)
 					}
                 })
 			}

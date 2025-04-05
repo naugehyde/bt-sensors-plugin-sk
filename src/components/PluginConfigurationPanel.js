@@ -5,10 +5,15 @@ import {render} from 'react-dom';
 import React from 'react'
 import {useEffect, useState} from 'react'
 import {default as BS} from 'react-bootstrap/Form';
+import Button from 'react-bootstrap/Button'
+
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faTrash } from "@fortawesome/free-solid-svg-icons";
 
 const log = (type) => console.log.bind(console, type);
 
 import ListGroup from 'react-bootstrap/ListGroup';
+import { ListGroupItem } from 'react-bootstrap';
 
 
 
@@ -56,7 +61,6 @@ export default (props) => {
     console.log(json)
     return json
   }
-
 
   async function getSensorData(){
     return getJSONData("sensors")
@@ -110,20 +114,58 @@ export default (props) => {
           setSensorMap(new Map ( sensorMap ))
         }
     });
-    eventSource.addEventListener("pluginRestarted", (event) => {
-      getSensorData().then((sensors)=>{
-        sensorMap = new Map(sensors.map((sensor)=>[sensor.sensor.mac,sensor]))
-        setSensorMap(sensorMap);    
-      }
-      )
+    /*eventSource.addEventListener("pluginRestarted", (event) => {
+      setSensorMap(new Map());    
+    })*/
+
+    eventSource.addEventListener("resetSensors", (event) => {
+      sensorMap = new Map()
+      setSensorMap(sensorMap);
+      setSchema({})    
     })
     
     return () => eventSource.close();
 
 },[])
+ function deleteConfig(mac){
+
+}
+function sensorList(type){
+
+  if (type=="LG")
+    return(
+
+      <ListGroup style={{ maxHeight: '300px', overflowY: 'auto' }}>
+        {Array.from(sensorMap.entries()).map((entry) =>  
  
+          <ListGroupItem action 
+          onClick={(e)=>{ 
+            const data = sensorMap.get(entry[0]).config;
+            data.mac_address=entry[0]
+            setSchema(sensorMap.get(entry[0]).schema)
+            setSensorData(data)
+          }
+          }> 
+          <div  class="d-flex justify-content-between align-items-center" style={Object.keys(sensorMap.get(entry[0]).config).length?{fontWeight:"normal"}:{fontStyle:"italic"}}>
+          {entry[1].sensor.name}
+          <div class="d-flex justify-content-between ">
+    
+          <Button onClick={deleteConfig(entry[0])}>
+          <FontAwesomeIcon icon="fa-sharp-duotone fa-solid fa-house" swapOpacity />
+          
 
+          </Button>
 
+          </div>
+          </div>
+          </ListGroupItem>
+
+      )}
+      
+      </ListGroup>
+    )
+
+}
   return(
     <div>
       <div>
@@ -137,23 +179,8 @@ export default (props) => {
       />
       <p></p>
       <p></p>
-      <div style={{maxwidth: '50px'}}>
-      <BS.Select htmlSize="10"
-        onChange = {(e)=> 
-          {
-            const data = sensorMap.get(e.target.value).config
-            data.mac_address=e.target.value
-            setSchema(sensorMap.get(e.target.value).schema)
-            setSensorData(data)
-          }
-        }>
-      {Array.from(sensorMap.entries()).map((entry) =>  
-        <option key={entry[0]} value={entry[0]}> 
-          {entry[1].sensor.name}
-        </option>         
-      )
-      }
-      </BS.Select>
+      <div>
+        {sensorList("LG")}
       </div>
       <p></p>
       <p></p>

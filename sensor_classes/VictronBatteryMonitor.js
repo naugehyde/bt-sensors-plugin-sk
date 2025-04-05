@@ -23,7 +23,7 @@ class VictronBatteryMonitor extends VictronSensor{
         d.currentProperties.ManufacturerData={}
         d.currentProperties.ManufacturerData[0x02e1]=b
         d.initMetadata() 
-        d.getPathMetadata().forEach((datum,tag)=>{
+        Object.keys(d.getPaths()).forEach((tag)=>{
                 d.on(tag,(v)=>console.log(`${tag}=${v}`))
         })
         b = d.decrypt(b)
@@ -95,7 +95,7 @@ class VictronBatteryMonitor extends VictronSensor{
     emitValuesFrom(decData){
         this.emitData("ttg",decData,0)
         this.emitData("voltage",decData,2);
-        const alarm = this.getMetadatum("alarm").read(decData,4)
+        const alarm = this.getPath("alarm").read(decData,4)
         if (alarm>0){
             this.emit(
                 `ALARM #${alarm} from ${this.getDisplayName()})`, 
@@ -137,7 +137,8 @@ class VictronBatteryMonitor extends VictronSensor{
         })
     }
     emitGATT(){
-        this.getPathMetadata().forEach( (datum, tag)=> {
+        Object.keys(this.getPaths()).forEach( (tag)=> {
+            const datum = getPath(tag)
             if (datum.gatt) {
             this.gattService.getCharacteristic(datum.gatt).then((gattCharacteristic)=>{
                 gattCharacteristic.readValue().then((buffer)=>{
@@ -150,10 +151,10 @@ class VictronBatteryMonitor extends VictronSensor{
     }
     initGATTNotifications(){
         return new Promise((resolve,reject )=>{
-
-        this.getPathMetadata().forEach((datum, tag)=> {
+        Object.keys(this.getPaths()).forEach( (tag)=> {
+            const datum = getPath(tag)
             if (datum.gatt) {
-            this.gattService.getCharacteristic(datum.gatt).then(async (gattCharacteristic)=>{
+                this.gattService.getCharacteristic(datum.gatt).then(async (gattCharacteristic)=>{
                 const buffer = await gattCharacteristic.readValue()
                 this.emitData(tag, buffer)
                 

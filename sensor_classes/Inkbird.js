@@ -15,10 +15,10 @@ class Inkbird extends BTSensor{
 
     async init(){
         await super.init()
-        this.addMetadatum('temp','K', 'temperature')
-        this.addMetadatum('battery','ratio', 'battery strength')
+        this.addDefaultPath('temp','environment.temperature')
+        this.addDefaultPath('battery', 'sensors.batteryStrength')
         if (this.getName() == 'sps'){
-            this.addMetadatum('humidity','ratio', 'humidity')
+            this.addDefaultPath('humidity','environment.humidity')
         }
     }
 
@@ -37,7 +37,7 @@ class Inkbird extends BTSensor{
                 throw new Error("Unable to get manufacturer data for "+this.getDisplayName())
             this.emit("temp", parseFloat((273.15+(key_i & 0x8000 ? key_i - 0x10000 : key_i)/100).toFixed(2))) ;
             this.emit('battery', data[5]/100)
-            if (this.getMetadata().has('humidity')){
+            if (this.getPath('humidity')) {
                 this.emit("humidity", data.readUInt16LE(0)/100);
             }
         }

@@ -4,10 +4,9 @@ const path = require('path')
 const packageInfo = require("./package.json")
 
 const {createBluetooth} = require('node-ble')
+const {Variant} = require('dbus-next')
 const {bluetooth, destroy} = createBluetooth()
 const EventEmitter = require('node:events');
-
-const openapi = require('./openApi.json');
 
 const BTSensor = require('./BTSensor.js')
 const BLACKLISTED = require('./sensor_classes/BlackListedDevice.js')
@@ -17,27 +16,33 @@ class MissingSensor  {
 
 
 	constructor(config){
-		this.Metadatum = BTSensor.Metadatum
-		this.addMetadatum=BTSensor.prototype.addMetadatum
-		this.getPathMetadata = BTSensor.prototype.getPathMetadata
-		this.getParamMetadata = BTSensor.prototype.getParamMetadata
-		this.getJSONSchema = BTSensor.prototype.getJSONSchema
-		this.metadata= new Map()
+		this.config=config
+		this.addPath=BTSensor.prototype.addPath.bind(this)
+		this.getJSONSchema = BTSensor.prototype.getJSONSchema.bind(this)
+		this.initSchema = BTSensor.prototype.initSchema.bind(this)
+
+		this.initSchema()
+
 		var keys = Object.keys(config?.paths??{})
-		this.addMetadatum.bind(this)
+
 		keys.forEach((key)=>{
-			this.addMetadatum(key, config.paths[key]?.type??'string',  config.paths[key].description )
+			this.addPath(key, 
+				{ type: config.paths[key]?.type??'string',  
+				  title: config.paths[key].title} )
 		} )
 		keys = Object.keys(config?.params??{})
 		keys.forEach((key)=>{
-			this.addMetadatum(key, config.params[key]?.type??'string',  config.params[key].description ).isParam=true
+			this.addParam(key, 
+				{ type: config.params[key]?.type??'string',  
+				  title: config.params[key].title 
+				})
 			this[key]=config.params[key]
 		})
 		this.mac_address = config.mac_address
 		
 	}
 	hasGATT(){
-		return false
+		return this.config.gattParams
 	}
 	getMetadata(){
 		return this.metadata
@@ -194,6 +199,7 @@ module.exports =   function (app) {
 					options, () => {
 						app.debug('Plugin options saved')
 						res.status(200).json({message: "Plugin updated"})
+						sensorMap.clear()
 						channel.broadcast({},"pluginRestarted")
 						restartPlugin(options)
 					}
@@ -216,6 +222,7 @@ module.exports =   function (app) {
 				);
 			})
 			router.get('/sensors', (req, res) => {
+				app.debug("Sending sensors")
 				const t = sensorsToJSON()
 				res.status(200).json(t)
 			  });
@@ -464,6 +471,7 @@ module.exports =   function (app) {
 		adapterPower=true
 	
 		sensorMap.clear()
+		channel.broadcast({},"resetSensors")
 		deviceConfigs=options?.peripherals??[]
 
 		if (plugin.stopped) {

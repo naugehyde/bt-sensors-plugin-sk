@@ -18,35 +18,44 @@ class ATC extends BTSensor{
   
     async init() {
         await super.init()
-        const md=this.addMetadatum('parser','','data parsing strategy')
-        md.isParam=true
-        md.enum=["ATC-LE","ATC-BE"]
+        this.addParameter(
+            {
+                tag: 'parser',
+                title:'data parsing strategy',
+                type: 'string'
+            }
+        )
         if (!this.parser){
             this.parser="ATC-LE"
         }
         this.initMetadata()
     }
     initMetadata(){
+
+        this.addDefaultPath('batteryStrength','sensors.batteryStrength')
+        .read=(buff)=>{return ((buff.readUInt8(12))/100)}
+
         if (this.parser=="ATC-LE"){
-            this.addMetadatum('voltage', 'V',  'sensor battery voltage',
-                (buff)=>{return ((buff.readUInt16LE(10))/1000)})
-            this.addMetadatum('batteryStrength', 'ratio',  'sensor battery strength',
-                (buff)=>{return ((buff.readUInt8(12))/100)})
-            this.addMetadatum('temp','K', 'temperature',
-                (buff)=>{return parseFloat((273.15+(buff.readInt16LE(6))/100).toFixed(2))})
-            this.addMetadatum('humidity','ratio', 'humidity',
-                (buff)=>{return ((buff.readUInt16LE(8))/10000)})
+            this.addDefaultPath('voltage','sensors.batteryVoltage')
+                .read=(buff)=>{return ((buff.readUInt16LE(10))/1000)}
+
+            this.addDefaultPath('temp', 'environment.temperature')
+                .read=(buff)=>{return parseFloat((273.15+(buff.readInt16LE(6))/100).toFixed(2))}
+ 
+            this.addDefaultPath('humidity','environment.humidity')
+                .read=(buff)=>{return ((buff.readUInt16LE(8))/10000)}
         
             } else{
-                this.addMetadatum('voltage', 'V',  'sensor battery voltage',
-                    (buff)=>{return ((buff.readUInt16BE(10))/1000)})
-                this.addMetadatum('batteryStrength', 'ratio',  'sensor battery strength',
-                    (buff)=>{return ((buff.readUInt8(9))/100)})
-                this.addMetadatum('temp','K', 'temperature',
-                    (buff)=>{return parseFloat((273.15+(buff.readInt16BE(6))/10).toFixed(2))})
-                this.addMetadatum('humidity','ratio', 'humidity',
-                    (buff)=>{return ((buff.readUInt8(8))/100)})
-            
+
+                this.addDefaultPath('voltage','sensors.batteryVoltage')
+                    .read=(buff)=>{return ((buff.readUInt16BE(10))/1000)}
+
+                this.addDefaultPath('temp', 'environment.temperature')
+                    .read=(buff)=>{return parseFloat((273.15+(buff.readInt16BE(6))/100).toFixed(2))}
+
+                this.addDefaultPath('humidity','environment.humidity')
+                    .read=(buff)=>{return ((buff.readUInt16BE(8))/10000)}
+                
             }
     }
     propertiesChanged(props){

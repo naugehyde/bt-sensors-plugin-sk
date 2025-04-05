@@ -31,7 +31,7 @@ class VictronInverterRS extends VictronSensor{
 
     emitValuesFrom(decData){
         super.emitValuesFrom(decData)
-        const error = this.getMetadatum("chargerError").read(decData)
+        const error = this.getPath("chargerError").read(decData)
         if (error>0){
             this.emit(
                 `Charger Error #${error} from ${this.getDisplayName()})`, 

@@ -47,7 +47,7 @@ class VictronDCEnergyMeter extends VictronSensor{
     emitValuesFrom(decData){
         this.emitData("meterType",decData,0)
         this.emitData("voltage",decData,2);
-        const alarm = this.getMetadatum("alarm").read(decData,4)
+        const alarm = this.getPath("alarm").read(decData,4)
         if (alarm>0){
             this.emit(
                 `ALARM #${alarm} from ${this.getDisplayName()})`, 

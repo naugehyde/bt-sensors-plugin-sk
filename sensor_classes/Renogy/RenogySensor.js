@@ -42,11 +42,20 @@ class RenogySensor extends BTSensor{
 
     async init(){
         await super.init()
-        var md = this.addMetadatum('refreshInterval','','refresh interval')
-        md.isParam = true
-
-        md = this.addMetadatum('deviceID', '', 'ID of device')
-        md.isParam = true
+        this.addParameter(
+            "refreshInterval",
+            {
+                title: 'refresh interval',
+                type: 'number'
+            }
+        )
+        this.addParameter(
+            "deviceID",
+            {
+                title: 'ID of device'
+            }
+        )
+      
 
         await this.device.connect()
         const rw = await this.constructor.getReadWriteCharacteristics(this.device)

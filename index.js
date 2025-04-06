@@ -1,6 +1,7 @@
 const fs = require('fs')
 const util = require('util')
 const path = require('path')
+const semver = require('semver')
 const packageInfo = require("./package.json")
 
 const {createBluetooth} = require('node-ble')
@@ -167,10 +168,15 @@ module.exports =   function (app) {
   	}  
 
 	function loadClassMap() {
-		import(app.config.appPath+"/lib/modules.js").then( (modulesjs)=>{
-			const _classMap = utilities_sk.loadClasses(path.join(__dirname, 'sensor_classes'))
-			classMap = new Map([..._classMap].filter(([k, v]) => !k.startsWith("_") ))
-			const { default:defaultExport} = modulesjs
+		const _classMap = utilities_sk.loadClasses(path.join(__dirname, 'sensor_classes'))
+		classMap = new Map([..._classMap].filter(([k, v]) => !k.startsWith("_") ))
+		const libPath = app.config.appPath +(
+			semver.gte(app.config.version,"2.13.6")?"dist":"lib"
+		)
+		
+		//+ app.config.version 
+		import(libPath+"/modules.js").then( (modulesjs)=>{
+		const { default:defaultExport} = modulesjs
 			const modules = defaultExport.modulesWithKeyword(app.config, "signalk-bt-sensor-class")
 			modules.forEach((module)=>{
 				module.metadata.classFiles.forEach((classFile)=>{

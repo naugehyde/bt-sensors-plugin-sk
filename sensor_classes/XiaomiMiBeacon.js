@@ -203,6 +203,11 @@ class XiaomiMiBeacon extends BTSensor{
     
     async init(){
         await super.init()
+        const data = this.getServiceData(this.constructor.SERVICE_MIBEACON)
+        const frameControl = data[0] + (data[1] << 8)
+        this.deviceID = data[2] + (data[3] << 8)
+        this.isEncrypted = (frameControl >> 3) & 1
+        this.encryptionVersion = frameControl >> 12 
         this.addParameter(
             "encryptionKey",
             {
@@ -220,16 +225,16 @@ class XiaomiMiBeacon extends BTSensor{
         this.addMetadatum('voltage', 'V',  'sensor battery voltage',
             (buff,offset)=>{return ((buff.readUInt16LE(offset))/1000)})
 
-        const data = this.getServiceData(this.constructor.SERVICE_MIBEACON)
-        const frameControl = data[0] + (data[1] << 8)
-        this.deviceID = data[2] + (data[3] << 8)
-        this.isEncrypted = (frameControl >> 3) & 1
-        this.encryptionVersion = frameControl >> 12 
+
     }   
 
     getName(){
         const dt = DEVICE_TYPES.get(this.deviceID)
-        return this?.name??`${dt.name} ${dt.model}`
+        if (!dt) 
+            return super.getName()
+        else
+            return this?.name??`${dt.name} ${dt.model}`
+
     }
 
     async disconnectGATTCharacteristic(){

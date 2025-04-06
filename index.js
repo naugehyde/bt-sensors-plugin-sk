@@ -1,12 +1,12 @@
 const fs = require('fs')
 const util = require('util')
 const path = require('path')
+const semver = require('semver')
 const packageInfo = require("./package.json")
 
 const {createBluetooth} = require('node-ble')
 const {Variant} = require('dbus-next')
 const {bluetooth, destroy} = createBluetooth()
-const EventEmitter = require('node:events');
 
 const BTSensor = require('./BTSensor.js')
 const BLACKLISTED = require('./sensor_classes/BlackListedDevice.js')
@@ -18,6 +18,8 @@ class MissingSensor  {
 	constructor(config){
 		this.config=config
 		this.addPath=BTSensor.prototype.addPath.bind(this)
+		this.addParameter=BTSensor.prototype.addParameter.bind(this)
+
 		this.getJSONSchema = BTSensor.prototype.getJSONSchema.bind(this)
 		this.initSchema = BTSensor.prototype.initSchema.bind(this)
 
@@ -32,7 +34,7 @@ class MissingSensor  {
 		} )
 		keys = Object.keys(config?.params??{})
 		keys.forEach((key)=>{
-			this.addParam(key, 
+			this.addParameter(key, 
 				{ type: config.params[key]?.type??'string',  
 				  title: config.params[key].title 
 				})
@@ -104,19 +106,19 @@ module.exports =   function (app) {
 		});
 	  }
 	
-
-	function loadClassMap() {
-		import(app.config.appPath+"/lib/modules.js").then( (modulesjs)=>{
-			const _classMap = utilities_sk.loadClasses(path.join(__dirname, 'sensor_classes'))
-			classMap = new Map([..._classMap].filter(([k, v]) => !k.startsWith("_") ))
-			const { default:defaultExport} = modulesjs
+	  function loadClassMap() {
+		const _classMap = utilities_sk.loadClasses(path.join(__dirname, 'sensor_classes'))
+		classMap = new Map([..._classMap].filter(([k, v]) => !k.startsWith("_") ))
+		const libPath = app.config.appPath +(
+			semver.gt(app.config.version,"2.13.5")?"dist":"lib"
+		)
+		import(libPath+"/modules.js").then( (modulesjs)=>{
+		const { default:defaultExport} = modulesjs
 			const modules = defaultExport.modulesWithKeyword(app.config, "signalk-bt-sensor-class")
 			modules.forEach((module)=>{
 				module.metadata.classFiles.forEach((classFile)=>{
 					const cls = require(module.location+module.module+"/"+classFile);
-					cls.app=app
 					classMap.set(cls.name, cls);
-					
 				})
 			})
 			classMap.get('UNKNOWN').classMap=new Map([...classMap].sort().filter(([k, v]) => !v.isSystem )) // share the classMap with Unknown for configuration purposes

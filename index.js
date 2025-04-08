@@ -63,6 +63,9 @@ class MissingSensor  {
 	}
 	stopListening(){}
 	listen(){}
+	isActive(){
+		return false
+	}
 }
 module.exports =   function (app) {
 	var adapterID = 'hci0'
@@ -192,6 +195,23 @@ module.exports =   function (app) {
 				)
 				
 			});
+			router.post('/removeSensorData', async (req, res) => {
+				app.debug(req.body)
+				const i = deviceConfigs.findIndex((p)=>p.mac_address==req.body.mac_address) 
+				if (i>=0){
+					deviceConfigs.splice(i,1)
+				}
+				if (sensorMap.has(req.body.mac_address))
+					sensorMap.delete(req.body.mac_address)
+				app.savePluginOptions(
+					options, async () => {
+						app.debug('Plugin options saved')
+						res.status(200).json({message: "Sensor updated"})
+						channel.broadcast({},"resetSensors")
+					}
+				)
+				
+			});
 
 			router.post('/sendBaseData', async (req, res) => {
 				
@@ -280,10 +300,13 @@ module.exports =   function (app) {
 		}
 
 		function removeSensorFromList(sensor){
+			sensorMap.delete(config.mac_address)
+
 			channel.broadcast({mac:sensor.getMacAddress()},"removesensor")
 		}
 		
-		function addSensorToList(sensor){
+		async function addSensorToList(sensor){
+			sensorMap.set(await sensor.getMacAddress(),sensor)
 			channel.broadcast(sensorToJSON(sensor),"newsensor");
 		}
 		function deviceNameAndAddress(config){
@@ -299,7 +322,6 @@ module.exports =   function (app) {
 			.then(async (device)=> { 
 				app.debug(`Found ${config.mac_address}`)
 				s = await instantiateSensor(device,config) 
-				sensorMap.set(config.mac_address,s)
 	
 				if (s instanceof BLACKLISTED)
 					reject ( `Device is blacklisted (${s.reasonForBlacklisting()}).`)

@@ -302,7 +302,7 @@ class BTSensor extends EventEmitter {
 
 		if (this.hasGATT()){
 
-			this_schema.properties.gattParams={
+			this._schema.properties.gattParams={
 				title:`GATT Specific device parameters`,
 				description: this.getGATTDescription(),
 				type:"object",
@@ -344,12 +344,11 @@ class BTSensor extends EventEmitter {
     addMetadatum(tag, ...args){
 
         const md = {}
-        if (args[0]) md.tag = args[0]
-        if (args[1]) md.unit = args[1]
-        if (args[2]) md.title = args[2]
-        if (args[3]) md.read = args[3]
-        if (args[4]) md.gatt = args[4]
-        if (args[5]) md.type = args[5]
+        if (args[0]) md.unit = args[0]
+        if (args[1]) md.title = args[1]
+        if (args[2]) md.read = args[2]
+        if (args[3]) md.gatt = args[3]
+        if (args[4]) md.type = args[4]
      
         return this.addPath(tag,md)
     }
@@ -359,7 +358,8 @@ class BTSensor extends EventEmitter {
         if (!param.type)
             param.type="string"
 
-        return this._schema.properties.params.properties[tag]=param
+        this._schema.properties.params.properties[tag]=param
+        return this._schema.properties.params.properties[tag]
     }
 
     addPath(tag, path){
@@ -368,7 +368,8 @@ class BTSensor extends EventEmitter {
 
         if (!path.pattern)
             path.pattern="^(?:[^{}\\s]*\\{[a-zA-Z0-9]+\\}[^{}\\s]*|[^{}\\s]*)$"
-        return this._schema.properties.paths.properties[tag]=path
+        this._schema.properties.paths.properties[tag]=path
+        return this._schema.properties.paths.properties[tag]
     }
 
     addGATTParameter(tag, param){
@@ -642,7 +643,8 @@ class BTSensor extends EventEmitter {
     emitData(tag, buffer, ...args){
         const md = this.getPath(tag)
         if (md && md.read)
-            this.emit(tag, this.getPath(tag).read(buffer, ...args))
+            this.emit(tag, md.read(buffer, ...args))
+
         
     }
 

@@ -19,8 +19,8 @@ class ATC extends BTSensor{
     async init() {
         await super.init()
         this.addParameter(
+            "parser",
             {
-                tag: 'parser',
                 title:'data parsing strategy',
                 type: 'string'
             }

@@ -51,6 +51,7 @@ class VictronBatteryMonitor extends VictronSensor{
                 '6597ed8d-4bda-4c1e-af4b-551c4cf74769',)
         const alarmMD = this.addMetadatum('alarm','',  'alarm', 
                 (buff,offset=0)=>{return buff.readInt16LE(offset)})
+                
                 alarmMD.notify=true
 
         this.addMetadatum( 'consumed','C', 'amp-hours consumed', 

@@ -11,6 +11,7 @@ const {bluetooth, destroy} = createBluetooth()
 const BTSensor = require('./BTSensor.js')
 const BLACKLISTED = require('./sensor_classes/BlackListedDevice.js')
 const { createChannel, createSession } = require("better-sse");
+const { clearTimeout } = require('timers')
 
 class MissingSensor  {
 
@@ -156,15 +157,29 @@ module.exports =   function (app) {
 	plugin.started=false
 
 	loadClassMap()
-	var discoveryIntervalID
+	var discoveryIntervalID, progressID, progressTimeoutID
 	var adapter 
 	var adapterPower
 	const channel = createChannel()
 
+	plugin.registerWithRouter = function(router) {
+		router.get('/sendPluginState', async (req, res) => {
+		
+			res.status(200).json({
+				"state":(plugin.started?"started":"stopped")
+			})
+		});
+		router.get("/sse", async (req, res) => {
+			const session = await createSession(req, res);
+			channel.register(session)
+	   });
+	
+	}
+
 	plugin.start = async function (options, restartPlugin) {
 		plugin.started=true
 		var adapterID=options.adapter
-		app.debug("")
+		var foundConfiguredDevices=0
 		plugin.registerWithRouter = function(router) {
 
 			router.post('/sendSensorData', async (req, res) => {
@@ -248,10 +263,28 @@ module.exports =   function (app) {
 				const t = sensorsToJSON()
 				res.status(200).json(t)
 			  });
-			router.get("/sse", async (req, res) => {
-				 const session = await createSession(req, res);
-				 channel.register(session)
+
+			router.get('/progress', (req, res) => {
+				app.debug("Sending progress")
+				const json = {"progress":foundConfiguredDevices/deviceConfigs.length, "maxTimeout": 1, 
+							  "deviceCount":foundConfiguredDevices, 
+							  "totalDevices": deviceConfigs.length}
+				res.status(200).json(json)
+				
+			  });
+			
+			router.get('/sendPluginState', async (req, res) => {
+		
+				res.status(200).json({
+					"state":(plugin.started?"started":"stopped")
+				})
 			});
+			router.get("/sse", async (req, res) => {
+				const session = await createSession(req, res);
+				channel.register(session)
+		   });
+	
+
 		};
 
 		function sensorsToJSON(){
@@ -395,7 +428,7 @@ module.exports =   function (app) {
 					}
 					Promise.resolve(sensor.listen()).then(() => {
 						app.debug(`Listening for changes from ${sensor.getDisplayName()}`);
-						app.setPluginStatus(`Initial scan complete. Listening to ${++found} sensors.`);
+						app.setPluginStatus(`Initial scan complete. Listening to ${++foundConfiguredDevices} sensors.`);
 					})
 				}
 			})
@@ -408,6 +441,7 @@ module.exports =   function (app) {
 						app.setPluginError(msg)
 					const sensor=new MissingSensor(deviceConfig)
 					addSensorToList(sensor) //add sensor to list with known options
+					foundConfiguredDevices++
 				
 				})
 		}
@@ -443,7 +477,8 @@ module.exports =   function (app) {
 		function findDeviceLoop(discoveryTimeout, discoveryInterval, immediate=true ){
 			if (immediate)
 				findDevices(discoveryTimeout)
-			discoveryIntervalID = setInterval( findDevices, discoveryInterval*1000, discoveryTimeout)
+			discoveryIntervalID = 
+				setInterval( findDevices, discoveryInterval*1000, discoveryTimeout)
 		}
 
 	
@@ -474,13 +509,9 @@ module.exports =   function (app) {
 						if (plugin.started){ //only call stop() if plugin is started
 							app.setPluginStatus(`Bluetooth Adapter ${adapterID} turned off. Plugin disabled.`)
 							await plugin.stop()
-							adapterPower=false 
 						}
 					} else { 				
-						if (!adapterPower)	{ //only call start() once
-							adapterPower=true
-							await plugin.start(options,restartPlugin)
-						}
+						await restartPlugin(options)
 					}
 				}
 			})
@@ -495,11 +526,12 @@ module.exports =   function (app) {
 		adapterPower=true
 	
 		sensorMap.clear()
-		channel.broadcast({},"resetSensors")
+		if (channel)
+			channel.broadcast({state:"started"},"pluginstate")
 		deviceConfigs=options?.peripherals??[]
 
 		if (plugin.stopped) {
-			await sleep(5000) //Make sure plugin.stop() completes first			
+			//await sleep(5000) //Make sure plugin.stop() completes first			
 						  //plugin.start is called asynchronously for some reason
 						  //and does not wait for plugin.stop to complete
 			plugin.stopped=false
@@ -528,9 +560,32 @@ module.exports =   function (app) {
 				app.debug(`Error starting scan: ${e.message}`)
 		}
 		if (!(deviceConfigs===undefined)){
-			var found = 0
-			for (const deviceConfig of deviceConfigs) {
+			const maxTimeout=Math.max(...deviceConfigs.map((dc)=>dc?.discoveryTimeout??options.discoveryTimeout))
+			var progress = 0
+			progressID  = setInterval(()=>{
+				app.debug("sending progress")
+				channel.broadcast({"progress":++progress, "maxTimeout": maxTimeout, "deviceCount":foundConfiguredDevices, "totalDevices": deviceConfigs.length},"progress")
+				if (foundConfiguredDevices==deviceConfigs.length){
+					app.debug("sending progress complete") 
+					channel.broadcast({"progress":maxTimeout, "maxTimeout": maxTimeout, "deviceCount":foundConfiguredDevices, "totalDevices": deviceConfigs.length},"progress")
+					progressID,progressTimeoutID = null
+					clearTimeout(progressTimeoutID)
+					clearInterval(progressID)
+					progressID = null
+				}
+			},1000); 
 
+			progressTimeoutID = setTimeout(()=> {
+				app.debug("progress timed out ")
+				if (progressID) {
+
+					clearInterval(progressID);
+					progressID=null
+					channel.broadcast({"progress":maxTimeout, "maxTimeout": maxTimeout, "deviceCount":foundConfiguredDevices, "totalDevices": deviceConfigs.length},"progress")
+				} 
+			}, maxTimeout*1000);
+
+			for (const deviceConfig of deviceConfigs) {
 				initConfiguredDevice(deviceConfig)
 			}
 		}
@@ -542,6 +597,27 @@ module.exports =   function (app) {
 		app.debug("Stopping plugin")
 		plugin.stopped=true
 		plugin.started=false
+		channel.broadcast({state:"stopped"},"pluginstate")
+		if (discoveryIntervalID) {
+			clearInterval(discoveryIntervalID)
+			discoveryIntervalID=null
+		}
+		if (progressID) {
+			clearInterval(progressID)
+			progressID=null
+		}
+		if (progressTimeoutID) {
+			clearTimeout(progressTimeoutID)
+			progressTimeoutID=null
+		}
+		if (adapter && await adapter.isDiscovering())
+			try{
+				await adapter.stopDiscovery()
+				app.debug('Scan stopped')
+			} catch (e){
+				app.debug(`Error stopping scan: ${e.message}`)
+			}
+
 		if ((sensorMap)){
 			sensorMap.forEach(async (sensor, mac)=> {
 				try{
@@ -554,23 +630,9 @@ module.exports =   function (app) {
 			})				
 		}
 		
-		if (discoveryIntervalID) {
-			clearInterval(discoveryIntervalID)
-			discoveryIntervalID=null
-		}
-
-		if (adapter && await adapter.isDiscovering())
-			try{
-				await adapter.stopDiscovery()
-				app.debug('Scan stopped')
-			} catch (e){
-				app.debug(`Error stopping scan: ${e.message}`)
-			}
 		app.debug('BT Sensors plugin stopped')
 
 	}
-
- 	//plugin.getOpenApi = () => openapi;
 
 	return plugin;
 }

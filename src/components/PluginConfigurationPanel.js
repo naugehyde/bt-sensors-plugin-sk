@@ -14,6 +14,9 @@ const log = (type) => console.log.bind(console, type);
 import ListGroup from 'react-bootstrap/ListGroup';
 import { ListGroupItem } from 'react-bootstrap';
 
+import ProgressBar from 'react-bootstrap/ProgressBar';
+
+
 var _sensorMap
 
 export default (props) => {
@@ -47,9 +50,17 @@ export default (props) => {
 
   const [sensorData, setSensorData] = useState({})
   const [sensorMap, setSensorMap ] = useState(new Map() )
-
-  const [isLoading, setIsLoading ] = useState(true)
  
+  const [progress, setProgress ] = useState({
+    "progress":0, "maxTimeout": 100, 
+    "deviceCount":0, 
+    "totalDevices":0})
+  
+ 
+  const [pluginState, setPluginState ] = useState("unknown")
+  const [error, setError ] = useState()
+  
+
   function sendJSONData(cmd, data){
 
     console.log(`sending ${cmd}`)
@@ -64,33 +75,52 @@ export default (props) => {
     })
   }
 
-  async function getJSONData(path){
+  async function fetchJSONData(path){
     console.log(`fetching ${path}`)
 
-    const response = await fetch(`/plugins/bt-sensors-plugin-sk/${path}`, {
+    return fetch(`/plugins/bt-sensors-plugin-sk/${path}`, {
       credentials: 'include'
     })
-    if (response.status != 200) {
-      throw new Error(response.status)
-    }  
 
+  }
+
+  async function getSensorData(){
+  
+    const response = await fetchJSONData("sensors")
+    if (response.status!=200){
+      throw new Error(`Unable get sensor data: ${response.statusText} (${response.status}) `)
+    }
+    const json = await response.json()
+    console.log(json)
+    return json
+
+  }
+
+  async function getBaseData(){
+    
+    const response = await fetchJSONData("base")
+    if (response.status!=200){
+      throw new Error(`Unable get base data: ${response.statusText} (${response.status}) `)
+    }
+    const json = await response.json()
+    console.log(json)
+    return json
+  }
+  async function getProgress(){
+    
+    const response = await fetchJSONData("progress")
+    if (response.status!=200){
+      throw new Error(`Unable get progres: ${response.statusText} (${response.status}) `)
+    }
     const json = await response.json()
     console.log(json)
     return json
   }
 
-  async function getSensorData(){
-    return getJSONData("sensors")
-  }
-
-  async function getBaseData(){
-    return getJSONData("base")
-  }
-
   function updateSensorData(data){
     sendJSONData("sendSensorData", data).then((response)=>{
       if (response.status != 200) {
-        throw new Error(response.status)
+        throw new Error(response.statusText)
       } 
     })
   }
@@ -100,7 +130,7 @@ export default (props) => {
     
       sendJSONData("removeSensorData", {mac_address:mac} ).then((response)=>{
         if (response.status != 200) {
-            throw new Error(response.status)
+            throw new Error(response.statusText)
         }
         })
 
@@ -109,7 +139,7 @@ export default (props) => {
         setSensorMap(new Map(_sensorMap))
         setSchema({})
     } catch {(e)=>
-      console.log(`Couldn't remove ${mac}: ${e}`)
+      setError( new Error(`Couldn't remove ${mac}: ${e}`))
     }
      
   }
@@ -117,14 +147,19 @@ export default (props) => {
 
   function updateBaseData(data){
     sendJSONData("sendBaseData", data).then( (response )=>{
-        if (response.status != 200) {
-          throw new Error(response.status)
-        } else{
-          refreshSensors()
-        }
+      if (response.status != 200) {
+        setError(new Error(`Unable to update base data: ${response.statusText} (${response.status})`))
+      } else {
+        getProgress().then((json)=>{
+          setProgress(json)
+        }).catch((e)=>{
+          setError(e)
+        })
+        refreshSensors()
+      }
       })
-
-    }
+  }
+    
 
   function refreshSensors(){
     console.log('refreshing sensor map')
@@ -132,10 +167,17 @@ export default (props) => {
     getSensorData().then((sensors)=>{
       setSensorMap (new Map(sensors.map((sensor)=>[sensor.sensor.mac,sensor])));    
     })
+    .catch((e)=>{
+      setError(e)
+    })
   }
 
 
   useEffect(()=>{
+
+    fetchJSONData("sendPluginState").then( async (response)=> {
+      const json = await response.json()
+      setPluginState(json.state)
       console.log("Setting up eventsource")
       const eventSource = new EventSource("/plugins/bt-sensors-plugin-sk/sse")
       
@@ -151,35 +193,69 @@ export default (props) => {
       eventSource.addEventListener("sensordisplayname", (event) => {
         let json = JSON.parse(event.data)        
         
-        if (_sensorMap.has(json.mac)) {
+        if (_sensorMap.has(json.mac)) {      
           let sensor = _sensorMap.get(json.mac)
           sensor.sensor.name=json.name
           setSensorMap(new Map ( _sensorMap ))
         }
       });
-      
-      refreshSensors()
-      
-      getBaseData().then(async (json) => {
-        setBaseSchema(json.schema);    
-        setBaseData(json.data);
-      })
-    return () => eventSource.close();
+      eventSource.addEventListener("progress", (event) => {
+        const json = JSON.parse(event.data)  
+        setProgress(json)
+        console.log(json)
+      });
 
+      eventSource.addEventListener("pluginstate", (event) => {
+        const json = JSON.parse(event.data)  
+        setPluginState(json.state)
+      });
+      return () => eventSource.close();
+    })
+
+    .catch( (e) => { 
+        setError(e)
+      }
+    )      
 },[])
+
+useEffect(()=>{
+  if (pluginState=="started"){
+    refreshSensors()
+    
+    getBaseData().then((json) => {
+      setBaseSchema(json.schema);    
+      setBaseData(json.data);
+    }).catch((e)=>{
+      setError(e)
+    })
+
+    getProgress().then((json)=>{
+      setProgress(json)
+    }).catch((e)=>{
+      setError(e)
+    })
+
+  } else{
+    setSensorMap(new Map())
+    setBaseSchema({})
+    setBaseData({})
+  }
+
+},[pluginState])
+
+useEffect(()=>{
+  console.log(error)
+},[error])
 
 function confirmRemove(mac){
   const result = window.confirm(`Remove configuration for ${mac}?`)
   if (result)
     removeSensorData(mac)
 }
-
-
  
 useEffect(()=>{
     _sensorMap = sensorMap
     
-    setIsLoading(_sensorMap.size==0)
     setSensorList(
       
       Array.from(sensorMap.entries()).map((entry) =>  {
@@ -195,7 +271,7 @@ useEffect(()=>{
             <FontAwesomeIcon icon={faTrash} />
           </Button>
           }
-      return <ListGroupItem action 
+       return <ListGroupItem action 
         onClick={()=>{ 
           if (sensorMap.get(entry[0])){
             config.mac_address=entry[0]
@@ -218,9 +294,34 @@ useEffect(()=>{
   },[sensorMap]
   )
 
+  function getProgressBar(){
+    return <ProgressBar max={progress.maxTimeout} 
+                         now={progress.progress} 
+                         label={`${progress.deviceCount}% of ${progress.totalDevices}`} 
+    />
+  }
 
+  function getSpinnerButton(){
+
+    return <Button variant="primary" disabled>
+    <Spinner
+      as="span"
+      animation="border"
+      size="sm"
+      role="status"
+      aria-hidden="true"
+    />
+    Searching for sensors...
+    </Button>
+   
+  }
+
+  if (pluginState=="stopped")
+    return (<h1  >Enable plugin to see configuration</h1>)
+  else
   return(
     <div>
+      {error?<h2 style="color: red;">{error.message}</h2>:""}
       <Form 
         schema={baseSchema}
         validator={validator}
@@ -231,23 +332,17 @@ useEffect(()=>{
       />
       <p></p>
       <p></p>
-      <h2>Bluetooth Devices - Select to Configure</h2>
+      { (progress.deviceCount!=progress.totalDevices)?
+        <ProgressBar max={progress.maxTimeout} 
+                     now={progress.progress} 
+        />:""
+      }
+      <h2>{`${sensorMap.size>0?" Bluetooth Devices click to configure":""}`}</h2>
       <p></p>
-          {isLoading?
-           <Button variant="primary" disabled>
-           <Spinner
-             as="span"
-             animation="border"
-             size="sm"
-             role="status"
-             aria-hidden="true"
-           />
-           Loading...
-         </Button>:
-          <ListGroup style={{ maxHeight: '300px', overflowY: 'auto' }}>
-            {sensorList}
-          </ListGroup>
-          }
+           
+      <ListGroup style={{ maxHeight: '300px', overflowY: 'auto' }}>
+        {sensorList}
+      </ListGroup>
       <p></p>
       <p></p>
       

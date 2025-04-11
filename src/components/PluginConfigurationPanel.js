@@ -9,6 +9,8 @@ import Spinner from 'react-bootstrap/Spinner'
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTrash } from "@fortawesome/free-solid-svg-icons";
 
+import {  SignalCellular0Bar, SignalCellular1Bar, SignalCellular2Bar, SignalCellular3Bar, SignalCellular4Bar, SignalCellularConnectedNoInternet0Bar    } from '@material-ui/icons';
+
 const log = (type) => console.log.bind(console, type);
 
 import ListGroup from 'react-bootstrap/ListGroup';
@@ -31,16 +33,6 @@ export default (props) => {
       submitText: 'Submit',
     },
   }
-  const showSubmit= {
-    'ui:submitButtonOptions': {
-      props: {
-        disabled: false,
-        className: 'btn btn-info',
-      },
-      norender: false,
-      submitText: 'Submit',
-    },
-  }
   const [baseSchema, setBaseSchema] = useState({})
   const [baseData, setBaseData] = useState({})
 
@@ -48,7 +40,7 @@ export default (props) => {
   const [ uiSchema, setUISchema] = useState(hideSubmit )
   const [sensorList, setSensorList] = useState([])
 
-  const [sensorData, setSensorData] = useState({})
+  const [sensorData, setSensorData] = useState()
   const [sensorMap, setSensorMap ] = useState(new Map() )
  
   const [progress, setProgress ] = useState({
@@ -137,7 +129,7 @@ export default (props) => {
         _sensorMap.delete(mac)
         
         setSensorMap(new Map(_sensorMap))
-        setSchema({})
+        setSchema( {} )
     } catch {(e)=>
       setError( new Error(`Couldn't remove ${mac}: ${e}`))
     }
@@ -165,7 +157,7 @@ export default (props) => {
     console.log('refreshing sensor map')
 
     getSensorData().then((sensors)=>{
-      setSensorMap (new Map(sensors.map((sensor)=>[sensor.sensor.mac,sensor])));    
+      setSensorMap (new Map(sensors.map((sensor)=>[sensor.info.mac,sensor])));    
     })
     .catch((e)=>{
       setError(e)
@@ -184,18 +176,18 @@ export default (props) => {
       eventSource.addEventListener("newsensor", (event) => {
         let json = JSON.parse(event.data)
         
-        if (!_sensorMap.has(json.sensor.mac)) {
-          console.log(`New sensor: ${json.sensor.mac}`)
-          setSensorMap(new Map(_sensorMap.set(json.sensor.mac, json)))
+        if (!_sensorMap.has(json.info.mac)) {
+          console.log(`New sensor: ${json.info.mac}`)
+          setSensorMap(new Map(_sensorMap.set(json.info.mac, json)))
         }
       });
 
-      eventSource.addEventListener("sensordisplayname", (event) => {
+      eventSource.addEventListener("sensorchanged", (event) => {
         let json = JSON.parse(event.data)        
         
         if (_sensorMap.has(json.mac)) {      
           let sensor = _sensorMap.get(json.mac)
-          sensor.sensor.name=json.name
+          Object.assign(sensor.info, json )
           setSensorMap(new Map ( _sensorMap ))
         }
       });
@@ -247,44 +239,57 @@ useEffect(()=>{
   console.log(error)
 },[error])
 
-function confirmRemove(mac){
-  const result = window.confirm(`Remove configuration for ${mac}?`)
+function confirmDelete(mac){
+  const result = window.confirm(`Delete configuration for ${mac}?`)
   if (result)
     removeSensorData(mac)
 }
  
+function signalStrengthIcon(sensor){
+  if (sensor.info.lastContactDelta ==null|| sensor.info.lastContactDelta > sensor.config.deviceTimeout) 
+    return <SignalCellularConnectedNoInternet0Bar/>  
+  
+  if (sensor.info.signalStrength > 80)
+    return <SignalCellular4Bar/> 
+
+  if (sensor.info.signalStrength > 60)
+    return <SignalCellular3Bar/> 
+
+  if (sensor.info.signalStrength > 40)
+    return <SignalCellular2Bar/>
+
+  if (sensor.info.signalStrength > 20)
+    return <SignalCellular1Bar/>
+
+  return <SignalCellular0Bar/>
+
+}
 useEffect(()=>{
     _sensorMap = sensorMap
     
     setSensorList(
       
       Array.from(sensorMap.entries()).map((entry) =>  {
-        const config=sensorMap.get(entry[0]).config
+        const sensor = sensorMap.get(entry[0]);
+        const config= sensor.config
         const hasConfig = Object.keys(config).length>0;
-        var b="";
-        if (hasConfig){
-          b = <Button onClick={
-            ()=>{        
-              confirmRemove(entry[0])
-            }
-          }>
-            <FontAwesomeIcon icon={faTrash} />
-          </Button>
-          }
+        
+       
        return <ListGroupItem action 
         onClick={()=>{ 
-          if (sensorMap.get(entry[0])){
+          if (sensor){
             config.mac_address=entry[0]
-            setSchema(sensorMap.get(entry[0]).schema)
+            setSchema(sensor.schema)
             setSensorData(config)
-            setUISchema(showSubmit)
           }
         }
         }> 
         <div  class="d-flex justify-content-between align-items-center" style={hasConfig?{fontWeight:"normal"}:{fontStyle:"italic"}}>
-        {entry[1].sensor.name}
+        {`${sensor.info.name} MAC: ${sensor.info.mac} RSSI: ${ifNullNaN(sensor.info.RSSI)}`  }
         <div class="d-flex justify-content-between ">
-          { b }
+          {
+            signalStrengthIcon(sensor)
+          }
         </div>
         </div>
         </ListGroupItem>
@@ -294,28 +299,11 @@ useEffect(()=>{
   },[sensorMap]
   )
 
-  function getProgressBar(){
-    return <ProgressBar max={progress.maxTimeout} 
-                         now={progress.progress} 
-                         label={`${progress.deviceCount}% of ${progress.totalDevices}`} 
-    />
+  function ifNullNaN(value){
+    return value==null? NaN : value
   }
 
-  function getSpinnerButton(){
-
-    return <Button variant="primary" disabled>
-    <Spinner
-      as="span"
-      animation="border"
-      size="sm"
-      role="status"
-      aria-hidden="true"
-    />
-    Searching for sensors...
-    </Button>
-   
-  }
-
+  
   if (pluginState=="stopped")
     return (<h1  >Enable plugin to see configuration</h1>)
   else
@@ -326,13 +314,13 @@ useEffect(()=>{
         schema={baseSchema}
         validator={validator}
         onChange={(e) => setBaseData(e.formData)}
-        onSubmit={ ({ formData }, e) => {setSchema({}); setUISchema(hideSubmit); updateBaseData(formData) }}
+        onSubmit={ ({ formData }, e) => {setSensorData(null); updateBaseData(formData) }}
         onError={log('errors')}
         formData={baseData}
       />
       <p></p>
       <p></p>
-      { (progress.deviceCount!=progress.totalDevices)?
+      { (progress.deviceCount<progress.totalDevices)?
         <ProgressBar max={progress.maxTimeout} 
                      now={progress.progress} 
         />:""
@@ -345,7 +333,7 @@ useEffect(()=>{
       </ListGroup>
       <p></p>
       <p></p>
-      
+      <div style= {{ display: (Object.keys(schema).length==0)? "none" :""  }} >
       <Form
         schema={schema}
         validator={validator}
@@ -353,10 +341,23 @@ useEffect(()=>{
         onChange={(e) => setSensorData(e.formData)}
         onSubmit={({ formData }, e) => {
           console.log(formData) 
-          updateSensorData(formData)}}
+          updateSensorData(formData)
+          setSchema({})
+          alert("Changes saved")
+        }}
+          
         onError={log('errors')}
-        formData={sensorData}
-      />  
+        formData={sensorData}>
+        <div>
+        <>
+        <Button type='submit' variant="primary">Submit Changes</Button>
+        <Button variant="danger" onClick={(e)=>confirmDelete(sensorData.mac)}>Delete Config</Button>
+        <Button variant="secondary" >Undo Changes</Button>
+
+        </></div>
+      </Form>
+
+      </div>
     </div>
   )
     

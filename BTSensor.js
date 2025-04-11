@@ -619,6 +619,7 @@ class BTSensor extends EventEmitter {
      * set up by BTSensor::initPropertiesChanged()
      */
     propertiesChanged(props){
+        this._lastContact=Date.now()
             
         if (props.RSSI) {
             this.currentProperties.RSSI=this.valueIfVariant(props.RSSI)
@@ -733,7 +734,6 @@ class BTSensor extends EventEmitter {
             const pathMeta=this.getPath(tag)
 			const path = deviceConfig.paths[tag];
 			if (!(path === undefined)) {
-                this.app.debug(`${tag} => ${path}` )
                 this.on(tag, (val)=>{
 					if (pathMeta.notify){
 						this.app.notify(tag, val, id )
@@ -744,9 +744,12 @@ class BTSensor extends EventEmitter {
 			}
 		})
 	}
-	 updatePath(path, val,id){
+	updatePath(path, val,id){
 		this.app.handleMessage(id, {updates: [ { values: [ {path: path, value: val }] } ] })
   	}  
+    elapsedTimeSinceLastContact(){
+        return (Date.now()-this?._lastContact??Date.now())/1000
+    }
 }
 
 module.exports = BTSensor   

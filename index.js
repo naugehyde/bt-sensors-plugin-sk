@@ -57,16 +57,26 @@ class MissingSensor  {
 		return ""
 	}
 	getName(){
-		return this?.name??"Unknown device"
+		return `${this?.name??"Unknown device"} (OUT OF RANGE)`
 	}	
 	getDisplayName(){
-		return `OUT OF RANGE DEVICE (${this.getName()} ${this.getMacAddress()})`
+		return `(${this.getName()} ${this.getMacAddress()})`
+	}
+	getRSSI(){
+		return NaN
 	}
 	stopListening(){}
 	listen(){}
 	isActive(){
 		return false
 	}
+	elapsedTimeSinceLastContact(){
+		return NaN
+	}
+	getSignalStrength(){
+		return NaN
+	}
+
 }
 module.exports =   function (app) {
 	var adapterID = 'hci0'
@@ -157,7 +167,7 @@ module.exports =   function (app) {
 	plugin.started=false
 
 	loadClassMap()
-	var discoveryIntervalID, progressID, progressTimeoutID
+	var discoveryIntervalID, progressID, progressTimeoutID, deviceHealthID
 	var adapter 
 	var adapterPower
 	const channel = createChannel()
@@ -294,11 +304,19 @@ module.exports =   function (app) {
 			))
 		}
 
+		function getSensorInfo(sensor){
+			return { mac: sensor.getMacAddress(),
+				     name: sensor.getName(),
+					 RSSI: sensor.getRSSI(),
+					 signalStrength: sensor.getSignalStrength(),
+					 lastContactDelta: sensor. elapsedTimeSinceLastContact()
+			}
+		}
+
 		function sensorToJSON(sensor){
 			const config = getDeviceConfig(sensor.getMacAddress())
 			return {
-					sensor: {mac: sensor.getMacAddress(),
-							 name: sensor.getDisplayName()},
+					info: getSensorInfo(sensor),
 					schema: sensor.getJSONSchema(),
 					config: config?config:{}
 			
@@ -326,15 +344,12 @@ module.exports =   function (app) {
 			
 		}
 		
-		function updateSensorDisplayName(sensor){
-			const mac_address =  sensor.getMacAddress()
-			const displayName =  sensor.getDisplayName()
-			channel.broadcast({mac:mac_address, name: displayName},"sensordisplayname")			
+		function updateSensor(sensor){
+			channel.broadcast(getSensorInfo(sensor), "sensorchanged")			
 		}
 
 		function removeSensorFromList(sensor){
 			sensorMap.delete(config.mac_address)
-
 			channel.broadcast({mac:sensor.getMacAddress()},"removesensor")
 		}
 		
@@ -361,7 +376,7 @@ module.exports =   function (app) {
 				else{
 					addSensorToList(s)
 					s.on("RSSI",(()=>{
-						updateSensorDisplayName(s)
+						updateSensor(s)
 					}))
 					resolve(s)
 				}
@@ -441,7 +456,7 @@ module.exports =   function (app) {
 						app.setPluginError(msg)
 					const sensor=new MissingSensor(deviceConfig)
 					addSensorToList(sensor) //add sensor to list with known options
-					foundConfiguredDevices++
+					++foundConfiguredDevices
 				
 				})
 		}
@@ -562,6 +577,7 @@ module.exports =   function (app) {
 		if (!(deviceConfigs===undefined)){
 			const maxTimeout=Math.max(...deviceConfigs.map((dc)=>dc?.discoveryTimeout??options.discoveryTimeout))
 			var progress = 0
+			if (progressID==null) 
 			progressID  = setInterval(()=>{
 				app.debug("sending progress")
 				channel.broadcast({"progress":++progress, "maxTimeout": maxTimeout, "deviceCount":foundConfiguredDevices, "totalDevices": deviceConfigs.length},"progress")
@@ -574,7 +590,7 @@ module.exports =   function (app) {
 					progressID = null
 				}
 			},1000); 
-
+			if (progressTimeoutID==null)
 			progressTimeoutID = setTimeout(()=> {
 				app.debug("progress timed out ")
 				if (progressID) {
@@ -589,6 +605,14 @@ module.exports =   function (app) {
 				initConfiguredDevice(deviceConfig)
 			}
 		}
+		const minTimeout=Math.min(...deviceConfigs.map((dc)=>dc?.discoveryTimeout??options.discoveryTimeout))
+
+		deviceHealthID = setInterval( ()=> {
+			sensorMap.forEach((sensor)=>{
+				if (sensor.elapsedTimeSinceLastContact()> sensor.discoveryTimeout)
+					channel.broadcast(getSensorInfo(sensor), "sensorchanged")
+			})
+		}, minTimeout*1000)
 		
 		if (options.discoveryInterval && !discoveryIntervalID) 
 			findDeviceLoop(options.discoveryTimeout, options.discoveryInterval)

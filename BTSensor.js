@@ -116,8 +116,8 @@ class BTSensor extends EventEmitter {
         Object.assign(this,gattConfig)
     
         
-        this.state = null
-    }
+        this._state = null
+            }
     /**
      * @function _test Test sensor parsing
      * 
@@ -333,6 +333,17 @@ class BTSensor extends EventEmitter {
     
     }
 
+    activate(config, plugin){
+        this._state="ACTIVE"
+        if (config.paths){
+            this.createPaths(config,plugin.id)
+            this.initPaths(config,plugin.id)
+        }
+        Promise.resolve(this.listen()).then(() => {
+            this.debug(`Listening for changes from ${this.getDisplayName()}`);
+        })
+    }
+
     /**
      * Add a metadatum instance to the sensor instance
      *  
@@ -457,12 +468,12 @@ class BTSensor extends EventEmitter {
      */
     initPropertiesChanged(){
 
-        this.propertiesChanged.bind(this)
+        this._propertiesChanged.bind(this)
         this.device.helper._prepare()
         this.device.helper.on("PropertiesChanged",
             ((props)=> {
                 try{
-                    this.propertiesChanged(props)
+                    this._propertiesChanged(props)
                 }
                 catch(error){
                     this.debug(`Error occured on ${this.getNameAndAddress()}: ${error?.message??error}`)
@@ -568,13 +579,11 @@ class BTSensor extends EventEmitter {
     }
 
     getState(){
-        return this.state
+        return this._state
     }
-    isInactive(){
-        return this.state=="ASLEEP"
-    }
+
     isActive(){
-        return this.state=="ACTIVE"
+        return this._state=="ACTIVE"
     }
     getBars(){
         const ss =  this.getSignalStrength()
@@ -618,7 +627,7 @@ class BTSensor extends EventEmitter {
      * @param {*} props which contains ManufacturerData and ServiceData (where the sensor's data resides)
      * set up by BTSensor::initPropertiesChanged()
      */
-    propertiesChanged(props){
+    _propertiesChanged(props){
         this._lastContact=Date.now()
             
         if (props.RSSI) {
@@ -630,7 +639,12 @@ class BTSensor extends EventEmitter {
 
         if (props.ManufacturerData)
             this.currentProperties.ManufacturerData=this.valueIfVariant(props.ManufacturerData)
+        if (this.isActive())
+            this.propertiesChanged(props)
 
+    }
+    propertiesChanged(props){
+        //implemented by subclass
     }
 
    /**
@@ -667,7 +681,7 @@ class BTSensor extends EventEmitter {
     listen(){
         try{
             this.initPropertiesChanged()       
-            this.propertiesChanged(this.currentProperties)
+            this._propertiesChanged(this.currentProperties)
         } catch(e){
             this.debug(e)
         }
@@ -682,7 +696,7 @@ class BTSensor extends EventEmitter {
             })
             .catch((e)=>this.debug(`GATT services unavailable for ${this.getName()}. Reason: ${e}`))
         }
-        this.state="ACTIVE"
+        this._state="ACTIVE"
         return this
     }
 
@@ -699,7 +713,7 @@ class BTSensor extends EventEmitter {
         if (this.intervalID){
             clearInterval(this.intervalID)
         }
-        this.state="ASLEEP"
+        this._state="ASLEEP"
     }
     //END Sensor listen-to-changes functions
     

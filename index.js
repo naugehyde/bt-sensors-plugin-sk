@@ -211,7 +211,6 @@ module.exports =   function (app) {
 									initConfiguredDevice(req.body)
 								)
 							} else {
-								if (req.body.active)
 									initConfiguredDevice(req.body)
 							}	
 						} 
@@ -305,6 +304,8 @@ module.exports =   function (app) {
 		}
 
 		function getSensorInfo(sensor){
+			if (sensor.getName()=="vent") 
+				debugger
 			return { mac: sensor.getMacAddress(),
 				     name: sensor.getName(),
 					 RSSI: sensor.getRSSI(),
@@ -374,6 +375,7 @@ module.exports =   function (app) {
 				if (s instanceof BLACKLISTED)
 					reject ( `Device is blacklisted (${s.reasonForBlacklisting()}).`)
 				else{
+				
 					addSensorToList(s)
 					s.on("RSSI",(()=>{
 						updateSensor(s)
@@ -437,18 +439,14 @@ module.exports =   function (app) {
 			createSensor(adapter, deviceConfig).then((sensor)=>{
 
 				if (deviceConfig.active) {
-					if (deviceConfig.paths){
-						sensor.createPaths(deviceConfig,plugin.id)
-						sensor.initPaths(deviceConfig,plugin.id)
-					}
-					Promise.resolve(sensor.listen()).then(() => {
-						app.debug(`Listening for changes from ${sensor.getDisplayName()}`);
-						app.setPluginStatus(`Initial scan complete. Listening to ${++foundConfiguredDevices} sensors.`);
-					})
+					sensor.activate(deviceConfig, plugin)
+					app.setPluginStatus(`Listening to ${++foundConfiguredDevices} sensors.`);
 				}
 			})
 			.catch((error)=>
 				{
+					if (deviceConfig.unconfigured) return
+
 					const msg =`Sensor at ${deviceConfig.mac_address} unavailable. Reason: ${error}`
 					app.debug(msg)
 					app.debug(error)
@@ -466,25 +464,24 @@ module.exports =   function (app) {
 
 			adapter.devices().then( (macs)=>{
 				for (var mac of macs) {	
-					const deviceConfig = getDeviceConfig(mac)
-					const _mac = mac
-					const sensor = sensorMap.get(_mac)
+					var deviceConfig = getDeviceConfig(mac)
+					const sensor = sensorMap.get(mac)
 
-					if (deviceConfig && sensor instanceof MissingSensor){
-						removeSensorFromList(sensor)
-						initConfiguredDevice(deviceConfig)
-					} else
-					{
-						if (!sensorMap.has(_mac)) {
-							if (deviceConfig) continue; 
-							createSensor(adapter,
-								{mac_address:_mac, discoveryTimeout: discoveryTimeout*1000})
-							.then((s)=>
-								app.setPluginStatus(`Found ${s.getDisplayName()}.`))
-							.catch((e)=>
-								app.debug(`Device at ${_mac} unavailable. Reason: ${e}`))
-						}
+					if (sensor && deviceConfig) {
+						if (sensor instanceof MissingSensor)	
+							removeSensorFromList(sensor)
+						else 				
+							return
 					}
+					if (!sensor) {
+						if (!deviceConfig) {
+							deviceConfig = {mac_address: mac, 
+											discoveryTimeout: discoveryTimeout*1000, 
+											active: false, unconfigured: true}
+						} 
+						initConfiguredDevice(deviceConfig) 
+					}
+					
 				}
 			})
 		}
@@ -609,7 +606,9 @@ module.exports =   function (app) {
 
 		deviceHealthID = setInterval( ()=> {
 			sensorMap.forEach((sensor)=>{
-				if (sensor.elapsedTimeSinceLastContact()> sensor.discoveryTimeout)
+				const config = getDeviceConfig(sensor.getMacAddress())
+				const dt = config?.discoveryTimeout??options.discoveryTimeout
+				if (sensor.elapsedTimeSinceLastContact()> dt)
 					channel.broadcast(getSensorInfo(sensor), "sensorchanged")
 			})
 		}, minTimeout*1000)

@@ -16,6 +16,7 @@ class UNKNOWN extends BTSensor{
                 enum:Array.from(this.constructor.classMap.keys())
             }
         )
+        this.listen()
 
     }
 

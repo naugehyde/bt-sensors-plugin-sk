@@ -2,12 +2,9 @@ import Form from '@rjsf/core' ;
 import validator from '@rjsf/validator-ajv8';
 import React from 'react'
 import {useEffect, useState} from 'react'
-import Button from 'react-bootstrap/Button'
 
-import Spinner from 'react-bootstrap/Spinner'
+import {Button, Grid} from '@material-ui/core';
 
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faTrash } from "@fortawesome/free-solid-svg-icons";
 
 import {  SignalCellular0Bar, SignalCellular1Bar, SignalCellular2Bar, SignalCellular3Bar, SignalCellular4Bar, SignalCellularConnectedNoInternet0Bar    } from '@material-ui/icons';
 
@@ -110,11 +107,18 @@ export default (props) => {
   }
 
   function updateSensorData(data){
-    sendJSONData("sendSensorData", data).then((response)=>{
+    sendJSONData("sendSensorData", data).then((response)=>{ 
       if (response.status != 200) {
         throw new Error(response.statusText)
-      } 
+      }
+      debugger
+      sensorMap.get(data.mac_address).config = data
+      
     })
+  }
+
+  function undoChanges(mac) {
+    setSensorData( sensorMap.get(mac).config )
   }
 
   function removeSensorData(mac){
@@ -327,13 +331,11 @@ useEffect(()=>{
       }
       <h2>{`${sensorMap.size>0?" Bluetooth Devices click to configure":""}`}</h2>
       <p></p>
-           
-      <ListGroup style={{ maxHeight: '300px', overflowY: 'auto' }}>
+      <div style={{paddingBottom: 20}} class="d-flex flex-wrap justify-content-start align-items-start">
+      <ListGroup style={{  maxHeight: '300px', overflowY: 'auto' }}>
         {sensorList}
       </ListGroup>
-      <p></p>
-      <p></p>
-      <div style= {{ display: (Object.keys(schema).length==0)? "none" :""  }} >
+      <div style= {{ paddingLeft: 10, paddingTop: 10, display: (Object.keys(schema).length==0)? "none" :""  }} >
       <Form
         schema={schema}
         validator={validator}
@@ -345,18 +347,19 @@ useEffect(()=>{
           setSchema({})
           alert("Changes saved")
         }}
-          
         onError={log('errors')}
         formData={sensorData}>
         <div>
-        <>
-        <Button type='submit' variant="primary">Submit Changes</Button>
-        <Button variant="danger" onClick={(e)=>confirmDelete(sensorData.mac)}>Delete Config</Button>
-        <Button variant="secondary" >Undo Changes</Button>
+        <Grid direction="row" style={{spacing:5}}>
+        <Button type='submit' color="primary" variant="contained">Save</Button>
+        <Button variant="contained" onClick={()=>{undoChanges(sensorData.mac_address)}}>Undo</Button>
+        <Button variant="contained" color="secondary" onClick={(e)=>confirmDelete(sensorData.mac_address)}>Delete</Button>
 
-        </></div>
+        </Grid>
+        </div>
       </Form>
 
+      </div>
       </div>
     </div>
   )

@@ -206,7 +206,7 @@ module.exports =   function (app) {
 						res.status(200).json({message: "Sensor updated"})
 						const sensor = sensorMap.get(req.body.mac_address)
 						if (sensor) {
-							removeSensorFromList(req.body.mac_address)
+							removeSensorFromList(sensor)
 							if (sensor.isActive()) {
 								sensor.stopListening().then(()=> 
 									initConfiguredDevice(req.body)

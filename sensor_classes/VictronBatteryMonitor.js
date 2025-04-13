@@ -139,7 +139,7 @@ class VictronBatteryMonitor extends VictronSensor{
     }
     emitGATT(){
         Object.keys(this.getPaths()).forEach( (tag)=> {
-            const datum = getPath(tag)
+            const datum = this.getPaths()[tag]
             if (datum.gatt) {
             this.gattService.getCharacteristic(datum.gatt).then((gattCharacteristic)=>{
                 gattCharacteristic.readValue().then((buffer)=>{
@@ -153,7 +153,7 @@ class VictronBatteryMonitor extends VictronSensor{
     initGATTNotifications(){
         return new Promise((resolve,reject )=>{
         Object.keys(this.getPaths()).forEach( (tag)=> {
-            const datum = getPath(tag)
+            const datum = this.getPaths()[tag]
             if (datum.gatt) {
                 this.gattService.getCharacteristic(datum.gatt).then(async (gattCharacteristic)=>{
                 const buffer = await gattCharacteristic.readValue()

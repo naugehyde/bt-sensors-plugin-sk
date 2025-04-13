@@ -206,6 +206,7 @@ module.exports =   function (app) {
 						res.status(200).json({message: "Sensor updated"})
 						const sensor = sensorMap.get(req.body.mac_address)
 						if (sensor) {
+							removeSensorFromList(req.body.mac_address)
 							if (sensor.isActive()) {
 								sensor.stopListening().then(()=> 
 									initConfiguredDevice(req.body)
@@ -245,7 +246,6 @@ module.exports =   function (app) {
 					options, () => {
 						app.debug('Plugin options saved')
 						res.status(200).json({message: "Plugin updated"})
-						sensorMap.clear()
 						channel.broadcast({},"pluginRestarted")
 						restartPlugin(options)
 					}
@@ -350,12 +350,15 @@ module.exports =   function (app) {
 		}
 
 		function removeSensorFromList(sensor){
-			sensorMap.delete(config.mac_address)
+			sensorMap.delete(sensor.getMacAddress())
 			channel.broadcast({mac:sensor.getMacAddress()},"removesensor")
 		}
 		
 		async function addSensorToList(sensor){
-			sensorMap.set(await sensor.getMacAddress(),sensor)
+			app.debug(`adding sensor to list ${sensor.getMacAddress()}`)
+			if (sensorMap.has(sensor.getMacAddress()) )
+				debugger 
+			sensorMap.set(sensor.getMacAddress(),sensor)
 			channel.broadcast(sensorToJSON(sensor),"newsensor");
 		}
 		function deviceNameAndAddress(config){
@@ -365,11 +368,15 @@ module.exports =   function (app) {
 		async function createSensor(adapter, config) {
 			return new Promise( ( resolve, reject )=>{
 			var s
-			
-			app.debug(`Waiting on ${deviceNameAndAddress(config)}`)
+			const startNumber=starts
+			//app.debug(`Waiting on ${deviceNameAndAddress(config)}`)
 			adapter.waitDevice(config.mac_address,config.discoveryTimeout*1000)
 			.then(async (device)=> { 
-				app.debug(`Found ${config.mac_address}`)
+				if (startNumber != starts ) {
+					debugger
+					return
+				}
+				//app.debug(`Found ${config.mac_address}`)
 				s = await instantiateSensor(device,config) 
 	
 				if (s instanceof BLACKLISTED)
@@ -386,10 +393,11 @@ module.exports =   function (app) {
 			.catch((e)=>{
 				if (s)
 					s.stopListening()
-	
-				app.debug(`Unable to communicate with device ${deviceNameAndAddress(config)} Reason: ${e?.message??e}`)
-				app.debug(e)
-				reject( e?.message??e )	
+				if (startNumber == starts ) {
+					app.debug(`Unable to communicate with device ${deviceNameAndAddress(config)} Reason: ${e?.message??e}`)
+					app.debug(e)
+					reject( e?.message??e )
+				}	
 			})})
 		}
 		function getDeviceConfig(mac){
@@ -406,7 +414,7 @@ module.exports =   function (app) {
 					sensor.debug=app.debug
 					sensor.app=app
 					await sensor.init()
-					app.debug(`instantiated ${await BTSensor.getDeviceProp(device,"Address")}`)
+					//app.debug(`instantiated ${await BTSensor.getDeviceProp(device,"Address")}`)
 					
 					return sensor
 				}
@@ -433,55 +441,64 @@ module.exports =   function (app) {
 		}	
 		
 		function initConfiguredDevice(deviceConfig){
+			const startNumber=starts
 			app.setPluginStatus(`Initializing ${deviceNameAndAddress(deviceConfig)}`);
 			if (!deviceConfig.discoveryTimeout)
 				deviceConfig.discoveryTimeout = options.discoveryTimeout
 			createSensor(adapter, deviceConfig).then((sensor)=>{
-
+				if (startNumber != starts ) {
+						return
+				}	
 				if (deviceConfig.active) {
-					sensor.activate(deviceConfig, plugin)
 					app.setPluginStatus(`Listening to ${++foundConfiguredDevices} sensors.`);
+					sensor.activate(deviceConfig, plugin)
 				}
+				
 			})
 			.catch((error)=>
 				{
 					if (deviceConfig.unconfigured) return
-
+					if (startNumber != starts ) {
+						return
+					}	
 					const msg =`Sensor at ${deviceConfig.mac_address} unavailable. Reason: ${error}`
 					app.debug(msg)
 					app.debug(error)
 					if (deviceConfig.active) 
 						app.setPluginError(msg)
 					const sensor=new MissingSensor(deviceConfig)
-					addSensorToList(sensor) //add sensor to list with known options
 					++foundConfiguredDevices
+					
+					addSensorToList(sensor) //add sensor to list with known options
 				
 				})
 		}
 		function findDevices (discoveryTimeout) {
+			const startNumber = starts
 			app.setPluginStatus("Scanning for new Bluetooth devices...");
 
-
 			adapter.devices().then( (macs)=>{
-				for (var mac of macs) {	
+				if (startNumber != starts ) {
+					return
+				}
+				for (const mac of macs) {	
 					var deviceConfig = getDeviceConfig(mac)
 					const sensor = sensorMap.get(mac)
 
-					if (sensor && deviceConfig) {
-						if (sensor instanceof MissingSensor)	
+					if (sensor) {
+						if (sensor instanceof MissingSensor){
 							removeSensorFromList(sensor)
-						else 				
-							return
-					}
-					if (!sensor) {
+							initConfiguredDevice(deviceConfig)
+						}
+					} else {
+
 						if (!deviceConfig) {
 							deviceConfig = {mac_address: mac, 
 											discoveryTimeout: discoveryTimeout*1000, 
 											active: false, unconfigured: true}
+							initConfiguredDevice(deviceConfig) 
 						} 
-						initConfiguredDevice(deviceConfig) 
 					}
-					
 				}
 			})
 		}
@@ -576,11 +593,9 @@ module.exports =   function (app) {
 			var progress = 0
 			if (progressID==null) 
 			progressID  = setInterval(()=>{
-				app.debug("sending progress")
 				channel.broadcast({"progress":++progress, "maxTimeout": maxTimeout, "deviceCount":foundConfiguredDevices, "totalDevices": deviceConfigs.length},"progress")
-				if (foundConfiguredDevices==deviceConfigs.length){
-					app.debug("sending progress complete") 
-					channel.broadcast({"progress":maxTimeout, "maxTimeout": maxTimeout, "deviceCount":foundConfiguredDevices, "totalDevices": deviceConfigs.length},"progress")
+				if ( foundConfiguredDevices==deviceConfigs.length){
+					app.debug("progress complete") 
 					progressID,progressTimeoutID = null
 					clearTimeout(progressTimeoutID)
 					clearInterval(progressID)
@@ -596,10 +611,10 @@ module.exports =   function (app) {
 					progressID=null
 					channel.broadcast({"progress":maxTimeout, "maxTimeout": maxTimeout, "deviceCount":foundConfiguredDevices, "totalDevices": deviceConfigs.length},"progress")
 				} 
-			}, maxTimeout*1000);
+			}, (maxTimeout+1)*1000);
 
-			for (const deviceConfig of deviceConfigs) {
-				initConfiguredDevice(deviceConfig)
+			for (const config of deviceConfigs) {
+				initConfiguredDevice(config)
 			}
 		}
 		const minTimeout=Math.min(...deviceConfigs.map((dc)=>dc?.discoveryTimeout??options.discoveryTimeout))
@@ -615,6 +630,7 @@ module.exports =   function (app) {
 		
 		if (options.discoveryInterval && !discoveryIntervalID) 
 			findDeviceLoop(options.discoveryTimeout, options.discoveryInterval)
+	
 	} 
 	plugin.stop =  async function () {
 		app.debug("Stopping plugin")
@@ -633,6 +649,19 @@ module.exports =   function (app) {
 			clearTimeout(progressTimeoutID)
 			progressTimeoutID=null
 		}
+
+		if ((sensorMap)){
+				for await (const sensorEntry of sensorMap.entries()) {
+				try{
+					await sensorEntry[1].stopListening()
+					app.debug(`No longer listening to ${sensorEntry[0]}`)
+				}
+				catch (e){
+					app.debug(`Error stopping listening to ${sensorEntry[0]}: ${e.message}`)
+				}
+			}
+		}
+		sensorMap.clear()
 		if (adapter && await adapter.isDiscovering())
 			try{
 				await adapter.stopDiscovery()
@@ -641,18 +670,6 @@ module.exports =   function (app) {
 				app.debug(`Error stopping scan: ${e.message}`)
 			}
 
-		if ((sensorMap)){
-			sensorMap.forEach(async (sensor, mac)=> {
-				try{
-					await sensor.stopListening()
-					app.debug(`No longer listening to ${mac}`)
-				}
-				catch (e){
-					app.debug(`Error stopping listening to ${mac}: ${e.message}`)
-				}
-			})				
-		}
-		
 		app.debug('BT Sensors plugin stopped')
 
 	}

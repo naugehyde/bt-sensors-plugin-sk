@@ -115,9 +115,8 @@ class BTSensor extends EventEmitter {
         Object.assign(this,config)
         Object.assign(this,gattConfig)
     
-        
         this._state = null
-            }
+    }
     /**
      * @function _test Test sensor parsing
      * 
@@ -307,7 +306,7 @@ class BTSensor extends EventEmitter {
 				description: this.getGATTDescription(),
 				type:"object",
 				properties:{
-                    useGATT: {title: "Use GATT connection", type: "boolean", default: true },
+                    useGATT: {title: "Use GATT connection", type: "boolean", default: false },
                     pollFreq: { type: "number", title: "Polling frequency in seconds"}
                 }
 			}
@@ -330,17 +329,38 @@ class BTSensor extends EventEmitter {
         this.addDefaultPath("RSSI","sensors.RSSI")
         this.getPath("RSSI").read=()=>{return this.getRSSI()}
         this.getPath("RSSI").read.bind(this)
-    
+        this.initListen()
     }
 
+    initListen(){
+        Promise.resolve(this.listen())
+    }
     activate(config, plugin){
-        this._state="ACTIVE"
         if (config.paths){
             this.createPaths(config,plugin.id)
             this.initPaths(config,plugin.id)
+            this.debug(`Paths activated for ${this.getDisplayName()}`);
         }
-        Promise.resolve(this.listen()).then(() => {
-            this.debug(`Listening for changes from ${this.getDisplayName()}`);
+        if (this.usingGATT()){
+            try {
+            this.activateGATT()
+            } catch (e) {
+                this.debug(`GATT services unavailable for ${this.getName()}. Reason: ${e}`)
+                this._state="ERROR"
+                return
+            }
+        }
+        this._state="ACTIVE"
+    }
+
+    activateGATT(){
+        this.initGATTConnection().then(async ()=>{
+            this.emitGATT()
+            if (this.pollFreq){
+                this.initGATTInterval()
+            }
+            else 
+                await this.initGATTNotifications()
         })
     }
 
@@ -382,7 +402,7 @@ class BTSensor extends EventEmitter {
         this._schema.properties.paths.properties[tag]=path
         return this._schema.properties.paths.properties[tag]
     }
-
+   
     addGATTParameter(tag, param){
 
         if (!param.type)
@@ -685,18 +705,6 @@ class BTSensor extends EventEmitter {
         } catch(e){
             this.debug(e)
         }
-        if (this.usingGATT()){
-            this.initGATTConnection().then(async ()=>{
-                this.emitGATT()
-                if (this.pollFreq){
-                    this.initGATTInterval()
-                }
-                else 
-                    await this.initGATTNotifications()
-            })
-            .catch((e)=>this.debug(`GATT services unavailable for ${this.getName()}. Reason: ${e}`))
-        }
-        this._state="ACTIVE"
         return this
     }
 

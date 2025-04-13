@@ -15,6 +15,10 @@ class BLACKLISTED extends BTSensor {
         await super.init();
         this.currentProperties.Name = `Unsupported device from ${this.getManufacturer()}`;
     }
+
+    initListen(){
+        //do nothing
+    }
     reasonForBlacklisting() {
         switch (this.getManufacturerID()) {
             case 0x004c:

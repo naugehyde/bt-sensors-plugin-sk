@@ -250,7 +250,7 @@ function confirmDelete(mac){
 }
  
 function signalStrengthIcon(sensor){
-  if (sensor.info.lastContactDelta ==null|| sensor.info.lastContactDelta > sensor.config.deviceTimeout) 
+  if (sensor.info.lastContactDelta ==null || sensor.info.lastContactDelta > sensor.config.discoveryTimeout) 
     return <SignalCellularConnectedNoInternet0Bar/>  
   
   if (sensor.info.signalStrength > 80)

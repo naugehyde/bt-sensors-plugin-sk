@@ -25,9 +25,8 @@ class IBeacon extends BTSensor {
     propertiesChanged(props){
         super.propertiesChanged(props);
         const buff = this.getServiceData("0000356e-0000-1000-8000-00805f9b34fb");
-        if (!buff)
-            throw new Error("Unable to get service data for " + this.getDisplayName());
-        this.emitData("battery", buff);
+        if (buff) 
+            this.emitData("battery", buff);
     }
 
     getManufacturer(){

@@ -22,7 +22,8 @@ class ATC extends BTSensor{
             "parser",
             {
                 title:'data parsing strategy',
-                type: 'string'
+                type: 'string',
+                enum:["ATC-LE","ATC-BE"]
             }
         )
         if (!this.parser){

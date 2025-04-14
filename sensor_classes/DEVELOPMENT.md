@@ -1,4 +1,4 @@
-# BLUETOOTH SENSOR CLASS DEVELOPMENT (OUT OF DATE AS OF 1.1.0 Beta release NEW VERSION COMING SOON)
+# BLUETOOTH SENSOR CLASS DEVELOPMENT (OUT OF DATE AS OF 1.1.0 release, NEW VERSION COMING IN 1.2.0)
 
 The goal of this project is to support as many mariner-useful sensors as possible. If there's anything we can do to make sensor class development easier, please let us know.<br><br>
 
@@ -145,6 +145,11 @@ class ATC extends BTSensor{
 module.exports=ATC</pre>
 
 The big difference here is in the connect() method. All it does is wait on propertiesChanged and when that event occurs, the device object parses the buffer and emits the data. NOTE: Both classes have the same metadata, so the ATC class "borrows" the metadata from the LYWSD03MMC class.<br>
+
+## DEVICE MODULES
+
+To learn more about runtime loading of device modules, see (https://github.com/naugehyde/bt-sensors-plugin-sk/discussions/26) 
+
 
 ## LET US KNOW
 

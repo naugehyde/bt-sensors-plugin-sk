@@ -128,10 +128,5 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
-bt-sensors-plugin-sk.json.bak
 package-lock.json
-bt-sensors-plugin-sk.json
-plugin-config-data
-ss-api
-test-bt-class
-public/*
+public

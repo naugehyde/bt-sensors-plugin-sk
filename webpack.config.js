@@ -52,7 +52,7 @@ module.exports = {
   },
   plugins: [
     new ModuleFederationPlugin({
-      name: 'Calibration',
+      name: 'Bluetooth Sensors for Signalk',
       library: { type: 'var', name: packageJson.name.replace(/[-@/]/g, '_') },
       filename: 'remoteEntry.js',
       exposes: {

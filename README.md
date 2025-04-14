@@ -1,37 +1,8 @@
 # Bluetooth Sensors for [Signal K](http://www.signalk.org)
 
- ## BETA 2.2.3
- ### What's New
- Support for [JBD/Jiabaida/Xiaoxiang Battery management systems](https://jiabaida-bms.com/), IBeacon and clone devices courtesy of [Arjen R](https://github.com/ArjenR). 
- 
- ### What's New for Developers
- Runtime loading of external device modules. See (https://github.com/naugehyde/bt-sensors-plugin-sk/discussions/26) 
- 
-## BETA 2.2.2
-### What's New
-Support for Lancol Battery Meters, Kilovault HLX+ smart batteries courtesy of [sdlee1963](https://github.com/sdlee1963) and baseline  support for BTHome devices as well as support for the ShellySBHT003C enviromental sensor courtesy of [Sebastian Haas](https://github.com/sebastianhaas) 
+## Beta 1.0.0
 
-Fixed incorrect reporting of Victron Battery Monitor -> aux temperature values. 
-
-## BETA 2.2.1
-
-### What's New
-
-GoveeH50xx sensor support. Selectable bluetooth adapter on config screen (in case you have more than bluetooth adapter on your server).
-
-
-## BETA 2.2.0
-
-### What's New
-
-Support for Aranet4 environment sensor and Renogy Rover/Wanderer Controllers. Untested support for Renogy Battery and Inverter clients. If you have a Renogy Battery or Inverter with bluetooth support, please give it a try and let me know how it goes. 
-
-### RENOGY NOTES 
-
-The class of Renogy Devices cannot be reliably identified from their Bluetooth advertisements. <br>
-
-On the plugin config page, You will need to select the device from the Device dropdown, then select the appropriate class from the Class dropdown. After that, you will need to hit the Submit button. On restart of the plugin, the plugin should recognize the device. If you've selected the appropriate class (RenogyRoverClient for example), you should see configs for paths. <br>
-
+Dynamic configuration added (no more screen refreshing necessary).
 
 ## WHAT IT IS
 

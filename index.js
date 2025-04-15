@@ -382,7 +382,6 @@ module.exports =   function (app) {
 				if (s instanceof BLACKLISTED)
 					reject ( `Device is blacklisted (${s.reasonForBlacklisting()}).`)
 				else{
-				
 					addSensorToList(s)
 					s.on("RSSI",(()=>{
 						updateSensor(s)
@@ -413,6 +412,8 @@ module.exports =   function (app) {
 					const sensor = new c(device,config?.params, config?.gattParams)
 					sensor.debug=app.debug
 					sensor.app=app
+					sensor._adapter=adapter //HACK!
+
 					await sensor.init()
 					//app.debug(`instantiated ${await BTSensor.getDeviceProp(device,"Address")}`)
 					

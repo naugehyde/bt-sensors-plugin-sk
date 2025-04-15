@@ -463,7 +463,12 @@ class BTSensor extends EventEmitter {
 
         You know, the little things.
       */
-        await this.device.adapter.helper.callMethod('StartDiscovery')
+        try {
+            await this._adapter.helper.callMethod('StartDiscovery')
+        } catch (e){
+            //probably ignorable
+            this.debug(e)
+        }
         /* END HACK*/
   }
 

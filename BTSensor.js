@@ -1,6 +1,7 @@
 const { Variant } = require('dbus-next');
 const { log } = require('node:console');
 const EventEmitter = require('node:events');
+var {exec} = require('child_process');
 
 /** 
  * @author Andrew Gerngross <oh.that.andy@gmail.com>
@@ -464,10 +465,16 @@ class BTSensor extends EventEmitter {
         You know, the little things.
       */
         try {
-            await this._adapter.helper.callMethod('StartDiscovery')
+            exec('bluetoothctl scan on &',
+                function (error, stdout, stderr) {
+                    console.log('stdout: ' + stdout);
+                    if (error !== null) {
+                         console.log('exec error: ' + error);
+                    }
+                });
         } catch (e){
             //probably ignorable
-            this.debug(e)
+            console.log(e)
         }
         /* END HACK*/
   }

@@ -23,7 +23,7 @@ class VictronOrionXS extends VictronSensor{
         this.addMetadatum('inputCurrent','A','input current', 
             (buff)=>{return this.NaNif(buff.readUInt16LE(8),0xFFFF)/10})
         this.addMetadatum('deviceOffReason','', 'device off reason', 
-            (buff)=>{return VC.OffReasons(buff.readUInt32(10))})    
+            (buff)=>{return VC.OffReasons(buff.readUInt32BE(10))})    
         }
 
 }

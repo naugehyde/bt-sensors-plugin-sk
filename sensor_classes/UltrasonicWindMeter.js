@@ -40,7 +40,7 @@ class UltrasonicWindMeter extends BTSensor{
     }
 
     initGATTConnection(){ 
-        return new Promise((resolve,reject )=>{ this.device.connect().then(async ()=>{ 
+        return new Promise((resolve,reject )=>{ this.deviceConnect().then(async ()=>{ 
             if (!this.gattServer) { 
                 this.gattServer = await this.device.gatt() 
                 this.battService = await this.gattServer.getPrimaryService("0000180f-0000-1000-8000-00805f9b34fb") 

@@ -449,6 +449,24 @@ class BTSensor extends EventEmitter {
         throw new Error("::initGATTNotifications() should be implemented by the BTSensor subclass")
     }
 
+    async deviceConnect() {
+        await this.device.connect()
+        /* CAUTION: HACK AHEAD 
+
+        Bluez for some cockamamie reason (It's 2025 for chrissake. 
+        BLUETOOTH ISN'T JUST FOR DESKTOPS ANYMORE, BLUEZ DEVS!)
+        SUSPENDS scanning while connected to a device.
+
+        The next line of code gives the scanner a kick in the arse, 
+        starting it up again so, I dunno, another device might be able 
+        to connect and sensor classes could maybe get beacon updates.
+
+        You know, the little things.
+      */
+        await this.device.adapter.helper.callMethod('StartDiscovery')
+        /* END HACK*/
+  }
+
     /**
      * 
      * Subclasses do NOT need to override this function

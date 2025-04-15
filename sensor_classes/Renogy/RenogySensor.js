@@ -57,7 +57,7 @@ class RenogySensor extends BTSensor{
         )
       
 
-        await this.device.connect()
+        await this.deviceConnect()
         const rw = await this.constructor.getReadWriteCharacteristics(this.device)
 
         this.readChar = rw.read    

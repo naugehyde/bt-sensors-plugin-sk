@@ -49,7 +49,7 @@ class JBDBMS extends BTSensor {
       this.addMetadatum('FET', '', 'FET Control',
           (buffer)=>{return buffer.readUInt8(24)} )
   
-      await this.device.connect()
+      await this.deviceConnect()
       await this.initCharacteristics()
       const cellsAndTemps = await this.getNumberOfCellsAndTemps()
       this.numberOfCells=cellsAndTemps.cells
@@ -74,14 +74,14 @@ class JBDBMS extends BTSensor {
     return true
   }
   initCharacteristics(){ 
-    return new Promise((resolve,reject )=>{ this.device.connect().then(async ()=>{ 
+    return new Promise( async (resolve,reject )=>{ 
       const gattServer = await this.device.gatt()
       const txRxService= await gattServer.getPrimaryService(this.constructor.TX_RX_SERVICE)
       this.rxChar = await txRxService.getCharacteristic(this.constructor.NOTIFY_CHAR_UUID)
       this.txChar = await txRxService.getCharacteristic(this.constructor.WRITE_CHAR_UUID)
       await this.rxChar.startNotifications()
       resolve(this)
-    }) .catch((e)=>{ reject(e.message) }) }) 
+   .catch((e)=>{ reject(e.message) }) }) 
   }
 
   async initGATTNotifications(){

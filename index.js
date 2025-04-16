@@ -47,6 +47,9 @@ class MissingSensor  {
 	hasGATT(){
 		return this.config.gattParams
 	}
+	initGATTConnection(){
+		
+	}
 	getMetadata(){
 		return this.metadata
 	}
@@ -434,15 +437,15 @@ module.exports =   function (app) {
 			//if we're here ain't got no class for the device
 			var sensor
 			if (config.params?.sensorClass){
-				const c = classMap.get(config.params.sensorClass)
-				c.debug=app.debug
-				sensor = new c(device,config?.params, config?.gattParams)
-				sensor.debug=app.debug
-				sensor.app=app
+				var c = classMap.get(config.params.sensorClass)
 			} else{
-				sensor = new (classMap.get('UNKNOWN'))(device)
-				sensor.app=app
+				c = classMap.get('UNKNOWN')
 			}
+			c.debug=app.debug
+			sensor = new c(device,config?.params, config?.gattParams)
+			sensor.debug=app.debug
+			sensor.app=app
+
 			await sensor.init()
 			return sensor
 		}	

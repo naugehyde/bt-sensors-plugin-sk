@@ -50,6 +50,9 @@ class MissingSensor  {
 	initGATTConnection(){
 		
 	}
+	getGATTDescription(){
+		return ""
+	}
 	getMetadata(){
 		return this.metadata
 	}
@@ -339,13 +342,15 @@ module.exports =   function (app) {
 			//filter options which can cause issues with Device::Connect() 
 			//turning off Discovery
 			//try {await adapter.startDiscovery()}
+			const _transport = transport?plugin.schema.properties.transport.default:transport
 			try{ 
-				if (transport) {
-					app.debug(`Setting Bluetooth transport option to ${transport}`)
+				if (_transport) {
+					app.debug(`Setting Bluetooth transport option to ${_transport}`)
 					await adapter.helper.callMethod('SetDiscoveryFilter', {
-						Transport: new Variant('s', transport)
+						Transport: new Variant('s', _transport)
 					  })
 					}
+				adapter._transport=_transport
 				await adapter.helper.callMethod('StartDiscovery') 
 			} 
 			catch (error){	

@@ -453,12 +453,6 @@ class BTSensor extends EventEmitter {
     async deviceConnect() {
         await this.device.connect()
 
-        /*const o=await this._adapter.helper.callMethod("ConnectDevice",
-            {
-                "Address": new Variant('s',this.getMacAddress()),
-                "AddressType": new Variant('s',"public")
-            }
-        )*/
         /* CAUTION: HACK AHEAD 
 
         Bluez for some cockamamie reason (It's 2025 for chrissake. 
@@ -473,18 +467,11 @@ class BTSensor extends EventEmitter {
       */
         try {
             await this._adapter.helper.callMethod('SetDiscoveryFilter', {
-                Transport: new Variant('s', "le")
+                Transport: new Variant('s', this._adapter?._transport??"le")
             })
                          
-            /*exec('bluetoothctl scan le &',
-                function (error, stdout, stderr) {
-                    console.log('stdout: ' + stdout);
-                    if (error !== null) {
-                         console.log('exec error: ' + error);
-                    }
-                });*/
         } catch (e){
-            //probably ignorable
+            //probably ignorable error. probably.
             console.log(e)
         }
         /* END HACK*/

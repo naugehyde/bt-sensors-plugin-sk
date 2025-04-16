@@ -65,6 +65,7 @@
     "signalk-category-hardware",
     "signalk-plugin-configurator"
   ],
+  "signalk-plugin-enabled-by-default": true,
   "author": "Andrew Gerngross",
   "license": "ISC",
   "bugs": {

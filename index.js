@@ -196,6 +196,12 @@ module.exports =   function (app) {
 				app.debug(req.body)
 				const i = deviceConfigs.findIndex((p)=>p.mac_address==req.body.mac_address) 
 				if (i<0){
+					if (!options.peripherals){
+						if (!options.hasOwnProperty("peripherals"))
+							options.peripherals=[]
+			
+						options.peripherals=[]
+					}
 					options.peripherals.push(req.body)
 				} else {
 					options.peripherals[i] = req.body
@@ -370,7 +376,7 @@ module.exports =   function (app) {
 			var s
 			const startNumber=starts
 			//app.debug(`Waiting on ${deviceNameAndAddress(config)}`)
-			adapter.waitDevice(config.mac_address,config.discoveryTimeout*1000)
+			adapter.waitDevice(config.mac_address,(config?.discoveryTimeout??30)*1000)
 			.then(async (device)=> { 
 				if (startNumber != starts ) {
 					debugger
@@ -627,11 +633,14 @@ module.exports =   function (app) {
 				if (sensor.elapsedTimeSinceLastContact()> dt)
 					channel.broadcast(getSensorInfo(sensor), "sensorchanged")
 			})
-		}, minTimeout*1000)
+		}, (minTimeout==Infinity)?(options?.discoveryTimeout??plugin.schema.properties.discoveryTimeout.default):minTimeout)
 		
+		if (!options.hasOwnProperty("discoveryInterval" )) //no config -- first run
+			options.discoveryInterval = plugin.schema.properties.discoveryInterval.default
+
 		if (options.discoveryInterval && !discoveryIntervalID) 
-			findDeviceLoop(options.discoveryTimeout, options.discoveryInterval)
-	
+			findDeviceLoop(options?.discoveryTimeout??plugin.schema.properties.discoveryTimeout.default, 
+						   options.discoveryInterval)
 	} 
 	plugin.stop =  async function () {
 		app.debug("Stopping plugin")

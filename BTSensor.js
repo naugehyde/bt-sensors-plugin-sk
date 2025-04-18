@@ -475,6 +475,8 @@ class BTSensor extends EventEmitter {
             await this._adapter.helper.callMethod('SetDiscoveryFilter', {
                 Transport: new Variant('s', "le")
             })
+            await this._adapter.helper.callMethod('StopDiscovery')           
+            await this._adapter.helper.callMethod('StartDiscovery')           
                          
             /*exec('bluetoothctl scan le &',
                 function (error, stdout, stderr) {

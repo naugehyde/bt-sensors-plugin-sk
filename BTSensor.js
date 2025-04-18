@@ -1,7 +1,7 @@
 const { Variant } = require('dbus-next');
 const { log } = require('node:console');
 const EventEmitter = require('node:events');
-var {exec} = require('child_process');
+const AutoQueue = require("./Queue")
 
 /** 
  * @author Andrew Gerngross <oh.that.andy@gmail.com>
@@ -12,6 +12,7 @@ var {exec} = require('child_process');
  */
 
 const BTCompanies = require('./bt_co.json');
+const connectQueue = new AutoQueue()
 
 /**
  * @global A map of company names keyed by their Bluetooth ID
@@ -450,8 +451,7 @@ class BTSensor extends EventEmitter {
         throw new Error("::initGATTNotifications() should be implemented by the BTSensor subclass")
     }
 
-    async deviceConnect() {
-        await this.device.connect()
+    deviceConnect() {
 
         /* CAUTION: HACK AHEAD 
 
@@ -465,17 +465,28 @@ class BTSensor extends EventEmitter {
 
         You know, the little things.
       */
-        try {
-            await this._adapter.helper.callMethod('SetDiscoveryFilter', {
-                Transport: new Variant('s', this._adapter?._transport??"le")
+        return connectQueue.enqueue( ()=>{
+            new Promise((resolve, reject )=>{
+                this.debug(`Connecting to ${this.getName()}`)
+                this.device.connect().then( ()=>{
+                try {
+                    this._adapter.helper.callMethod('StopDiscovery').then( async ()=> {
+                        await this._adapter.helper.callMethod('SetDiscoveryFilter', {
+                            Transport: new Variant('s', this._adapter?._transport??"le")
+                        })
+                        await this._adapter.helper.callMethod('StartDiscovery')   
+                })        
+                    
+                } catch (e){
+                    //probably ignorable error. probably.
+                    console.log(e)
+                }
+                resolve(this)
+            }).catch((error)=>{
+                reject(error)
             })
-            await this._adapter.helper.callMethod('StopDiscovery')           
-            await this._adapter.helper.callMethod('StartDiscovery')           
-                         
-        } catch (e){
-            //probably ignorable error. probably.
-            console.log(e)
-        }
+        })
+    })
         /* END HACK*/
   }
 
@@ -769,12 +780,15 @@ class BTSensor extends EventEmitter {
     //End instance utility functions
 
      createPaths(config, id){
+//        const source = `${this.getName()} (${id})`
+
 		Object.keys(this.getPaths()).forEach((tag)=>{
             const pathMeta=this.getPath(tag)
             const path = config.paths[tag]
             if (!(path===undefined))
                 this.app.handleMessage(id, 
                 {
+//                $source: source,
                 updates: 
                     [{ meta: [{path: preparePath(this, path), value: { units: pathMeta?.unit }}]}]
                 })
@@ -782,6 +796,7 @@ class BTSensor extends EventEmitter {
 	}
 
 	 initPaths(deviceConfig, id){
+        const source = this.getName()
 		Object.keys(this.getPaths()).forEach((tag)=>{
             const pathMeta=this.getPath(tag)
 			const path = deviceConfig.paths[tag];
@@ -790,14 +805,14 @@ class BTSensor extends EventEmitter {
 					if (pathMeta.notify){
 						this.app.notify(tag, val, id )
 					} else {
-						this.updatePath(preparePath(this,path),val,id)
+						this.updatePath(preparePath(this,path),val, id, source)
 					}
                 })
 			}
 		})
 	}
-	updatePath(path, val,id){
-		this.app.handleMessage(id, {updates: [ { values: [ {path: path, value: val }] } ] })
+	updatePath(path, val, id, source){
+		this.app.handleMessage(id, {updates: [ { $source: source, values: [ { path: path, value: val }] } ] })
   	}  
     elapsedTimeSinceLastContact(){
         return (Date.now()-this?._lastContact??Date.now())/1000

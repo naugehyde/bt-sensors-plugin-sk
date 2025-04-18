@@ -465,29 +465,23 @@ class BTSensor extends EventEmitter {
 
         You know, the little things.
       */
-        return connectQueue.enqueue( ()=>{
-            new Promise((resolve, reject )=>{
-                this.debug(`Connecting to ${this.getName()}`)
-                this.device.connect().then( ()=>{
-                try {
-                    this._adapter.helper.callMethod('StopDiscovery').then( async ()=> {
-                        await this._adapter.helper.callMethod('SetDiscoveryFilter', {
-                            Transport: new Variant('s', this._adapter?._transport??"le")
-                        })
-                        await this._adapter.helper.callMethod('StartDiscovery')   
-                })        
-                    
-                } catch (e){
-                    //probably ignorable error. probably.
-                    console.log(e)
-                }
-                resolve(this)
-            }).catch((error)=>{
-                reject(error)
-            })
+        return connectQueue.enqueue( async ()=>{
+            this.debug(`Connecting to ${this.getName()}`)
+            await this.device.connect()
+            try {
+
+                await this._adapter.helper.callMethod('StopDiscovery')
+                await this._adapter.helper.callMethod('SetDiscoveryFilter', {
+                    Transport: new Variant('s', this._adapter?._transport??"le")
+                })
+                await this._adapter.helper.callMethod('StartDiscovery')   
+                
+            } catch (e){
+                //probably ignorable error. probably.
+                console.log(e)
+            }
         })
-    })
-        /* END HACK*/
+    /* END HACK*/
   }
 
     /**

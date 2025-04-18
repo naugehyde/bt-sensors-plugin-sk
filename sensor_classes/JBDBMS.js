@@ -92,7 +92,7 @@ class JBDBMS extends BTSensor {
 
   emitGATT(){
     this.getAndEmitBatteryInfo()
-    setTimeout(()=>{this.getAndEmitCellVoltages()}, 5000)
+    setTimeout(()=>{this.getAndEmitCellVoltages()}, 10000)
   }
 
   async getNumberOfCellsAndTemps(){

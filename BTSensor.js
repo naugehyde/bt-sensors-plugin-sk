@@ -1,7 +1,7 @@
 const { Variant } = require('dbus-next');
 const { log } = require('node:console');
 const EventEmitter = require('node:events');
-const AutoQueue = require("./Queue")
+const AutoQueue =  require("./Queue.js")
 
 /** 
  * @author Andrew Gerngross <oh.that.andy@gmail.com>

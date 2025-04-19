@@ -1,14 +1,14 @@
 /*
 see: https://stackoverflow.com/questions/53540348/js-async-await-tasks-queue 
 */
-class Queue {
+ class Queue {
     constructor() { this._items = []; }
     enqueue(item) { this._items.push(item); }
     dequeue()     { return this._items.shift(); }
     get size()    { return this._items.length; }
   }
   
-  class AutoQueue extends Queue {
+   class AutoQueue extends Queue {
     constructor() {
       super();
       this._pendingPromise = false;
@@ -45,4 +45,4 @@ class Queue {
       return true;
     }
   }
-  module.exports = AutoQueue
+  module.exports = AutoQueue   

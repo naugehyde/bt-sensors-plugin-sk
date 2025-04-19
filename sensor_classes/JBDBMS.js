@@ -73,15 +73,13 @@ class JBDBMS extends BTSensor {
   hasGATT(){
     return true
   }
-  initCharacteristics(){ 
-    return new Promise( async (resolve,reject )=>{ 
+  async initCharacteristics(){ 
       const gattServer = await this.device.gatt()
       const txRxService= await gattServer.getPrimaryService(this.constructor.TX_RX_SERVICE)
       this.rxChar = await txRxService.getCharacteristic(this.constructor.NOTIFY_CHAR_UUID)
       this.txChar = await txRxService.getCharacteristic(this.constructor.WRITE_CHAR_UUID)
       await this.rxChar.startNotifications()
-      resolve(this)
-   .catch((e)=>{ reject(e.message) }) }) 
+      return this
   }
 
   async initGATTNotifications(){

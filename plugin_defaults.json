@@ -17,7 +17,7 @@
         }
     },
     "environment":{
-        "temperature":
+        "temperature": 
             {
                 "unit":"K",
                 "default": "environment.{zone}.temperature"

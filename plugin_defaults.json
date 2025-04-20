@@ -6,29 +6,81 @@
         "location":{
             "description": "Sensor location",
             "examples": ["inside", "outside", "galley", "freezer", "refrigerator", "head", "cabin", "engine", "deck", "cockpit"]
+        },
+        "zone":{
+            "description": "Zone where sensor operates on boat AKA location ",
+            "examples": ["inside", "outside", "galley", "freezer", "refrigerator", "head", "cabin", "engine", "deck", "cockpit"]
+        },
+        "batteryID":{
+            "description": "battery ID",
+            "examples": ["starter", "house"]
         }
     },
     "environment":{
         "temperature":
             {
                 "unit":"K",
-                "default": "environment.{location}.temperature"
+                "default": "environment.{zone}.temperature"
             },
         "humidity":
             {
                 "unit":"ratio",
-                "default":"environment.{location}.humidity"
+                "default":"environment.{zone}.humidity"
+            },
+        "relativeHumidity":
+            {
+                "title":"Current relative humidity",
+                "unit":"ratio",
+                "default":"environment.{zone}.humidity"
+            },
+        "pressure":
+            {
+                "title": "Current outside air ambient pressure",
+                "unit":"Pa",
+                "default":"environment.{zone}.humidity"
             }
     },
     "electrical":{
-        "current":{
-            "unit": "A",
-            "default":"electrical.batteries.0.current"
-        },
-        "voltage":
-        { 
-            "unit": "V",
-            "default": "electrical.batteries.0.voltage"
+        "batteries":{
+            "current":{
+                "unit": "A",
+                "default":"electrical.batteries.{batteryID}.current"
+            },
+            "voltage":
+            { 
+                "unit": "V",
+                "default": "electrical.batteries.{batteryID}.voltage"
+            },
+            
+            "temperature":{
+                "unit": "K",
+                "default": "electrical.batteries.{batteryID}.temperature"
+            },
+            "cycles":{
+                "unit": "",
+                "default": "electrical.batteries.{batteryID}.cycles"
+            },
+
+            "capacity":{
+                "remaining":{
+                    "unit":"Ah",
+                    "default": "electrical.batteries.{batteryID}.capacity.remaining"
+                },
+                "actual":{
+                    "unit":"Ah",
+                    "default": "electrical.batteries.{batteryID}.capacity.actual"
+                },
+                "stateOfCharge":{
+                    "unit":"ratio",
+                    "default": "electrical.batteries.{batteryID}.capacity.stateOfCharge" 
+                },
+                "timeRemaining":{
+                    "unit":"s",
+                    "default": "electrical.batteries.{batteryID}.capacity.timeRemaining" 
+     
+                }
+            }
+            
         }
     },
     "sensors":{

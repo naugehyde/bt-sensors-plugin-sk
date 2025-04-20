@@ -52,7 +52,7 @@ class VictronBatteryMonitor extends VictronSensor{
 
         this.addDefaultPath('voltage', "electrical.batteries.voltage")
             .read=(buff,offset=0)=>{return this.NaNif(buff.readInt16LE(offset), 0x7FFF)/100}
-        this.getPath("voltage") = '6597ed8d-4bda-4c1e-af4b-551c4cf74769'
+        this.getPath("voltage").gatt='6597ed8d-4bda-4c1e-af4b-551c4cf74769'
         
         const alarmMD = this.addMetadatum('alarm','',  'alarm', 
                 (buff,offset=0)=>{return buff.readInt16LE(offset)})

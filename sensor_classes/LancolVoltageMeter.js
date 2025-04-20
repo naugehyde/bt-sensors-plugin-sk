@@ -14,9 +14,10 @@ class LancolVoltageMeter extends BTSensor{
         
     }
 
-    async init(){
-        await super.init()
-        this.addMetadatum('voltage','V', 'battery voltage')
+    initSchema(){
+        super.initSchema()
+        this.addDefaultParam("batteryID")
+        this.addDefaultPath('voltage',"electrical.batteries.voltage")
     }
 
     getManufacturer(){

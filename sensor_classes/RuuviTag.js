@@ -8,14 +8,16 @@ class RuuviTag extends BTSensor{
             return null
     }    
         
-    async init(){
-        await super.init()
+    initSchema(){
+        super.initSchema()
         const md = this.valueIfVariant(this.getManufacturerData(this.constructor.manufacturerID))
         this.mode = md[0]
         if (this['_initModeV'+this.mode])
             this['_initModeV'+this.mode]()
         else    
             throw new Error("Unrecognized Ruuvitag data mode "+md[0])
+        this.addDefaultParam("zone")
+
     } 
 
 /**
@@ -35,33 +37,39 @@ class RuuviTag extends BTSensor{
 18-23	Any valid mac	48bit MAC address.
  **/
     _initModeV5(){
-        this.addMetadatum("temp","K","temperature in Kelvin", 
-            (buffer)=>{ return parseFloat((273.15+buffer.readInt16BE(1)*.005).toFixed(3))}
-        )
-        this.addMetadatum("humidity","ratio","humidity", 
-            (buffer)=>{ return parseFloat(((buffer.readUInt16BE(3)*.0025)/100).toFixed(2))}
-        )
-        this.addMetadatum("pressure","Pa","atmospheric pressure", 
-            (buffer)=>{ return buffer.readUInt16BE(5)+50000}
-        )
+        this.addDefaultPath("temp","environment.temperature") 
+        .read=(buffer)=>{ return parseFloat((273.15+buffer.readInt16BE(1)*.005).toFixed(3))}
+       
+        this.addDefaultPath("humidity","environment.humidity") 
+        .read=(buffer)=>{ return parseFloat(((buffer.readUInt16BE(3)*.0025)/100).toFixed(2))}
+        
+        this.addDefaultPath("pressure","environment.pressure") 
+        .read=(buffer)=>{ return buffer.readUInt16BE(5)+50000}
+        
         this.addMetadatum("accX","Mg","acceleration on X-axis", 
             (buffer)=>{ return buffer.readInt16BE(7)}
-        )
+        ).default="sensors.{macAndName}.accX"
+        
         this.addMetadatum("accY","Mg","acceleration on Y-axis", 
             (buffer)=>{ return buffer.readInt16BE(9)}
-        )
+        )        .default="sensors.{macAndName}.accY"
+        
         this.addMetadatum("accZ","Mg","acceleration on Z-axis", 
             (buffer)=>{ return buffer.readInt16BE(11)}
-        )
-        this.addMetadatum("battV","V","battery voltage", 
-            (buffer)=>{ return parseFloat((1.6+(buffer.readUInt16BE(13)>>5)/1000).toFixed(2))}
-        )
+        ) .default="sensors.{macAndName}.accZ"
+        
+        this.addDefaultPath("battV","sensors.batteryVoltage")
+        .read=(buffer)=>{ return parseFloat((1.6+(buffer.readUInt16BE(13)>>5)/1000).toFixed(2))}
+        
         this.addMetadatum("mc","","movement counter", 
             (buffer)=>{ return buffer.readUInt16BE(13) && 0x1F}
         )
+        .default="sensors.{macAndName}.movementCounter"
+
         this.addMetadatum("msc","","measurement sequence counter", 
             (buffer)=>{ return buffer.readUInt16BE(15)}
         )
+        .default="sensors.{macAndName}.measurementSequenceCounter"
         
     }
 
@@ -82,18 +90,18 @@ Offset	Allowed values	Description
  **/
 
     _initModeV3(){
-        this.addMetadatum("humidity","ratio","humidity", 
-            (buffer)=>{ return (buffer.readUInt(1)*.5)/100}
-        )
-        this.addMetadatum("temp","K","temperature in Kelvin", 
-            (buffer)=>{ return (buffer.readInt(2)+(buffer.readInt(3)/100))+273.15}
-        )
-        this.addMetadatum("pressure","Pa","atmospheric pressure", 
-            (buffer)=>{ return buffer.readUInt16BE(4)+50000}
-        )
+        this.addDefaultPath("humidity","environment.humidity") 
+        .read=(buffer)=>{ return (buffer.readUInt(1)*.5)/100}
+      
+        this.addDefaultPath("temp", "environment.temperature") 
+        .read=(buffer)=>{ return (buffer.readInt(2)+(buffer.readInt(3)/100))+273.15}
+        
+        this.addDefaultPath("pressure", "environment.pressure") 
+        .read=(buffer)=>{ return buffer.readUInt16BE(4)+50000}
+        
         this.addMetadatum("accX","Mg","acceleration on X-axis", 
             (buffer)=>{ return buffer.readInt16BE(6)}
-        )
+        ).
         this.addMetadatum("accY","Mg","acceleration on Y-axis", 
             (buffer)=>{ return buffer.readInt16BE(8)}
         )

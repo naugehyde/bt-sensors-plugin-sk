@@ -34,37 +34,45 @@ class VictronBatteryMonitor extends VictronSensor{
     }
 
     characteristics=[]
-    async init(){
-        await super.init()
-        this.initMetadata()
-    }
 
-    initMetadata(){
-        this.addMetadatum('current', 'A', 'house battery amperage', 
-            (buff,offset=0)=>{return buff.readInt32LE(offset)/1000},
-            '6597ed8c-4bda-4c1e-af4b-551c4cf74769')
+
+    initSchema(){
+        super.initSchema()
+        this.addDefaultParam("batteryID").default="house"
+        //"default": "electrical.batteries.{batteryID}.voltage"
+
+        this.addDefaultPath('current','electrical.batteries.current')
+            .read=(buff,offset=0)=>{return buff.readInt32LE(offset)/1000}
+        this.getPath("current").gatt='6597ed8c-4bda-4c1e-af4b-551c4cf74769'
+
         this.addMetadatum('power','W', 'house battery wattage',
                 (buff,offset=0)=>{return buff.readInt16LE(offset)},
                 '6597ed8e-4bda-4c1e-af4b-551c4cf74769')
-        this.addMetadatum('voltage','V',  'house battery voltage', 
-                (buff,offset=0)=>{return this.NaNif(buff.readInt16LE(offset), 0x7FFF)/100},
-                '6597ed8d-4bda-4c1e-af4b-551c4cf74769',)
+            .default="electrical.batteries.{batteryID}.power"
+
+        this.addDefaultPath('voltage', "electrical.batteries.voltage")
+            .read=(buff,offset=0)=>{return this.NaNif(buff.readInt16LE(offset), 0x7FFF)/100}
+        this.getPath("voltage") = '6597ed8d-4bda-4c1e-af4b-551c4cf74769'
+        
         const alarmMD = this.addMetadatum('alarm','',  'alarm', 
                 (buff,offset=0)=>{return buff.readInt16LE(offset)})
-                
+                alarmMD.default='"electrical.batteries.{batteryID}.alarm'                
                 alarmMD.notify=true
 
-        this.addMetadatum( 'consumed','C', 'amp-hours consumed', 
+        this.addMetadatum( 'consumed','Ah', 'amp-hours consumed', 
                 (buff,offset=0)=>{return buff.readInt32LE(offset)/10},
                 '6597eeff-4bda-4c1e-af4b-551c4cf74769',)
+            .default="electrical.batteries.{batteryID}.capacity.ampHoursConsumed"
 
-        this.addMetadatum( 'soc','ratio', 'state of charge', 
-                (buff,offset=0)=>{return buff.readUInt16LE(offset)/10000},
-                '65970fff-4bda-4c1e-af4b-551c4cf74769')    
+        this.addDefaultPath( 'soc',"electrical.batteries.capacity.stateOfCharge") 
+            .read=(buff,offset=0)=>{return buff.readUInt16LE(offset)/10000}
+        this.getPath("soc").gatt='65970fff-4bda-4c1e-af4b-551c4cf74769'
 
-        this.addMetadatum( 'ttg','s','time to go', 
-                (buff,offset=0)=>{return this.NaNif(buff.readUInt16LE(offset),0xFFFF)*60},
-                '65970ffe-4bda-4c1e-af4b-551c4cf74769')
+        
+        this.addDefaultPath( 'ttg',"electrical.batteries.capacity.timeRemaining") 
+            .read=(buff,offset=0)=>{return this.NaNif(buff.readUInt16LE(offset),0xFFFF)*60}
+        this.getPath("ttg").gatt='65970ffe-4bda-4c1e-af4b-551c4cf74769'
+        
         if (this.encryptionKey){
             const decData = this.decrypt(this.getManufacturerData(0x02e1))
             if (decData)
@@ -76,17 +84,20 @@ class VictronBatteryMonitor extends VictronSensor{
                 this.addMetadatum('starterVoltage','V', 'starter battery voltage', 
                     (buff,offset=0)=>{return buff.readInt16LE(offset)/100},
                     '6597ed7d-4bda-4c1e-af4b-551c4cf74769')
-                break;
+                    .default="electrical.batteries.secondary.voltage"
+                    break;
             case VC.AuxMode.MIDPOINT_VOLTAGE:
                 this.addMetadatum('midpointVoltage','V', 'midpoint battery voltage', 
                     (buff,offset=0)=>{return buff.readUInt16LE(offset)/100},
                     '6597ed7d-4bda-4c1e-af4b-551c4cf74769')
+                    .default="electrical.batteries.midpoint.voltage"
                 break;
 
             case VC.AuxMode.TEMPERATURE:
-                this.addMetadatum('temperature','K', 'House battery temperature', 
-                    (buff,offset=0)=>{return (buff.readUInt16LE(offset)/100)},
-                    '6597ed7d-4bda-4c1e-af4b-551c4cf74769')
+                
+                this.addDefaultPath('temperature','electrical.batteries.temperature')
+                    .read=(buff,offset=0)=>{return (buff.readUInt16LE(offset)/100)}
+                    this.getPath('temperature').gatt='6597ed7d-4bda-4c1e-af4b-551c4cf74769'
                 break;
             default:
                 break

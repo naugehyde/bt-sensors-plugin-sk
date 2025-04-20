@@ -19,6 +19,10 @@ class AranetSensor extends BTSensor{
         
         return null
     }
+    initSchema(){
+        super.initSchema()
+        this.addDefaultParam("zone")
+    }
   
 }
 module.exports=AranetSensor

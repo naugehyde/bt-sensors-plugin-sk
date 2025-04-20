@@ -13,13 +13,10 @@ class IBeacon extends BTSensor {
     return null
     }
 
-    async init() {
-        await super.init();
-        this.initMetadata();
-    }
-
-    initMetadata(){
-        this.addMetadatum('battery','ratio', 'Battery charge state', (buffer)=>{return buffer[6]})
+    initSchema(){
+        super.initSchema()
+        this.addDefaultPath("battery","sensors.batteryStrength")   
+        .read=(buffer)=>{return buffer[6]}
     }
 
     propertiesChanged(props){

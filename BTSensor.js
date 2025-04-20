@@ -314,11 +314,6 @@ class BTSensor extends EventEmitter {
 			}
 		}
 
-    }
-    async init(){
-        this.currentProperties = await this.constructor.getDeviceProps(this.device)
-        this.initSchema()
-
 
         //create the 'name' parameter
         this.addDefaultParam("name")
@@ -331,6 +326,12 @@ class BTSensor extends EventEmitter {
         this.addDefaultPath("RSSI","sensors.RSSI")
         this.getPath("RSSI").read=()=>{return this.getRSSI()}
         this.getPath("RSSI").read.bind(this)
+
+    }
+    async init(){
+        this.currentProperties = await this.constructor.getDeviceProps(this.device)
+        this.initSchema()
+
         this.initListen()
     }
 

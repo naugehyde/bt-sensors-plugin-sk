@@ -9,7 +9,7 @@ class SwitchBotTH extends  BTSensor {
         }
         const c = await this.identify()
         const sb = new c()
-        sb.initMetadata()
+        sb.initSchema()
         sb.currentProperties={}
         sb.on("temp", (t)=>console.log(t))
         sb.on("humidity", (h)=>console.log(h))
@@ -37,23 +37,18 @@ class SwitchBotTH extends  BTSensor {
         
     }
 
-    async init(){
-        await super.init()
-        this.initMetadata()
-    }
-    initMetadata(){
-        this.addMetadatum('temp','K', 'temperature', 
-            (buffer)=>{
+    initSchema(){
+        super.initSchema()
+        this.addDefaultPath('temp', 'environment.temperature') 
+        .read=(buffer)=>{
                 return (27315+(((buffer[8] & 0x0F)/10 + (buffer[9] & 0x7F)) * (((buffer[9] & 0x80)>0)?100:-100)))/100
-            })
-        this.addMetadatum('humidity','ratio', 'humidity', 
+        }
+        this.addDefaultPath('humidity','environment.humidity')
+        .read=(buffer)=>{return (buffer[10] & 0x7F)/100}
         
-            (buffer)=>{return (buffer[10] & 0x7F)/100    
-        })
-        
-        this.addMetadatum("battery", "ratio", "battery strength",
-            (buffer)=>{return buffer[2]/100}
-         )
+        this.addDefaultPath("battery", "environment.batteryStrength")
+        .read=(buffer)=>{return buffer[2]/100}
+         
     }
 
     getManufacturer(){

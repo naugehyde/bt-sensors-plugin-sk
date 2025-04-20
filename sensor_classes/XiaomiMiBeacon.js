@@ -90,8 +90,6 @@ class XiaomiMiBeacon extends BTSensor{
                 return null
         }
     }
-
-    GATTwarning = "WARNING: Xiaomi GATT connections are known to be unreliable on Debian distributions with Bluez 5.55 and up (earlier BlueZ versions are untested). Using GATT on the Xiaomi may put the system Bluetooth stack into an inconsistent state disrupting and disabling other plugin Bluetooth connections. If by some chance you're successful using GATT with the Xiaomi, let the plugin developer know your configuration. Refer to the plugin documentation for getting the Xiamoi bindKey for non-GATT connections and more information on Xiaomi GATT issues."
     
     emitValues(buffer){
         this.emitData("temp", buffer, 0)
@@ -102,13 +100,10 @@ class XiaomiMiBeacon extends BTSensor{
         return "Xiaomi Inc."
     }
     getGATTDescription() {
-        return this.GATTwarning
+        return ""
     }
+
     initGATTConnection(){
-        if (!this?.gattWarningDelivered) {
-            this.debug(this.GATTwarning.toUpperCase())
-            this.gattWarningDelivered=true
-        }
         return new Promise((resolve,reject )=>{
             this.deviceConnect().then(async ()=>{
                 if (!this.gattServer) {
@@ -202,30 +197,34 @@ class XiaomiMiBeacon extends BTSensor{
     }
     
     async init(){
+
         await super.init()
         const data = this.getServiceData(this.constructor.SERVICE_MIBEACON)
         const frameControl = data[0] + (data[1] << 8)
         this.deviceID = data[2] + (data[3] << 8)
         this.isEncrypted = (frameControl >> 3) & 1
         this.encryptionVersion = frameControl >> 12 
+    }   
+    initSchema(){
+        super.initSchema()
         this.addParameter(
             "encryptionKey",
             {
                 title: "encryptionKey (AKA bindKey) for decryption"
             }
         )
-        this.addMetadatum('temp','K', 'temperature',
-            (buff,offset)=>{return ((buff.readInt16LE(offset))/10) + 273.15})
-        this.addMetadatum('humidity','ratio', 'humidity',
-            (buff,offset)=>{return buff.readInt16LE(offset)/1000})
+        this.addDefaultPath('temp','environment.temperature')
+        .read=(buff,offset)=>{return ((buff.readInt16LE(offset))/10) + 273.15}
 
-        this.addMetadatum('batteryStrength', 'ratio',  'sensor battery strength',
-            (buff,offset)=>{return ((buff.readUInt8(offset))/100)})
-        this.addMetadatum('voltage', 'V',  'sensor battery voltage',
-            (buff,offset)=>{return ((buff.readUInt16LE(offset))/1000)})
-
-
-    }   
+        this.addDefaultPath('humidity','environment.humidity')
+        .read=(buff,offset)=>{return buff.readInt16LE(offset)/1000}        
+            
+        this.addDefaultPath("batteryStrength", "sensors.batteryStrength")
+        .read= (buff,offset)=>{return ((buff.readUInt8(offset))/100)}
+       
+        this.addDefaultPath("voltage", "sensors.batteryVoltage")
+        .read=(buff,offset)=>{return ((buff.readUInt16LE(offset))/1000)}
+    }
 
     getName(){
         const dt = DEVICE_TYPES.get(this.deviceID)

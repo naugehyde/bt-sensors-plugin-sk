@@ -28,26 +28,35 @@ class JBDBMS extends BTSensor {
     return await this.txChar.writeValueWithResponse(Buffer.from(this.jbdCommand(command)))
 
 }
-  async init(){
-      await super.init()
-      this.addMetadatum('voltage', 'V', 'Total battery voltage', 
-        (buffer)=>{return buffer.readUInt16BE(4) / 100})
-      this.addMetadatum('current',  'A',  'Current flow',
-        (buffer)=>{return buffer.readInt16BE(6) / 100} )
-      this.addMetadatum('remainingCapacity', 'Ah',  'Remaining battery capacity', 
-        (buffer)=>{return buffer.readUInt16BE(8) / 100} )
-      this.addMetadatum('capacity', 'Ah',  'Battery capacity', 
-        (buffer)=>{return buffer.readUInt16BE(10) / 100} )
-      this.addMetadatum('cycles', '', 'cycles',
-        (buffer)=>{return buffer.readUInt16BE(12)} )
+  async initSchema(){
+      super.initSchema()
+      this.addDefaultParam("batteryID")
+     
+      this.addDefaultPath('voltage','electrical.batteries.voltage')
+        .read=(buffer)=>{return buffer.readUInt16BE(4) / 100}
+
+      this.addDefaultPath('voltage','electrical.batteries.current')
+        .read=(buffer)=>{return buffer.readInt16BE(6) / 100} 
+      
+      this.addDefaultPath('remainingCapacity','electrical.batteries.capacity.remaining')
+        .read=(buffer)=>{return buffer.readUInt16BE(8) / 100} 
+      
+      this.addDefaultPath('capacity','electrical.batteries.capacity.actual')
+        .read=(buffer)=>{return buffer.readUInt16BE(10) / 100} 
+     
+      this.addDefaultPath('cycles','electrical.batteries.cycles' )
+        .read=(buffer)=>{return buffer.readUInt16BE(12)} 
+
       this.addMetadatum('protectionStatus', '', 'Protection Status',
-          (buffer)=>{return buffer.readUInt16BE(20)} )
-        
-      this.addMetadatum('SOC', 'ratio', 'State of Charge',
-        (buffer)=>{return buffer.readUInt8(23)/100} )
+        (buffer)=>{return buffer.readUInt16BE(20)} )
+        .default="electrical.batteries.{batteryID}.protectionStatus"
+         
+      this.addDefaultPath('SOC','electrical.batteries.capacity.stateOfCharge')
+        .read=(buffer)=>{return buffer.readUInt8(23)/100} 
       
       this.addMetadatum('FET', '', 'FET Control',
           (buffer)=>{return buffer.readUInt8(24)} )
+          .default="electrical.batteries.{batteryID}.FETControl"
   
       await this.deviceConnect()
       await this.initCharacteristics()
@@ -65,11 +74,12 @@ class JBDBMS extends BTSensor {
       for (let i=0; i<this.numberOfCells; i++){
         this.addMetadatum(`cell${i}Voltage`, 'V', `Cell ${i+1} voltage`,
           (buffer)=>{return buffer.readUInt16BE((4+(i*2)))/1000} )
+          .default=`electrical.batteries.{batteryID}.cell${i}.voltage`
         this.addMetadatum(`cell${i}Balance`, 'V', `Cell ${i+1} balance` )
+          .default=`electrical.batteries.{batteryID}.cell${i}.balance`
+        
       }
-
-
-    }
+  }
   hasGATT(){
     return true
   }

@@ -22,25 +22,27 @@ class RenogyBattery extends RenogySensor {
     initMetadata(){
 
         this.addMetadatum('numberOfCells','', 'number of cells')
-        this.addMetadatum('current','A','current',
-             (buffer)=>{return buffer.readInt16BE(3)/100})
+        this.addDefaultPath('current','electrical.batteries.current')
+            .read=(buffer)=>{return buffer.readInt16BE(3)/100}
              
-        this.addMetadatum('voltage','V','voltage',
-            (buffer)=>{return buffer.readUInt16BE(5)/10})
+        this.addDefaultPath('voltage','electrical.batteries.voltage')
+            .read=(buffer)=>{return buffer.readUInt16BE(5)/10}
         
-        this.addMetadatum('remainingCharge', 'Ah', 'remaining charge',  //TODO: units 
-            (buffer)=>{return buffer.readUInt32BE(7)/1000})
-
-        this.addMetadatum('capacity','Ah', 'capacity',
-            (buffer)=>{return buffer.readUInt32BE(11)/1000})
+        this.addDefaultPath('remainingCharge', 'electrical.batteries.capacity.remaining') 
+            .read=(buffer)=>{return buffer.readUInt32BE(7)/1000}
+        
+        this.addDefaultPath('capacity', 'electrical.batteries.capacity.actual') 
+            .read=(buffer)=>{return buffer.readUInt32BE(11)/1000}
 
         for (let i = 0; i++ ; i < this.numberOfCells) {
             this.addMetadatum(`cellVoltage${i}`, 'V', `cell #${i} voltage`,
-                (buffer)=>{ return buffer.readUInt16(5+ i*2) }
-            )
+                (buffer)=>{ return buffer.readUInt16(5+ i*2) })
+            .default=`electrical.batteries.{batteryID}.cell${i}.voltage`
+
             this.addMetadatum(`cellTemp${i}`, 'K', `cell #${i} temperature`,
-                (buffer)=>{ return buffer.readUInt16(5+ i*2)+273.15 }
-            )
+                (buffer)=>{ return buffer.readUInt16(5+ i*2)+273.15 })
+                .default=`electrical.batteries.{batteryID}.cell${i}.temperature`
+
         }
     }
     async initGATTConnection() {

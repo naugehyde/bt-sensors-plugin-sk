@@ -60,35 +60,52 @@ class KilovaultHLXPlus extends BTSensor{
         // Nothing to do here.  HLX+ only reports via BLE notify, not BLE read
     }
 
-    async init(){
-        await super.init()
+    async initSchema(){
+        super.initSchema()
+        this.addDefaultParam("batteryID")
 
-        this.addMetadatum("voltage","V","Battery Voltage",
-            (buffer)=>{return Number(buffer.readInt16LE(0)) / 1000})
-        this.addMetadatum("current","A","Battery Current",
-            (buffer)=>{return buffer.readInt32LE(4) / 1000})
-        this.addMetadatum("energy","AHr","Battery Capacity",
-            (buffer)=>{return buffer.readInt32LE(8) / 1000})
-        this.addMetadatum("cycles","","Number of Charge Cycles",
-            (buffer)=>{return buffer.readInt16LE(12)})
-        this.addMetadatum("soc","ratio","Battery State of Charge",
-            (buffer)=>{return buffer.readInt16LE(14)})
-        this.addMetadatum("temperature","K","Battery Temperature",
-            (buffer)=>{return buffer.readInt16LE(16)/10 })
+        this.addDefaultPath("voltage","electrical.batteries.voltage")
+            .read=(buffer)=>{return Number(buffer.readInt16LE(0)) / 1000}
+       
+        this.addDefaultPath("current","electrical.batteries.current")
+            .read=(buffer)=>{return buffer.readInt32LE(4) / 1000}
+        
+        this.addDefaultPath("energy", "electrical.batteries.capacity.remaining")
+            .read=(buffer)=>{return buffer.readInt32LE(8) / 1000}
+        
+        this.addDefaultPath("cycles",'electrical.batteries.cycles')
+            .read=(buffer)=>{return buffer.readInt16LE(12)}
+
+        this.addDefaultPath("soc",'electrical.batteries.capacity,stateOfCharge')
+            .read=(buffer)=>{return buffer.readInt16LE(14)}
+        
+        this.addDefaultPath("temperature",'electrical.batteries.temperature')
+            .read=(buffer)=>{return buffer.readInt16LE(16)/10 }
 
         this.addMetadatum("status","","Battery Status",
             (buffer)=>{return buffer.readInt16LE(18) })
+            .default="electrical.batteries.{batteryID}.status"
+
         this.addMetadatum("AFEStatus","","Battery AFE Status",
             (buffer)=>{return buffer.readInt16LE(20) })
+            .default="electrical.batteries.{batteryID}.AFEStatus"
 
         this.addMetadatum("cell1_voltage","V","Cell 1 Voltage",
             (buffer)=>{return buffer.readInt16LE(22) / 1000})
+            .default="electrical.batteries.{batteryID}.cell1.voltage"
+
         this.addMetadatum("cell2_voltage","V","Cell 2 Voltage",
             (buffer)=>{return buffer.readInt16LE(24) / 1000})
+            .default="electrical.batteries.{batteryID}.cell2.voltage"
+
         this.addMetadatum("cell3_voltage","V","Cell 3 Voltage",
             (buffer)=>{return buffer.readInt16LE(26) / 1000})
+            .default="electrical.batteries.{batteryID}.cell3.voltage"
+
         this.addMetadatum("cell4_voltage","V","Cell 4 Voltage",
             (buffer)=>{return buffer.readInt16LE(28) / 1000})
+            .default="electrical.batteries.{batteryID}.cell4.voltage"
+
     }
 
     // Concatentate chunks received by notification into a complete message.

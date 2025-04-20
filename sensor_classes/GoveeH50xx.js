@@ -17,18 +17,16 @@ class GoveeH50xx extends  BTSensor {
         t
     }
 
-    async init(){
-        await super.init()
-        this.initMetadata()
-    }
-    initMetadata(){
-        this.addMetadatum('temp','K', 'temperature', 
-            (buffer)=>{return 273.15+(buffer.readUInt16LE(1)/100) 
-        })
-        this.addMetadatum('humidity','ratio', 'humidity', 
-            (buffer)=>{return buffer.readUInt16LE(3)/10000    
-        })
-        this.addMetadatum('battery','ratio', 'battery strength', (buffer)=>{return buffer.readUInt8(5)/100})
+    initSchema(){
+        super.initSchema()
+        this.addDefaultPath("temp","environment.temperature")
+            .read= (buffer)=>{return 273.15+(buffer.readUInt16LE(1)/100) }
+        
+        this.addDefaultPath("humidity", "environment.humidity")
+            .read = (buffer)=>{return buffer.readUInt16LE(3)/10000}   
+
+        this.addDefaultPath("battery","sensors.batteryStrength")   
+            .read = (buffer)=>{return buffer.readUInt8(5)/100}
     }
 
     getManufacturer(){

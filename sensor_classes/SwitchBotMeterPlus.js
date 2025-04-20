@@ -30,23 +30,19 @@ class SwitchBotMeterPlus extends BTSensor{
 
     }
 
-    async init() {
-        await super.init()
-        this.initMetadata()
-    }
 
-    initMetadata(){
+    initSchema(){
 
 // Apply positive/negative (Byte[4] & 0x80), and convert from deg F if selected (Byte[5] & 0x80) Then convert to deg Kelvin
 // Refer https://github.com/OpenWonderLabs/SwitchBotAPI-BLE/blob/latest/devicetypes/meter.md#(new)-broadcast-message 
  
-        this.addMetadatum('temp','K', 'temperature', 
-            (buffer)=>{return (( ( ( (buffer[4] & 0x7f) + ((buffer[3] & 0x0f)/10) ) * ( (buffer[4] & 0x80)>0 ? 1 : -1 ) ) - ( (buffer[5] & 0x80)>0 ? 32 : 0) ) / ( (buffer[5] & 0x80)>0 ? 1.8 : 1) ) + 273.15 
-        })
-        this.addMetadatum('humidity','ratio', 'humidity', 
-            (buffer)=>{return (buffer[5] & 0x7F)/100    
-        })
-        this.addMetadatum('battery','ratio', 'Battery Strength', (buffer)=>{return buffer[2]/100})
+        super.initSchema()
+        this.addDefaultPath('temp', 'environment.temperature')
+        .read= (buffer)=>{return (( ( ( (buffer[4] & 0x7f) + ((buffer[3] & 0x0f)/10) ) * ( (buffer[4] & 0x80)>0 ? 1 : -1 ) ) - ( (buffer[5] & 0x80)>0 ? 32 : 0) ) / ( (buffer[5] & 0x80)>0 ? 1.8 : 1) ) + 273.15 }
+        this.addDefaultPath('humidity', 'environment.humidity')
+        .read=(buffer)=>{return (buffer[5] & 0x7F)/100}
+        this.addDefaultPath('battery', 'environment.batteryStrength')
+        .read=(buffer)=>{return buffer[2]/100}
     }
 
     propertiesChanged(props){

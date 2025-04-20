@@ -13,8 +13,8 @@ class Inkbird extends BTSensor{
         
     }
 
-    async init(){
-        await super.init()
+    initSchema() {
+        super.initSchema()
         this.addDefaultPath('temp','environment.temperature')
         this.addDefaultPath('battery', 'sensors.batteryStrength')
         if (this.getName() == 'sps'){

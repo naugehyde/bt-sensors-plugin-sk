@@ -30,10 +30,9 @@ class ATC extends BTSensor{
         if (!this.parser){
             this.parser="ATC-LE"
         }
-        this.initMetadata()
     }
-    initMetadata(){
-
+    initSchema(){
+        super.initSchema()
         this.addDefaultPath('batteryStrength','sensors.batteryStrength')
         .read=(buff)=>{return ((buff.readUInt8(12))/100)}
 

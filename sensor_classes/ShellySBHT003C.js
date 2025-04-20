@@ -78,31 +78,31 @@ class ShellySBHT003C extends AbstractBTHomeSensor {
 		return null;
 	}
 
-	initMetadata() {
-		this.addMetadatum(
+	initSchema() {
+		super.initSchema()
+		this.addDefaultPath(
 			"battery",
-			"ratio",
-			"battery level",
-			ShellySBHT003C.parseBatteryLevel,
-		);
-		this.addMetadatum(
+			"sensors.batteryStrength")
+		.read=ShellySBHT003C.parseBatteryLevel
+
+		this.addDefaultPath(
 			"temp",
-			"K",
-			"temperature",
-			ShellySBHT003C.parseTemperature,
-		);
-		this.addMetadatum(
+			"environment.temperature"
+		)
+		.read=ShellySBHT003C.parseTemperature
+
+		this.addDefaultPath(
 			"humidity",
-			"ratio",
-			"humidity",
-			ShellySBHT003C.parseHumidity,
-		);
+			"environment.humidity")
+		.read=ShellySBHT003C.parseHumidity,
+	
 		this.addMetadatum(
 			"button",
 			"enum",
 			"button",
 			ShellySBHT003C.parseShellySBHT003CButton,
-		);
+		)
+		.default="sensors.{macAndName}.button"
 	}
 }
 

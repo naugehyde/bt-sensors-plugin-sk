@@ -20,6 +20,10 @@ class MissingSensor  {
 		this.config=config
 		this.addPath=BTSensor.prototype.addPath.bind(this)
 		this.addParameter=BTSensor.prototype.addParameter.bind(this)
+		this.addDefaultPath=BTSensor.prototype.addDefaultPath.bind(this)
+		this.addDefaultParam=BTSensor.prototype.addDefaultPath.bind(this)
+		this.addDefaultParam=BTSensor.prototype.addDefaultPath.bind(this)
+		this.getPath=BTSensor.prototype.getPath.bind(this)
 
 		this.getJSONSchema = BTSensor.prototype.getJSONSchema.bind(this)
 		this.initSchema = BTSensor.prototype.initSchema.bind(this)
@@ -50,6 +54,7 @@ class MissingSensor  {
 	initGATTConnection(){
 		
 	}
+
 	getGATTDescription(){
 		return ""
 	}
@@ -342,15 +347,13 @@ module.exports =   function (app) {
 			//filter options which can cause issues with Device::Connect() 
 			//turning off Discovery
 			//try {await adapter.startDiscovery()}
-			const _transport = transport?plugin.schema.properties.transport.default:transport
 			try{ 
-				if (_transport) {
-					app.debug(`Setting Bluetooth transport option to ${_transport}`)
+				if (transport) {
+					app.debug(`Setting Bluetooth transport option to ${transport}`)
 					await adapter.helper.callMethod('SetDiscoveryFilter', {
-						Transport: new Variant('s', _transport)
+						Transport: new Variant('s', transport)
 					  })
 					}
-				adapter._transport=_transport
 				await adapter.helper.callMethod('StartDiscovery') 
 			} 
 			catch (error){	

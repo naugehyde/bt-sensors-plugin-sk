@@ -12,8 +12,11 @@
             "examples": ["inside", "outside", "galley", "freezer", "refrigerator", "head", "cabin", "engine", "deck", "cockpit"]
         },
         "batteryID":{
-            "description": "battery ID",
+            "description": "Battery ID",
             "examples": ["starter", "house"]
+        },
+        "id":{
+            "description": "Sensor ID"
         }
     },
     "environment":{
@@ -41,7 +44,40 @@
             }
     },
     "electrical":{
+        "inverters":{
+            "ac":{
+                "current":{
+                    "unit": "A",
+                    "default":"electrical.inverters.{id}.ac.current"
+                },
+                "voltage":
+                { 
+                    "unit": "V",
+                    "default":"electrical.inverters.{id}.ac.voltage"
+                },
+                "power":
+                { 
+                    "unit": "W",
+                    "default":"electrical.inverters.{id}.ac.power"
+                }
+         
+         
+            },
+            "dc":{
+                "current":{
+                    "unit": "A",
+                    "default":"electrical.inverters.{id}.dc.current"
+                },
+                "voltage":
+                { 
+                    "unit": "V",
+                    "default":"electrical.inverters.{id}.dc.voltage"
+                }
+
+            }
+        },
         "batteries":{
+
             "current":{
                 "unit": "A",
                 "default":"electrical.batteries.{batteryID}.current"

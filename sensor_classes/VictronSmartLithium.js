@@ -38,31 +38,31 @@ class VictronSmartLithium extends VictronSensor{
         return await this.identifyMode(device, 0x05)
     }   
 
-    async init() {
-        await super.init()
-        this.initMetadata()
-    }
-    initMetadata(){
+    initSchema(){
+        super.initSchema()
+        this.addDefaultParam("batteryID")
 
         this.addMetadatum('bmsFlags','', 'BMS Flags', 
                         (buff)=>{return buff.readUInt32LE(0)})
+        .default="electrical.batteries.{batteryID}.flags"
 
         this.addMetadatum('smartLithiumErrors','', 'Smart Lithium Errors Flags',
             (buff)=>{return buff.readUInt16LE(4)})
-        this.addMetadatum('cell1Voltage','V', 'cell #1 voltage')
-        this.addMetadatum('cell2Voltage','V', 'cell #2 voltage')
-        this.addMetadatum('cell3Voltage','V', 'cell #3 voltage')
-        this.addMetadatum('cell4Voltage','V', 'cell #4 voltage')
-        this.addMetadatum('cell5Voltage','V', 'cell #5 voltage')
-        this.addMetadatum('cell6Voltage','V', 'cell #6 voltage')
-        this.addMetadatum('cell7Voltage','V', 'cell #7 voltage')
-        this.addMetadatum('cell8Voltage','V', 'cell #8 voltage')
-        this.addMetadatum('batteryVoltage','V', 'battery voltage', 
-            (buff)=>{return this.NaNif((buff.readUInt16LE(13)&0xFFF),0xFFF)/100})
-        this.addMetadatum('balancerStatus','', 'balancer status', //TODO
+            .default="electrical.batteries.{batteryID}.errors"
+
+        for (let i=0;i++;i<8){
+            this.addMetadatum(`cell${i+1}Voltage`,'V', `cell ${i+1} voltage`)
+            .default=`electrical.batteries.{batteryID}.cell${i+1}.voltage`
+        }
+        this.addDefaultPath('batteryVoltage','electrical.batteries.voltage')
+            .read=(buff)=>{return this.NaNif((buff.readUInt16LE(13)&0xFFF),0xFFF)/100}
+
+        this.addMetadatum('balancerStatus','', 'balancer status', 
             (buff)=>{return BALANCERSTATUS[this.NaNif((buff.readUInt8(14)>>4),0xF)]})
-        this.addMetadatum('batteryTemp','K', 'battery temperature', 
-            (buff)=>{return this.NaNif((buff.readUInt8(15)&0x7F),0x7F)+233.15})          
+            .default=`electrical.batteries.{batteryID}.balancerStatus`
+
+        this.addDefaultPath('batteryTemp','electrical.batteries.temperature') 
+            .read=(buff)=>{return this.NaNif((buff.readUInt8(15)&0x7F),0x7F)+233.15}          
     }
     emitValuesFrom(buffer){
         super.emitValuesFrom(buffer)

@@ -10,13 +10,12 @@ class RenogyRoverClient extends RenogySensor {
 
     async init(){
         await super.init()
-        this.initMetadata()
         this.modelID=await this.retrieveModelID()
     }
 
-    initMetadata(){
+    initSchema(){
         //Buffer(73) [1, 3, 68, 32, 32, 82, 78, 71, 45, 67, 84, 82, 76, 45, 87, 78, 68, 51, 48, 7, 140, 0, 132, 0, 126, 0, 120, 0, 111, 0, 106, 100, 50, 0, 5, 0, 120, 0, 120, 0, 28, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 15, 0, 5, 0, 5, 2, 148, 0, 5, 206, 143, 34, 228, buffer: ArrayBuffer(8192), byteLength: 73, byteOffset: 6144, length: 73, Symbol(Symbol.toStringTag): 'Uint8Array']
-
+        super.initSchema()
         this.addMetadatum('batteryType', '', "battery type")
         this.addMetadatum('batteryPercentage', 'ratio', "battery percentage",
              (buffer)=>{return buffer.readUInt16BE(3) })

@@ -10,12 +10,6 @@ class VictronDCEnergyMeter extends VictronSensor{
     }
     async init(){
         await super.init()
-        this.addMetadatum('meterType','', 'meter type', 
-            (buff)=>{return VC.MeterType.get( buff.readInt16LE(0))})
-        this.addMetadatum('voltage','','voltage',
-            (buff)=>{return buff.readInt16LE(2)/100})
-        this.addMetadatum('alarm','', 'alarm', 
-            (buff)=>{return buff.readUInt16LE(4)})
         if (this.encryptionKey){
             const decData = this.decrypt(this.getManufacturerData(0x02e1))
             if (decData)
@@ -25,6 +19,7 @@ class VictronDCEnergyMeter extends VictronSensor{
             case VC.AuxMode.STARTER_VOLTAGE:
                 this.addMetadatum('starterVoltage','V',  'starter battery voltage', 
                         (buff,offset=0)=>{return buff.readInt16LE(offset)/100})
+                        .default="electrical.batteries.starter.voltage"
                         break;
 
             case VC.AuxMode.TEMPERATURE:
@@ -36,11 +31,29 @@ class VictronDCEnergyMeter extends VictronSensor{
                         else 
                             return temp / 100
                     })
+                    .default="electrical.batteries.house.temperature"
+
                     break;
             default:
                 break
         }
-        this.addMetadatum('current','A', 'current')        
+    }
+    initSchema(){
+        super.initSchema()
+        this.addDefaultParam("id")
+        this.addMetadatum('meterType','', 'meter type', 
+            (buff)=>{return VC.MeterType.get( buff.readInt16LE(0))})
+            .default="electrical.meters.{id}.type"
+
+        this.addMetadatum('voltage','V','voltage',
+            (buff)=>{return buff.readInt16LE(2)/100})
+            .default="electrical.meters.{id}.voltage"
+         
+        this.addMetadatum('alarm','', 'alarm', 
+            (buff)=>{return buff.readUInt16LE(4)})
+           .default="electrical.meters.{id}.alarm"
+        this.addMetadatum('current','A', 'current')
+        .default="electrical.meters.{id}.current"       
  
     }
     

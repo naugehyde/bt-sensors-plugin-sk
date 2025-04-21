@@ -28,13 +28,13 @@ class VictronACCharger extends VictronSensor{
         return await this.identifyMode(device, 0x08)
     }   
 
-    async init(){
-        await super.init()
-        this.initMetadata()
-    }
-    initMetadata(){
+
+    initSchema(){
+        super.initSchema()
+
         this.addMetadatum('state','', 'device state', 
             (buff)=>{return VC.OperationMode.get(buff.readUInt8(0))})
+
         this.addMetadatum('chargerError','', 'charger error code', 
             (buff)=>{return VC.ChargerError.get(buff.readUInt8(1))})
  

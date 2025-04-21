@@ -73,11 +73,17 @@ class VictronBatteryMonitor extends VictronSensor{
             .read=(buff,offset=0)=>{return this.NaNif(buff.readUInt16LE(offset),0xFFFF)*60}
         this.getPath("ttg").gatt='65970ffe-4bda-4c1e-af4b-551c4cf74769'
         
+        try {
         if (this.encryptionKey){
             const decData = this.decrypt(this.getManufacturerData(0x02e1))
             if (decData)
                 this.auxMode=decData.readInt8(8)&0x3   
         }
+        } catch{(e)=>{ 
+            this.debug(`Unable to determine device AuxMode. ${e.message}`)
+            this.debug(e)
+            this.auxMode=VC.AuxMode.DISABLED
+        }}   
 
         switch(this.auxMode){
             case VC.AuxMode.STARTER_VOLTAGE:

@@ -10,8 +10,8 @@ class VictronInverterRS extends VictronSensor{
     }
     
 
-    async init() {
-        await super.init()
+     initSchema() {
+         super.initSchema()
         
         this.addMetadatum('deviceState','', 'inverter device state', 
                 (buff)=>{return VC.OperationMode.get(buff.readIntU8(0))})

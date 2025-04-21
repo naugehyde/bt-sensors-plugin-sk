@@ -22,11 +22,9 @@ class VictronLynxSmartBMS extends VictronSensor{
         return await this.identifyMode(device, 0x0A)
     }   
 
-    async init() {
-        await super.init()
-        this.initMetadata()
-    }
-    initMetadata(){
+ 
+    initSchema(){
+        super.initSchema()
         this.addMetadatum('error','', 'error code', 
             (buff)=>{return buff.readUInt8(0)})
  

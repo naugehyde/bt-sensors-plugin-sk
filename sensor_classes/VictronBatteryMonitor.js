@@ -79,11 +79,11 @@ class VictronBatteryMonitor extends VictronSensor{
             if (decData)
                 this.auxMode=decData.readInt8(8)&0x3   
         }
-        } catch{(e)=>{ 
+        } catch(e){ 
             this.debug(`Unable to determine device AuxMode. ${e.message}`)
             this.debug(e)
             this.auxMode=VC.AuxMode.DISABLED
-        }}   
+        }   
 
         switch(this.auxMode){
             case VC.AuxMode.STARTER_VOLTAGE:

@@ -23,13 +23,11 @@ class VictronSmartBatteryProtect extends VictronSensor{
         return await this.identifyMode(device, 0x09)
     }   
 
-    async init() {
-        await super.init()
-        this.initMetadata()
-    }
-    initMetadata(){
+
+    initSchema(){
+        super.initSchema()
         this.addMetadatum('deviceState','', 'device state', 
-                        (buff)=>{return VC.OperationMode.get(buff.readUInt8(1))})
+            (buff)=>{return VC.OperationMode.get(buff.readUInt8(1))})
         this.addMetadatum('outputStatus','', 'output status', //TODO
             (buff)=>{return (buff.readUInt8(2))})
 

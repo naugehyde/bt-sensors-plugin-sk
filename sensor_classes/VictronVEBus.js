@@ -9,11 +9,8 @@ class VictronVEBus extends VictronSensor{
         return await this.identifyMode(device, 0x0C)
     }   
 
-    async init() {
-        await super.init()
-        this.initMetadata()
-    }
-    initMetadata(){
+    initSchema(){
+        super.initSchema()
         this.addMetadatum('chargeState','', 'charge state', 
             (buff)=>{return VC.OperationMode.get(buff.readUInt8(0))})
             

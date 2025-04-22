@@ -43,7 +43,7 @@ The plugin is currently available in the Signalk Appstore. <br>
 
 Go to you signalk home (usually ~/.signalk) and run:
 
-npm i bt-sensors-plugin-sk@1.1.0-beta.2.1
+npm i bt-sensors-plugin-sk@1.1.0
 
 ### Linux
 

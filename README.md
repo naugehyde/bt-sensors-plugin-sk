@@ -1,8 +1,21 @@
 # Bluetooth Sensors for [Signal K](http://www.signalk.org)
 
-## Beta 1.0.0
+## What's New
 
-Dynamic configuration added (no more screen refreshing necessary).
+## 1.2.0-beta-0.0.7
+
+Added zone config param for environmental sensors. Removed location parameter. 
+
+## 1.2.0-beta-0.0.6
+Default values for paths for most sensor classes. 
+
+## 1.2.0-beta-0.0.5
+
+Added workaround to support multiple simultaneous GATT connections. Owing to problematic behavior in Bluez where making a GATT connection halted the scanner which made additional updates and connections impossible, added a scanner restart after making each GATT connection. 
+
+## 1.2.0-beta-0.0.1
+
+Dynamic configuration added. List updates when new devices are found by scanner. (No more screen refreshing necessary).
 
 ## WHAT IT IS
 
@@ -33,13 +46,13 @@ Signalk users with a Linux boat-puter (Windows and MacOS are NOT currently suppo
 NOTE: If you're running the 1.0.3 release, you will have to reconfigure your devices.<br>
 
 ### Signalk Appstore
-The plugin is currently available in the Signalk Appstore. <br>
+The beta plugin is not currently available in the Signalk Appstore. <br>
 
 ### NPM
 
 Go to you signalk home (usually ~/.signalk) and run:
 
-npm i bt-sensors-plugin-sk@1.1.0-beta.2.1
+npm i bt-sensors-plugin-sk@1.2.0-beta.0.0.7
 
 ### Linux
 
@@ -48,7 +61,7 @@ If you want to install directly from source (this is mostly of interest to custo
 <pre>  cd ~/[some_dir]
   git clone https://github.com/naugehyde/bt-sensors-plugin-sk
   cd bt-sensors-plugin-sk
-  git switch '1.1.0'
+  git switch '1.2.0-beta'
   git pull
   npm i
   [sudo] npm link
@@ -68,16 +81,11 @@ After installing and restarting Signalk you should see a "BT Sensors Plugin" opt
 
 On initial configuration, wait for your Bluetooth adapter to scan devices. The plugin will scan for new devices at whatever you set the "scan for new devices interval" value to. <br><br>
 
-> TIP: Close and re-open the config screen to refresh the screen. The config screen isn't as <i>reactive</i> as it oughtta be.<br><br>
-
-Then press the + button to add a sensor. Your screen should look something like this:<br><br>
-<img width="1122" alt="Screenshot 2024-10-13 at 6 52 52 PM" src="https://github.com/user-attachments/assets/0487b8d0-4bc0-4358-85c6-a507bc3c97d2">
-
 <br><br>
 
-Select the sensor you want Signalk to listen to from the drop down.<br>
+Select the sensor you want Signalk to listen to from the list.<br>
 
-If you don't see your device and you know that it's on and nearby to the server, it may not be currently supported. But fear not, you can add custom sensor classes yourself. (Check out [the development section](#development).). <br><br>
+If you don't see your device and you know that it's on and nearby to the server, it may not be currently supported (It could also be out of range.) But fear not, you can add custom sensor classes yourself. (Check out [the development section](#development).). <br><br>
 
 Now it's a simple matter of associating the data emitted by the sensor with the Signalk path you want it to update. (Also, you can name your sensor so when it appears in logs its easy to recognize.) <br><br>
 

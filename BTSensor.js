@@ -321,7 +321,7 @@ class BTSensor extends EventEmitter {
 
         //create the 'location' parameter
 
-        this.addDefaultParam("location")
+        //this.addDefaultParam("location")
 
         //create the 'RSSI' parameter 
         this.addDefaultPath("RSSI","sensors.RSSI")

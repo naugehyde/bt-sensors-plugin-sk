@@ -33,6 +33,8 @@ class ATC extends BTSensor{
     }
     initSchema(){
         super.initSchema()
+        this.addDefaultParam("zone")
+
         this.addDefaultPath('batteryStrength','sensors.batteryStrength')
         .read=(buff)=>{return ((buff.readUInt8(12))/100)}
 

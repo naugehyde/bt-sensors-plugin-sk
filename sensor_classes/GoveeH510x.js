@@ -36,6 +36,8 @@ class GoveeH510x extends BTSensor{
 
     initSchema(){
         super.initSchema()
+        this.addDefaultParam("zone")
+
         this.addDefaultPath("temp","environment.temperature")
         this.addDefaultPath("humidity", "environment.humidity")
         this.addDefaultPath("battery","sensors.batteryStrength")        

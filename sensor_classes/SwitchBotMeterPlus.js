@@ -37,6 +37,8 @@ class SwitchBotMeterPlus extends BTSensor{
 // Refer https://github.com/OpenWonderLabs/SwitchBotAPI-BLE/blob/latest/devicetypes/meter.md#(new)-broadcast-message 
  
         super.initSchema()
+        this.addDefaultParam("zone")
+
         this.addDefaultPath('temp', 'environment.temperature')
         .read= (buffer)=>{return (( ( ( (buffer[4] & 0x7f) + ((buffer[3] & 0x0f)/10) ) * ( (buffer[4] & 0x80)>0 ? 1 : -1 ) ) - ( (buffer[5] & 0x80)>0 ? 32 : 0) ) / ( (buffer[5] & 0x80)>0 ? 1.8 : 1) ) + 273.15 }
         this.addDefaultPath('humidity', 'environment.humidity')

@@ -207,6 +207,8 @@ class XiaomiMiBeacon extends BTSensor{
     }   
     initSchema(){
         super.initSchema()
+        this.addDefaultParam("zone")
+
         this.addParameter(
             "encryptionKey",
             {

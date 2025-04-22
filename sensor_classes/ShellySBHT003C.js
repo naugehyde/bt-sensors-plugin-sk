@@ -80,6 +80,8 @@ class ShellySBHT003C extends AbstractBTHomeSensor {
 
 	initSchema() {
 		super.initSchema()
+		this.addDefaultParam("zone")
+
 		this.addDefaultPath(
 			"battery",
 			"sensors.batteryStrength")

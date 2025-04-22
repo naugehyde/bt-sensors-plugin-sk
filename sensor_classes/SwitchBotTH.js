@@ -39,6 +39,8 @@ class SwitchBotTH extends  BTSensor {
 
     initSchema(){
         super.initSchema()
+        this.addDefaultParam("zone")
+
         this.addDefaultPath('temp', 'environment.temperature') 
         .read=(buffer)=>{
                 return (27315+(((buffer[8] & 0x0F)/10 + (buffer[9] & 0x7F)) * (((buffer[9] & 0x80)>0)?100:-100)))/100

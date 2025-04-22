@@ -31,28 +31,39 @@ class VictronACCharger extends VictronSensor{
 
     initSchema(){
         super.initSchema()
+        this.addDefaultParam("id")
 
         this.addMetadatum('state','', 'device state', 
             (buff)=>{return VC.OperationMode.get(buff.readUInt8(0))})
-
+            .default= "electrical.chargers.{id}.state"
         this.addMetadatum('chargerError','', 'charger error code', 
             (buff)=>{return VC.ChargerError.get(buff.readUInt8(1))})
- 
+            .default= "electrical.chargers.{id}.error"
+
         this.addMetadatum('batt1','V', 'battery 1 voltage')
+        .default= "electrical.chargers.{id}.battery1.voltage"
 
         this.addMetadatum('curr1','A', 'battery 1 current')
+        .default= "electrical.chargers.{id}.battery1.current"
 
         this.addMetadatum('batt2','V', 'battery 2 voltage')
+        .default= "electrical.chargers.{id}.battery2.voltage"
 
         this.addMetadatum('curr2','A', 'battery 2 current')
+        .default= "electrical.chargers.{id}.battery2.current"
 
         this.addMetadatum('batt3','V', 'battery 3 voltage')
+        .default= "electrical.chargers.{id}.battery3.voltage"
 
         this.addMetadatum('curr3','A', 'battery 3 current')
-    
-        this.addMetadatum('temp', 'K', 'battery temperature')
+        .default= "electrical.chargers.{id}.battery3.current"
+
+        this.addMetadatum('temp', 'K', 'charger temperature')
+        .default= "electrical.chargers.{id}.temperature"
 
         this.addMetadatum('acCurr','A', 'AC current')
+        .default= "electrical.chargers.{id}.ac.current"
+
     }
     emitValuesFrom(buffer){
         super.emitValuesFrom(buffer)

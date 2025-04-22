@@ -22,24 +22,28 @@ class VictronLynxSmartBMS extends VictronSensor{
         return await this.identifyMode(device, 0x0A)
     }   
 
- 
     initSchema(){
         super.initSchema()
         this.addMetadatum('error','', 'error code', 
             (buff)=>{return buff.readUInt8(0)})
  
-        this.addMetadatum('ttg','s', 'time to go (in seconds)',
-            (buff)=>{return this.NaNif(buff.readUInt16LE(1),0xFFFF)*60})
-        this.addMetadatum('voltage','V', 'channel 1 voltage',
-            (buff)=>{return this.NaNif(buff.readInt16LE(3),0x7FFF)/100})
-        this.addMetadatum('current','A','channel 1 current', 
-            (buff)=>{return this.NaNif(buff.readInt16LE(5),0x7FFF)/10})
+        this.addDefaultPath('ttg','electrical.batteries.capacity.timeRemaining')
+            .read=(buff)=>{return this.NaNif(buff.readUInt16LE(1),0xFFFF)*60}
+        this.addDefaultPath('voltage','electrical.batteries.voltage')
+            .read=(buff)=>{return this.NaNif(buff.readInt16LE(3),0x7FFF)/100}
+        this.addDefaultPath('current','electrical.batteries.current') 
+            .read=(buff)=>{return this.NaNif(buff.readInt16LE(5),0x7FFF)/10}
+        
         this.addMetadatum('ioStatus','','IO Status', //TODO
             (buff)=>{return buff.readUInt16LE(7)})
+
         this.addMetadatum('warningsAndAlarms','','warnings and alarms')
-        this.addMetadatum('soc','','state of charge')
+
+        this.addDefaultPath('soc','electrical.batteries.capacity.stateOfCharge')
         this.addMetadatum('consumedAh','Ah','amp-hours consumed')
-        this.addMetadatum('temp', 'K', 'battery temperature')
+        .default="electrical.batteries.{batteryID}.capacity.ampHoursConsumed"
+        
+        this.addDefaultPath('temp', 'electrical.batteries.temperature')
     }
     emitValuesFrom(buffer){
         super.emitValuesFrom(buffer)

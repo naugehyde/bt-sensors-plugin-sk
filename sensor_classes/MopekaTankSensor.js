@@ -276,7 +276,7 @@ class MopekaTankSensor extends BTSensor{
         this.addParameter("medium",
             {
                 title:"type of liquid in tank",
-                enum: Object.keys(Media)   
+                enum: Object.keys(Media)
             }
         )
         this.addParameter("tankHeight",
@@ -286,34 +286,43 @@ class MopekaTankSensor extends BTSensor{
                 unit:"mm"
             }
         )
+        this.addDefaultParam("id")
 
-        this.addMetadatum("battVolt","V","sensor battery in volts", 
-            ((buffer)=>{ 
+        this.addDefaultPath("battVolt","sensors.batteryVoltage") 
+            .read=((buffer)=>{ 
                 this.battVolt = (buffer.readUInt8(1)/32) 
                 return this.battVolt
             }).bind(this)
-        )
-        this.addMetadatum("battStrength","ratio","sensor battery strength", 
-            (buffer)=>{ return Math.max(0, Math.min(1, (((this.battVolt) - 2.2) / 0.65))) }
-        )
+        
+        this.addDefaultPath("battStrength", "sensors.batteryStrength") 
+            .read=(buffer)=>{ return Math.max(0, Math.min(1, (((this.battVolt) - 2.2) / 0.65))) }
+        
         this.addMetadatum("temp","K","temperature", 
             ((buffer)=>{ 
                 this.temp = parseFloat(((buffer.readUInt8(2)&0x7F)+233.15).toFixed(2))
                 return this.temp
-            }).bind(this)
+            })
         )
+        .default="tanks.{id}.temperature"
         this.addMetadatum("tankLevel","ratio","tank level", 
             (buffer)=>{ return (this._tankLevel(((buffer.readUInt16LE(3))&0x3FFF)))/this.getTankHeight()}
         )
+        .default="tanks.{id}.currentLevel"
+
         this.addMetadatum("readingQuality","","quality of read", 
             (buffer)=>{ return buffer.readUInt8(4)>>6}
         )
+        .default="sensors.{macAndName}.readingQuality"
+
         this.addMetadatum("accX","Mg","acceleration on X-axis", 
             (buffer)=>{ return buffer.readUInt8(8)}
         )
+        .default="sensors.{macAndName}.accelerationXAxis"
+
         this.addMetadatum("accY","Mg","acceleration on Y-axis", 
             (buffer)=>{ return buffer.readUInt8(9)}
         )        
+        .default="sensors.{macAndName}.accelerationYAxis"
     }
 
     propertiesChanged(props){
@@ -326,8 +335,8 @@ class MopekaTankSensor extends BTSensor{
         if (this.name)
             return this.name
 
-        const _name = MopekaDevices.get(this?.modelID??0x0).name
-        return _name?_name:MopekaDevices.get(0x0).name
+        const _name = MopekaDevice.get(this?.modelID??0x0).name
+        return _name?_name:MopekaDevice.get(0x0).name
         
     }
 }

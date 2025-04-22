@@ -101,6 +101,7 @@ function preparePath(obj, str) {
 
 class BTSensor extends EventEmitter {
     //static metadata=new Map()
+ 
     static DEFAULTS = require('./plugin_defaults.json');
     
     /**

@@ -27,16 +27,20 @@ class UltrasonicWindMeter extends BTSensor{
         )
 
     }
-    async init(){
-        await super.init()
-        this.addMetadatum("batt","ratio","Battery strength",
-            (buffer)=>{return (buffer.readUInt8())/100})
+     initSchema(){
+        super.initSchema()
+        this.addDefaultPath("batt",'sensors.batteryStrength')
+            .read=(buffer)=>{return (buffer.readUInt8())/100}
+
         this.addMetadatum("awa","rad","Apparent Wind Angle",
             (buffer)=>{return ((buffer.readInt16LE())/100)*(Math.PI/180)}
         )
+        .default='environment.wind.angleApparent'
+
         this.addMetadatum("aws","m/s","Apparent Wind Speed",
         (buffer)=>{return (buffer.readInt16LE()/100)*.514444} //convert knots to m/s
         )
+        .default='environment.wind.speedApparent'
     }
 
     initGATTConnection(){ 

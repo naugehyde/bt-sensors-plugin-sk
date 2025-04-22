@@ -16,11 +16,18 @@ class VictronDCEnergyMeter extends VictronSensor{
             (buff)=>{return buff.readInt16LE(2)/100})
         this.addMetadatum('alarm','', 'alarm', 
             (buff)=>{return buff.readUInt16LE(4)})
-        if (this.encryptionKey){
-            const decData = this.decrypt(this.getManufacturerData(0x02e1))
-            if (decData)
-                this.auxMode=decData.readInt8(8)&0x3   
+        try {
+            if (this.encryptionKey){
+                const decData = this.decrypt(this.getManufacturerData(0x02e1))
+                if (decData)
+                    this.auxMode=decData.readInt8(8)&0x3   
+            }
+        } catch (e) { 
+            this.debug(`Unable to determine device AuxMode. ${e.message}`)
+            this.debug(e)
+            this.auxMode=VC.AuxMode.DISABLED
         }
+          
         switch(this.auxMode){
             case VC.AuxMode.STARTER_VOLTAGE:
                 this.addMetadatum('starterVoltage','V',  'starter battery voltage', 

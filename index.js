@@ -21,15 +21,13 @@ class MissingSensor  {
 		this.addPath=BTSensor.prototype.addPath.bind(this)
 		this.addParameter=BTSensor.prototype.addParameter.bind(this)
 		this.addDefaultPath=BTSensor.prototype.addDefaultPath.bind(this)
-		this.addDefaultParam=BTSensor.prototype.addDefaultPath.bind(this)
-		this.addDefaultParam=BTSensor.prototype.addDefaultPath.bind(this)
+		this.addDefaultParam=BTSensor.prototype.addDefaultParam.bind(this)
 		this.getPath=BTSensor.prototype.getPath.bind(this)
 
 		this.getJSONSchema = BTSensor.prototype.getJSONSchema.bind(this)
 		this.initSchema = BTSensor.prototype.initSchema.bind(this)
 
 		this.initSchema()
-
 		var keys = Object.keys(config?.paths??{})
 
 		keys.forEach((key)=>{
@@ -390,7 +388,6 @@ module.exports =   function (app) {
 			adapter.waitDevice(config.mac_address,(config?.discoveryTimeout??30)*1000)
 			.then(async (device)=> { 
 				if (startNumber != starts ) {
-					debugger
 					return
 				}
 				//app.debug(`Found ${config.mac_address}`)
@@ -400,8 +397,13 @@ module.exports =   function (app) {
 					reject ( `Device is blacklisted (${s.reasonForBlacklisting()}).`)
 				else{
 					addSensorToList(s)
+					let _lastRSSI=-1*Infinity
 					s.on("RSSI",(()=>{
-						updateSensor(s)
+						if (Date.now()-_lastRSSI > 5000) { //only update RSSI on client every five seconds 
+							_lastRSSI=Date.now()
+							updateSensor(s)
+						}	
+
 					}))
 					resolve(s)
 				}
@@ -443,7 +445,7 @@ module.exports =   function (app) {
 				app.setPluginError(msg)
 			}
 			//if we're here ain't got no class for the device
-			var sensor
+			var sensor 
 			if (config.params?.sensorClass){
 				var c = classMap.get(config.params.sensorClass)
 			} else{

@@ -22,6 +22,7 @@
     "environment":{
         "temperature": 
             {
+                "title":"Current zone's temperature",
                 "unit":"K",
                 "default": "environment.{zone}.temperature"
             },
@@ -32,15 +33,15 @@
             },
         "relativeHumidity":
             {
-                "title":"Current relative humidity",
+                "title":"Current zone's relative humidity",
                 "unit":"ratio",
-                "default":"environment.{zone}.humidity"
+                "default":"environment.{zone}.relativeHumidity"
             },
         "pressure":
             {
-                "title": "Current outside air ambient pressure",
+                "title": "Current zone's ambient air pressure",
                 "unit":"Pa",
-                "default":"environment.{zone}.humidity"
+                "default":"environment.{zone}.pressure"
             }
     },
     "electrical":{

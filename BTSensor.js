@@ -100,7 +100,6 @@ function preparePath(obj, str) {
  */
 
 class BTSensor extends EventEmitter {
-    //static metadata=new Map()
  
     static DEFAULTS = require('./plugin_defaults.json');
     
@@ -318,6 +317,7 @@ class BTSensor extends EventEmitter {
 
         //create the 'name' parameter
         this.addDefaultParam("name")
+            .default=this?.currentProperties?.Name
 
         //create the 'location' parameter
 

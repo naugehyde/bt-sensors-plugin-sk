@@ -19,6 +19,8 @@ class GoveeH50xx extends  BTSensor {
 
     initSchema(){
         super.initSchema()
+        this.addDefaultParam("zone")
+
         this.addDefaultPath("temp","environment.temperature")
             .read= (buffer)=>{return 273.15+(buffer.readUInt16LE(1)/100) }
         

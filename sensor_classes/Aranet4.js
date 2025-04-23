@@ -31,7 +31,7 @@ class Aranet4 extends AranetSensor{
         this.addDefaultPath("pressure","environment.pressure") 
         .read=(buff)=>{return ((buff.readUInt16LE(12)))/10}
       
-        this.addDefaultPath('relativeHumidity','environment.relative')
+        this.addDefaultPath('relativeHumidity','environment.relativeHumidity')
         .read=(buff)=>{return ((buff.readUInt8(14))/100)}
         
         this.addMetadatum('color', '',  'Warning color (G Y R)',

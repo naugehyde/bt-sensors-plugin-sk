@@ -5,8 +5,7 @@ import {useEffect, useState} from 'react'
 
 import {Button, Grid} from '@material-ui/core';
 
-
-import {  SignalCellular0Bar, SignalCellular1Bar, SignalCellular2Bar, SignalCellular3Bar, SignalCellular4Bar, SignalCellularConnectedNoInternet0Bar    } from '@material-ui/icons';
+import { SignalCellular0Bar, SignalCellular1Bar, SignalCellular2Bar, SignalCellular3Bar, SignalCellular4Bar, SignalCellularConnectedNoInternet0Bar    } from '@material-ui/icons';
 
 const log = (type) => console.log.bind(console, type);
 
@@ -111,13 +110,14 @@ export default (props) => {
       if (response.status != 200) {
         throw new Error(response.statusText)
       }
-      debugger
+      sensorMap.get(data.mac_address)._changesMade=false
       sensorMap.get(data.mac_address).config = data
       
     })
   }
 
   function undoChanges(mac) {
+    sensorMap.get(mac)._changesMade = false
     setSensorData( sensorMap.get(mac).config )
   }
 
@@ -289,7 +289,7 @@ useEffect(()=>{
         }
         }> 
         <div  class="d-flex justify-content-between align-items-center" style={hasConfig?{fontWeight:"normal"}:{fontStyle:"italic"}}>
-        {`${sensor.info.name} MAC: ${sensor.info.mac} RSSI: ${ifNullNaN(sensor.info.RSSI)}`  }
+        {`${sensor._changesMade?"*":""}${sensor.info.name} MAC: ${sensor.info.mac} RSSI: ${ifNullNaN(sensor.info.RSSI)}`  }
         <div class="d-flex justify-content-between ">
           {
             signalStrengthIcon(sensor)
@@ -329,7 +329,8 @@ useEffect(()=>{
                      now={progress.progress} 
         />:""
       }
-      <h2>{`${sensorMap.size>0?" Bluetooth Devices click to configure":""}`}</h2>
+      <h2>{`${sensorMap.size>0?"Bluetooth Devices click to configure" :""}`}</h2>
+      <h2>{`${sensorMap.size>0?"(* means sensor has unsaved changes)" :""}`}</h2>
       <p></p>
       <div style={{paddingBottom: 20}} class="d-flex flex-wrap justify-content-start align-items-start">
       <ListGroup style={{  maxHeight: '300px', overflowY: 'auto' }}>
@@ -340,7 +341,14 @@ useEffect(()=>{
         schema={schema}
         validator={validator}
         uiSchema={uiSchema}
-        onChange={(e) => setSensorData(e.formData)}
+        onChange={(e) => {
+            const s = sensorMap.get(e.formData.mac_address)
+            s._changesMade=true
+            //s.config = e.formData; 
+
+            setSensorData(e.formData)
+          }
+        }
         onSubmit={({ formData }, e) => {
           console.log(formData) 
           updateSensorData(formData)

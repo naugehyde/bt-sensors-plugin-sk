@@ -2,6 +2,12 @@
 
 ## What's New
 
+## 1.2.0-beta-0.0.8
+
+Improved handling of changed state on config page.
+
+Several small fixes to various sensor classes.
+
 ## 1.2.0-beta-0.0.7
 
 Added zone config param for environmental sensors. Removed location parameter. 

@@ -2,6 +2,10 @@
 
 ## What's New
 
+## 1.2.0-beta-0.0.9
+
+Fixes to config page RSSI update.
+
 ## 1.2.0-beta-0.0.8
 
 Improved handling of changed state on config page.

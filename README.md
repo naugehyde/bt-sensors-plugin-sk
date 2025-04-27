@@ -1,6 +1,12 @@
 # Bluetooth Sensors for [Signal K](http://www.signalk.org)
 
-## RELEASE 1.1.0
+## RELEASE 1.1.1
+
+## WHAT'S NEW
+
+Fix for Govee devices (and potentially others) being misidentified and instantiated as IBeacon devices. 
+
+NOTE: new IBeacon devices will appear as Unknown devices and will need to be explicity classified as "IBeacon" by the user by selecting IBeacon from the Sensor Class dropdown.
 
 ## WHAT IT IS
 

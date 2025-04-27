@@ -121,14 +121,6 @@ module.exports =   function (app) {
 		}
 	}
 
-	function sleep(x) {
-		return new Promise((resolve) => {
-		  setTimeout(() => {
-			resolve(x);
-		  }, x);
-		});
-	  }
-	
 	  function loadClassMap() {
 		const _classMap = utilities_sk.loadClasses(path.join(__dirname, 'sensor_classes'))
 		classMap = new Map([..._classMap].filter(([k, v]) => !k.startsWith("_") ))

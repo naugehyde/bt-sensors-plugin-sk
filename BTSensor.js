@@ -365,13 +365,15 @@ class BTSensor extends EventEmitter {
             }
             else 
                 await this.initGATTNotifications()
+        }).catch((e)=>{
+            this.app.debug(`Unable to activate GATT connection for ${this.getName()} (${this.getMacAddress()}): ${e}`)
         })
     }
 
     /**
      * Add a metadatum instance to the sensor instance
      *  
-     * @param {String} tag 
+     * @param {String} tag
      * @param  {...any} args 
      * @returns {this.Metadatum} the new metadatum instance
      */
@@ -551,6 +553,9 @@ class BTSensor extends EventEmitter {
     }
     getParams(){
         return this._schema.properties.params.properties
+    }
+    getParameter(param){
+        return this.getParams()[param]
     }
     getGATTParams(){
         return this._schema.properties.gattParams.properties

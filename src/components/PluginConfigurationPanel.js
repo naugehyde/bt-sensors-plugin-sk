@@ -73,7 +73,7 @@ export default (props) => {
   }
 
   async function getSensorData(){
-  
+    console.log("getSensorData")
     const response = await fetchJSONData("sensors")
     if (response.status!=200){
       throw new Error(`Unable get sensor data: ${response.statusText} (${response.status}) `)
@@ -85,7 +85,7 @@ export default (props) => {
   }
 
   async function getBaseData(){
-    
+    console.log("getBaseData")
     const response = await fetchJSONData("base")
     if (response.status!=200){
       throw new Error(`Unable get base data: ${response.statusText} (${response.status}) `)
@@ -95,7 +95,7 @@ export default (props) => {
     return json
   }
   async function getProgress(){
-    
+    console.log("getProgress")
     const response = await fetchJSONData("progress")
     if (response.status!=200){
       throw new Error(`Unable get progres: ${response.statusText} (${response.status}) `)
@@ -106,6 +106,7 @@ export default (props) => {
   }
 
   function updateSensorData(data){
+    console.log("updateSensorData")
     sendJSONData("sendSensorData", data).then((response)=>{ 
       if (response.status != 200) {
         throw new Error(response.statusText)
@@ -114,14 +115,17 @@ export default (props) => {
       sensorMap.get(data.mac_address).config = data
       
     })
-  }
+  } 
 
   function undoChanges(mac) {
+    console.log("undoChanges")
     sensorMap.get(mac)._changesMade = false
     setSensorData( sensorMap.get(mac).config )
   }
 
   function removeSensorData(mac){
+    console.log("removeSensorData")
+
     try{ 
     
       sendJSONData("removeSensorData", {mac_address:mac} ).then((response)=>{
@@ -142,6 +146,8 @@ export default (props) => {
 
 
   function updateBaseData(data){
+    console.log("updateBaseData")
+
     sendJSONData("sendBaseData", data).then( (response )=>{
       if (response.status != 200) {
         setError(new Error(`Unable to update base data: ${response.statusText} (${response.status})`))
@@ -170,7 +176,7 @@ export default (props) => {
 
 
   useEffect(()=>{
-
+    console.log("useEffect([])")
     fetchJSONData("sendPluginState").then( async (response)=> {
       const json = await response.json()
       setPluginState(json.state)
@@ -178,6 +184,7 @@ export default (props) => {
       const eventSource = new EventSource("/plugins/bt-sensors-plugin-sk/sse")
       
       eventSource.addEventListener("newsensor", (event) => {
+        console.log("newsensor")
         let json = JSON.parse(event.data)
         
         if (!_sensorMap.has(json.info.mac)) {
@@ -187,7 +194,9 @@ export default (props) => {
       });
 
       eventSource.addEventListener("sensorchanged", (event) => {
-        let json = JSON.parse(event.data)        
+        let json = JSON.parse(event.data)      
+        console.log("sensorchanged")
+        console.log(json)
         
         if (_sensorMap.has(json.mac)) {      
           let sensor = _sensorMap.get(json.mac)
@@ -196,12 +205,14 @@ export default (props) => {
         }
       });
       eventSource.addEventListener("progress", (event) => {
+        console.log("progress")
         const json = JSON.parse(event.data)  
         setProgress(json)
         console.log(json)
       });
 
       eventSource.addEventListener("pluginstate", (event) => {
+        console.log("pluginstate")
         const json = JSON.parse(event.data)  
         setPluginState(json.state)
       });
@@ -215,6 +226,7 @@ export default (props) => {
 },[])
 
 useEffect(()=>{
+  console.log("useEffect([pluginState])")
   if (pluginState=="started"){
     refreshSensors()
     
@@ -240,6 +252,7 @@ useEffect(()=>{
 },[pluginState])
 
 useEffect(()=>{
+  console.log("useEffect([error])")
   console.log(error)
 },[error])
 
@@ -269,6 +282,8 @@ function signalStrengthIcon(sensor){
 
 }
 useEffect(()=>{
+  console.log("useEffect([sensorMap])")
+
     _sensorMap = sensorMap
     
     setSensorList(

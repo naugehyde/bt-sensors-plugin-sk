@@ -319,13 +319,13 @@ module.exports =   function (app) {
 		}
 
 		function getSensorInfo(sensor){
-			if (sensor.getName()=="vent") 
-				debugger
+	
+			const etslc = sensor.elapsedTimeSinceLastContact()
 			return { mac: sensor.getMacAddress(),
 				     name: sensor.getName(),
 					 RSSI: sensor.getRSSI(),
 					 signalStrength: sensor.getSignalStrength(),
-					 lastContactDelta: sensor. elapsedTimeSinceLastContact()
+					 lastContactDelta: etslc
 			}
 		}
 
@@ -397,10 +397,11 @@ module.exports =   function (app) {
 					reject ( `Device is blacklisted (${s.reasonForBlacklisting()}).`)
 				else{
 					addSensorToList(s)
-					let _lastRSSI=-1*Infinity
+					s._lastRSSI=-1*Infinity
 					s.on("RSSI",(()=>{
-						if (Date.now()-_lastRSSI > 5000) { //only update RSSI on client every five seconds 
-							_lastRSSI=Date.now()
+						if (Date.now()-s._lastRSSI > 20000) { //only update RSSI on client every five seconds
+							//app.debug(`${s.getMacAddress()} ${Date.now()-s._lastRSSI}`) 
+							s._lastRSSI=Date.now()
 							updateSensor(s)
 						}	
 
@@ -638,15 +639,18 @@ module.exports =   function (app) {
 			}
 		}
 		const minTimeout=Math.min(...deviceConfigs.map((dc)=>dc?.discoveryTimeout??options.discoveryTimeout))
-
+		const intervalTimeout = ((minTimeout==Infinity)?(options?.discoveryTimeout??plugin.schema.properties.discoveryTimeout.default):minTimeout)*1000
 		deviceHealthID = setInterval( ()=> {
 			sensorMap.forEach((sensor)=>{
 				const config = getDeviceConfig(sensor.getMacAddress())
 				const dt = config?.discoveryTimeout??options.discoveryTimeout
-				if (sensor.elapsedTimeSinceLastContact()> dt)
+				const lc=sensor.elapsedTimeSinceLastContact()
+				if (lc > dt) { 
+					app.debug(`${sensor.getMacAddress()} not heard from in ${lc} seconds`)
 					channel.broadcast(getSensorInfo(sensor), "sensorchanged")
+				}
 			})
-		}, (minTimeout==Infinity)?(options?.discoveryTimeout??plugin.schema.properties.discoveryTimeout.default):minTimeout)
+		}, intervalTimeout)
 		
 		if (!options.hasOwnProperty("discoveryInterval" )) //no config -- first run
 			options.discoveryInterval = plugin.schema.properties.discoveryInterval.default

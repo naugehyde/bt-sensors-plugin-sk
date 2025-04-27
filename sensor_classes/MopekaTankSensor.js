@@ -335,8 +335,8 @@ class MopekaTankSensor extends BTSensor{
         if (this.name)
             return this.name
 
-        const _name = MopekaDevice.get(this?.modelID??0x0).name
-        return _name?_name:MopekaDevice.get(0x0).name
+        const _name = MopekaDevices.get(this?.modelID??0x0).name
+        return _name?_name:MopekaDevices.get(0x0).name
         
     }
 }

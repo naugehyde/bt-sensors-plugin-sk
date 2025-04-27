@@ -12,6 +12,9 @@ class UltrasonicWindMeter extends BTSensor{
     hasGATT(){
         return true
     }
+    usingGATT(){
+        return true
+    }
     emitGATT(){
         this.battCharacteristic.readValue()
         .then((buffer)=>
@@ -29,6 +32,7 @@ class UltrasonicWindMeter extends BTSensor{
     }
      initSchema(){
         super.initSchema()
+        this.getGATTParams()["useGATT"].default=true
         this.addDefaultPath("batt",'sensors.batteryStrength')
             .read=(buffer)=>{return (buffer.readUInt8())/100}
 

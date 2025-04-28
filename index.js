@@ -1,7 +1,3 @@
-const fs = require('fs')
-const util = require('util')
-const path = require('path')
-const semver = require('semver')
 const packageInfo = require("./package.json")
 
 const {createBluetooth} = require('node-ble')
@@ -12,6 +8,7 @@ const BTSensor = require('./BTSensor.js')
 const BLACKLISTED = require('./sensor_classes/BlackListedDevice.js')
 const { createChannel, createSession } = require("better-sse");
 const { clearTimeout } = require('timers')
+const loadClassMap = require('./classLoader.js')
 
 class MissingSensor  {
 
@@ -88,58 +85,14 @@ class MissingSensor  {
 
 }
 module.exports =   function (app) {
-	var adapterID = 'hci0'
-	
-
 	var deviceConfigs
 	var starts=0
-	var classMap
-	
-	var utilities_sk
 	
 	var plugin = {};
 	plugin.id = 'bt-sensors-plugin-sk';
 	plugin.name = 'BT Sensors plugin';
 	plugin.description = 'Plugin to communicate with and update paths to BLE Sensors in Signalk';
 	
-	//Try and load utilities-sk NOTE: should be installed from App Store-- 
-	//But there's a fail safe because I'm a reasonable man.
-
-	utilities_sk = {
-		loadClasses: function(dir, ext='.js')
-		{
-			const classMap = new Map()
-			const classFiles = fs.readdirSync(dir)
-			.filter(file => file.endsWith(ext));
-		
-			classFiles.forEach(file => {
-				const filePath = path.join(dir, file);
-				const cls = require(filePath);
-				classMap.set(cls.name, cls);
-			})
-			return classMap
-		}
-	}
-
-	  function loadClassMap() {
-		const _classMap = utilities_sk.loadClasses(path.join(__dirname, 'sensor_classes'))
-		classMap = new Map([..._classMap].filter(([k, v]) => !k.startsWith("_") ))
-		const libPath = app.config.appPath +(
-			semver.gt(app.config.version,"2.13.5")?"dist":"lib"
-		)
-		import(libPath+"/modules.js").then( (modulesjs)=>{
-		const { default:defaultExport} = modulesjs
-			const modules = defaultExport.modulesWithKeyword(app.config, "signalk-bt-sensor-class")
-			modules.forEach((module)=>{
-				module.metadata.classFiles.forEach((classFile)=>{
-					const cls = require(module.location+module.module+"/"+classFile);
-					classMap.set(cls.name, cls);
-				})
-			})
-			classMap.get('UNKNOWN').classMap=new Map([...classMap].sort().filter(([k, v]) => !v.isSystem )) // share the classMap with Unknown for configuration purposes
-		})
-	}
-
 	app.debug(`Loading plugin ${packageInfo.version}`)
 	
 	plugin.schema = {			
@@ -163,17 +116,17 @@ module.exports =   function (app) {
 		}
 	}
 
-	const sensorMap=new Map()
 	
 	plugin.started=false
-
-	loadClassMap()
+	
 	var discoveryIntervalID, progressID, progressTimeoutID, deviceHealthID
 	var adapter 
-	var adapterPower
 	const channel = createChannel()
+	const classMap = loadClassMap(app)
+	const sensorMap=new Map()
 
-	plugin.registerWithRouter = function(router) {
+	
+/*	plugin.registerWithRouter = function(router) {
 		router.get('/sendPluginState', async (req, res) => {
 		
 			res.status(200).json({
@@ -185,15 +138,16 @@ module.exports =   function (app) {
 			channel.register(session)
 	   });
 	
-	}
+	}*/
 
 	plugin.start = async function (options, restartPlugin) {
 		plugin.started=true
 		var adapterID=options.adapter
 		var foundConfiguredDevices=0
+
 		plugin.registerWithRouter = function(router) {
 
-			router.post('/sendSensorData', async (req, res) => {
+			router.post('/updateSensorData', async (req, res) => {
 				app.debug(req.body)
 				const i = deviceConfigs.findIndex((p)=>p.mac_address==req.body.mac_address) 
 				if (i<0){
@@ -214,13 +168,9 @@ module.exports =   function (app) {
 						const sensor = sensorMap.get(req.body.mac_address)
 						if (sensor) {
 							removeSensorFromList(sensor)
-							if (sensor.isActive()) {
-								sensor.stopListening().then(()=> 
-									initConfiguredDevice(req.body)
-								)
-							} else {
-									initConfiguredDevice(req.body)
-							}	
+							if (sensor.isActive()) 
+								await sensor.stopListening()
+							initConfiguredDevice(req.body)
 						} 
 						
 					}
@@ -236,7 +186,7 @@ module.exports =   function (app) {
 				if (sensorMap.has(req.body.mac_address))
 					sensorMap.delete(req.body.mac_address)
 				app.savePluginOptions(
-					options, async () => {
+					options, () => {
 						app.debug('Plugin options saved')
 						res.status(200).json({message: "Sensor updated"})
 						channel.broadcast({},"resetSensors")
@@ -245,7 +195,7 @@ module.exports =   function (app) {
 				
 			});
 
-			router.post('/sendBaseData', async (req, res) => {
+			router.post('/updateBaseData', async (req, res) => {
 				
 				app.debug(req.body)
 				Object.assign(options,req.body)
@@ -260,7 +210,7 @@ module.exports =   function (app) {
 			});
 		
 		
-			router.get('/base', (req, res) => {
+			router.get('/getBaseData', (req, res) => {
 				
 				res.status(200).json(
 					{
@@ -274,13 +224,13 @@ module.exports =   function (app) {
 					}
 				);
 			})
-			router.get('/sensors', (req, res) => {
+			router.get('/getSensors', (req, res) => {
 				app.debug("Sending sensors")
 				const t = sensorsToJSON()
 				res.status(200).json(t)
 			  });
 
-			router.get('/progress', (req, res) => {
+			router.get('/getProgress', (req, res) => {
 				app.debug("Sending progress")
 				const json = {"progress":foundConfiguredDevices/deviceConfigs.length, "maxTimeout": 1, 
 							  "deviceCount":foundConfiguredDevices, 
@@ -289,7 +239,7 @@ module.exports =   function (app) {
 				
 			  });
 			
-			router.get('/sendPluginState', async (req, res) => {
+			router.get('/getPluginState', async (req, res) => {
 		
 				res.status(200).json({
 					"state":(plugin.started?"started":"stopped")
@@ -361,7 +311,7 @@ module.exports =   function (app) {
 			channel.broadcast({mac:sensor.getMacAddress()},"removesensor")
 		}
 		
-		async function addSensorToList(sensor){
+		function addSensorToList(sensor){
 			app.debug(`adding sensor to list ${sensor.getMacAddress()}`)
 			if (sensorMap.has(sensor.getMacAddress()) )
 				debugger 
@@ -372,7 +322,7 @@ module.exports =   function (app) {
 			return `${config?.name??""}${config.name?" at ":""}${config.mac_address}`
 		}
 		
-		async function createSensor(adapter, config) {
+		function createSensor(adapter, config) {
 			return new Promise( ( resolve, reject )=>{
 			var s
 			const startNumber=starts
@@ -523,7 +473,9 @@ module.exports =   function (app) {
 				setInterval( findDevices, discoveryInterval*1000, discoveryTimeout)
 		}
 
-	
+		channel.broadcast({state:"started"},"pluginstate")
+
+
 		if (!adapterID || adapterID=="")
 			adapterID = "hci0"
 		//Check if Adapter has changed since last start()
@@ -560,12 +512,10 @@ module.exports =   function (app) {
 			if (!await adapter.isPowered()) {
 				app.debug(`Bluetooth Adapter ${adapterID} not powered on.`)
 				app.setPluginError(`Bluetooth Adapter ${adapterID} not powered on.`)
-				adapterPower=false
 				await plugin.stop()
 				return
 			}
 		}
-		adapterPower=true
 	
 		sensorMap.clear()
 		if (channel)
@@ -573,9 +523,6 @@ module.exports =   function (app) {
 		deviceConfigs=options?.peripherals??[]
 
 		if (plugin.stopped) {
-			//await sleep(5000) //Make sure plugin.stop() completes first			
-						  //plugin.start is called asynchronously for some reason
-						  //and does not wait for plugin.stop to complete
 			plugin.stopped=false
 		}
 

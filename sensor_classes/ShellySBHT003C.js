@@ -13,11 +13,6 @@ class ShellySBHT003C extends AbstractBTHomeSensor {
 	 */
 	static SHORTENED_LOCAL_NAME = "SBHT-003C";
 
-	async init() {
-		await super.init();
-		this.initMetadata();
-	}
-
 	/**
 	 * @typedef ButtonPressEvent {string}
 	 */

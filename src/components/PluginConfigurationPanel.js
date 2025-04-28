@@ -65,16 +65,16 @@ export default (props) => {
 
   async function fetchJSONData(path){
     console.log(`fetching ${path}`)
-
+     
     return fetch(`/plugins/bt-sensors-plugin-sk/${path}`, {
       credentials: 'include'
     })
 
   }
 
-  async function getSensorData(){
-    console.log("getSensorData")
-    const response = await fetchJSONData("sensors")
+  async function getSensors(){
+    console.log("getSensors")
+    const response = await fetchJSONData("getSensors")
     if (response.status!=200){
       throw new Error(`Unable get sensor data: ${response.statusText} (${response.status}) `)
     }
@@ -86,7 +86,7 @@ export default (props) => {
 
   async function getBaseData(){
     console.log("getBaseData")
-    const response = await fetchJSONData("base")
+    const response = await fetchJSONData("getBaseData")
     if (response.status!=200){
       throw new Error(`Unable get base data: ${response.statusText} (${response.status}) `)
     }
@@ -96,7 +96,7 @@ export default (props) => {
   }
   async function getProgress(){
     console.log("getProgress")
-    const response = await fetchJSONData("progress")
+    const response = await fetchJSONData("getProgress")
     if (response.status!=200){
       throw new Error(`Unable get progres: ${response.statusText} (${response.status}) `)
     }
@@ -107,7 +107,7 @@ export default (props) => {
 
   function updateSensorData(data){
     console.log("updateSensorData")
-    sendJSONData("sendSensorData", data).then((response)=>{ 
+    sendJSONData("updateSensorData", data).then((response)=>{ 
       if (response.status != 200) {
         throw new Error(response.statusText)
       }
@@ -148,7 +148,7 @@ export default (props) => {
   function updateBaseData(data){
     console.log("updateBaseData")
 
-    sendJSONData("sendBaseData", data).then( (response )=>{
+    sendJSONData("updateBaseData", data).then( (response )=>{
       if (response.status != 200) {
         setError(new Error(`Unable to update base data: ${response.statusText} (${response.status})`))
       } else {
@@ -166,7 +166,7 @@ export default (props) => {
   function refreshSensors(){
     console.log('refreshing sensor map')
 
-    getSensorData().then((sensors)=>{
+    getSensors().then((sensors)=>{
       setSensorMap (new Map(sensors.map((sensor)=>[sensor.info.mac,sensor])));    
     })
     .catch((e)=>{
@@ -177,7 +177,11 @@ export default (props) => {
 
   useEffect(()=>{
     console.log("useEffect([])")
-    fetchJSONData("sendPluginState").then( async (response)=> {
+    fetchJSONData("getPluginState").then( async (response)=> {
+      if (response.status==404) {
+        setPluginState("unknown")
+        throw new Error("unable to get plugin state")
+      }
       const json = await response.json()
       setPluginState(json.state)
       console.log("Setting up eventsource")
@@ -251,10 +255,7 @@ useEffect(()=>{
 
 },[pluginState])
 
-useEffect(()=>{
-  console.log("useEffect([error])")
-  console.log(error)
-},[error])
+
 
 function confirmDelete(mac){
   const result = window.confirm(`Delete configuration for ${mac}?`)
@@ -323,12 +324,13 @@ useEffect(()=>{
   }
 
   
-  if (pluginState=="stopped")
-    return (<h1  >Enable plugin to see configuration</h1>)
+  if (pluginState=="stopped" || pluginState=="unknown")
+    return (<h1  >Enable plugin to see configuration (if plugin is Enabled and you're seeing this message, restart SignalK)</h1>)
   else
   return(
+
     <div>
-      {error?<h2 style="color: red;">{error.message}</h2>:""}
+      {error?<h2 style="color: red;">{error}</h2>:""}
       <Form 
         schema={baseSchema}
         validator={validator}
@@ -344,8 +346,8 @@ useEffect(()=>{
                      now={progress.progress} 
         />:""
       }
-      <h2>{`${sensorMap.size>0?"Bluetooth Devices click to configure" :""}`}</h2>
-      <h2>{`${sensorMap.size>0?"(* means sensor has unsaved changes)" :""}`}</h2>
+      <h2>{`${sensorMap.size>0?"Bluetooth Devices - Select to configure" :""}`}</h2>
+      <h2>{`${sensorMap.size>0?"(* = sensor has unsaved changes)" :""}`}</h2>
       <p></p>
       <div style={{paddingBottom: 20}} class="d-flex flex-wrap justify-content-start align-items-start">
       <ListGroup style={{  maxHeight: '300px', overflowY: 'auto' }}>

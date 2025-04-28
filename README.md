@@ -2,6 +2,10 @@
 
 ## What's New
 
+## 1.2.0-beta-0.0.10
+
+Better handling of plugin config screen when Disabled
+
 ## 1.2.0-beta-0.0.9
 
 Fixes to config page RSSI update.

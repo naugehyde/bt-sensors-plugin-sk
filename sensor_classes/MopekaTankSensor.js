@@ -257,7 +257,6 @@ class MopekaTankSensor extends BTSensor{
         await super.init()
         const md = this.valueIfVariant(this.getManufacturerData(this.constructor.manufacturerID))
         this.modelID = md[0]
-        this.initMetadata()
     } 
 
     getMedium(){
@@ -272,7 +271,8 @@ class MopekaTankSensor extends BTSensor{
         return rawLevel * (coefs[0] + (coefs[1] * (this.temp-233.15)) + (coefs[2] * ((this.temp-233.15)^2)))
     }
     
-    initMetadata(){
+    initSchema(){
+        super.initSchema()
         this.addParameter("medium",
             {
                 title:"type of liquid in tank",

@@ -4,12 +4,19 @@ class IBeacon extends BTSensor {
     static isSystem = true;
 
     static async identify(device) {
-        const md = await this.getDeviceProp(device,'ManufacturerData');
+        /*const md = await this.getDeviceProp(device,'ManufacturerData');
         if (md && Object.hasOwn(md, 0x004c)) {
             if (md[0x004c].value.slice(0,2).join() == [0x02, 0x15].join()) {
             return this
             }
-        }
+        }*/
+       // IBeacon protocol (see above) is incorporated into multiple BT devices
+       // The identify:: method above will misidentify any sensor (Govee for example)
+       // that the scanner finds.
+       // Sensors can still be classified as IBeacons, they'll appear as Unknown devices in 
+       // the config. Users can then select IBeacon from the dropdown to
+       // instantiate the sensor as an IBeacon object.
+       
     return null
     }
 

@@ -23,7 +23,7 @@ class SwitchBotMeterPlus extends BTSensor{
         const keys = Object.keys(md)
         if ( (keys && keys.length>0) && (sdKeys && sdKeys.length >0) ){
             const id = keys[keys.length-1]
-            if (parseInt(id)==this.ID && md[id][0]==modelID && sdKeys[0] == this.serviceDataKey)
+            if (parseInt(id)==this.ID && sd[this.serviceDataKey].value[0] == this.modelID && sdKeys[0] == this.serviceDataKey)
                return this
         }
         return null
@@ -37,11 +37,13 @@ class SwitchBotMeterPlus extends BTSensor{
 
     initMetadata(){
 
-// Apply positive/negative (Byte[4] & 0x80), and convert from deg F if selected (Byte[5] & 0x80) Then convert to deg Kelvin
+// Apply positive/negative (Byte[4] & 0x80), and convert to deg Kelvin
+// Value returned by device is in deg C even when set to deg F.
 // Refer https://github.com/OpenWonderLabs/SwitchBotAPI-BLE/blob/latest/devicetypes/meter.md#(new)-broadcast-message 
+
  
         this.addMetadatum('temp','K', 'temperature', 
-            (buffer)=>{return (( ( ( (buffer[4] & 0x7f) + ((buffer[3] & 0x0f)/10) ) * ( (buffer[4] & 0x80)>0 ? 1 : -1 ) ) - ( (buffer[5] & 0x80)>0 ? 32 : 0) ) / ( (buffer[5] & 0x80)>0 ? 1.8 : 1) ) + 273.15 
+            (buffer)=>{return (( (buffer[4] & 0x7f) + ((buffer[3] & 0x0f)/10) ) * ( (buffer[4] & 0x80)>0 ? 1 : -1 ) )  + 273.15 
         })
         this.addMetadatum('humidity','ratio', 'humidity', 
             (buffer)=>{return (buffer[5] & 0x7F)/100    

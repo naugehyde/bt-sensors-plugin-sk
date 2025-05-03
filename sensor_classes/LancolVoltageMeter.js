@@ -2,6 +2,7 @@ const BTSensor = require("../BTSensor");
 
 class LancolVoltageMeter extends BTSensor{
 
+    static Domain = BTSensor.SensorDomains.electrical
     static async  identify(device){
 
         const name = await this.getDeviceProp(device,"Name")

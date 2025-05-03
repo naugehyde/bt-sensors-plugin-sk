@@ -10,12 +10,14 @@ import { SignalCellular0Bar, SignalCellular1Bar, SignalCellular2Bar, SignalCellu
 const log = (type) => console.log.bind(console, type);
 
 import ListGroup from 'react-bootstrap/ListGroup';
+import Tabs from 'react-bootstrap/Tabs';
+import Tab from 'react-bootstrap/Tab';
 import { ListGroupItem } from 'react-bootstrap';
 
 import ProgressBar from 'react-bootstrap/ProgressBar';
 
 
-var _sensorMap
+var _sensorMap, _sensorDomains={}, _sensorList={}
 
 export default (props) => {
 
@@ -47,7 +49,6 @@ export default (props) => {
  
   const [pluginState, setPluginState ] = useState("unknown")
   const [error, setError ] = useState()
-  
 
   function sendJSONData(cmd, data){
 
@@ -83,7 +84,17 @@ export default (props) => {
     return json
 
   }
+  async function getDomains(){
+    console.log("getDomains")
+    const response = await fetchJSONData("getDomains")
+    if (response.status!=200){
+      throw new Error(`Unable get domain data: ${response.statusText} (${response.status}) `)
+    }
+    const json = await response.json()
+    console.log(json)
+    return json
 
+  }
   async function getBaseData(){
     console.log("getBaseData")
     const response = await fetchJSONData("getBaseData")
@@ -184,6 +195,10 @@ export default (props) => {
       }
       const json = await response.json()
       setPluginState(json.state)
+
+      
+      _sensorDomains = await getDomains()
+
       console.log("Setting up eventsource")
       const eventSource = new EventSource("/plugins/bt-sensors-plugin-sk/sse")
       
@@ -282,29 +297,21 @@ function signalStrengthIcon(sensor){
   return <SignalCellular0Bar/>
 
 }
-useEffect(()=>{
-  console.log("useEffect([sensorMap])")
+function hasConfig(sensor){
+  return Object.keys(sensor.config).length>0;
+}
 
-    _sensorMap = sensorMap
-    
-    setSensorList(
-      
-      Array.from(sensorMap.entries()).map((entry) =>  {
-        const sensor = sensorMap.get(entry[0]);
-        const config= sensor.config
-        const hasConfig = Object.keys(config).length>0;
-        
-       
-       return <ListGroupItem action 
+function createListGroupItem(sensor){
+
+  const config = hasConfig(sensor)
+  return <ListGroupItem action 
         onClick={()=>{ 
-          if (sensor){
-            config.mac_address=entry[0]
+            sensor.config.mac_address=sensor.info.mac
             setSchema(sensor.schema)
-            setSensorData(config)
-          }
+            setSensorData(sensor.config)
         }
         }> 
-        <div  class="d-flex justify-content-between align-items-center" style={hasConfig?{fontWeight:"normal"}:{fontStyle:"italic"}}>
+        <div  class="d-flex justify-content-between align-items-center" style={config?{fontWeight:"normal"}:{fontStyle:"italic"}}>
         {`${sensor._changesMade?"*":""}${sensor.info.name} MAC: ${sensor.info.mac} RSSI: ${ifNullNaN(sensor.info.RSSI)}`  }
         <div class="d-flex justify-content-between ">
           {
@@ -313,9 +320,37 @@ useEffect(()=>{
         </div>
         </div>
         </ListGroupItem>
-    }) 
-    )
-   
+}
+
+function configuredDevices(){
+  return Array.from(sensorMap.entries()).filter((entry)=>hasConfig(entry[1]))
+}
+
+function devicesInDomain(domain){
+  return Array.from(sensorMap.entries()).filter((entry)=>entry[1].info.domain===domain)
+}
+
+
+useEffect(()=>{
+  console.log("useEffect([sensorMap])")
+
+    _sensorMap = sensorMap
+    
+    const _sensorDomains = new Set(sensorMap.entries().map((entry)=>{ return entry[1].info.domain}))
+    const sl = {
+      _configured: configuredDevices().map((entry) =>  {
+         return createListGroupItem(sensorMap.get(entry[0]))
+      })
+      } 
+
+      _sensorDomains.forEach((d)=>{
+        sl[d]=devicesInDomain(d).map((entry) =>  {
+        return createListGroupItem(sensorMap.get(entry[0]))
+       })
+    })
+    _sensorList=sl 
+    
+    
   },[sensorMap]
   )
 
@@ -323,7 +358,59 @@ useEffect(()=>{
     return value==null? NaN : value
   }
 
-  
+  function getSensorList(domain){
+    return _sensorList[domain]
+  }
+
+  function getTabs(){
+    
+    return Object.keys(_sensorList).map((domain)=> {return getTab(domain)})
+  }
+  function getTab(key){
+    var title = key.slice(key.charAt(0)==="_"?1:0)
+    
+    return <Tab eventKey={key} title={title.charAt(0).toUpperCase()+title.slice(1)    }>
+        
+    <div style={{paddingBottom: 20}} class="d-flex flex-wrap justify-content-start align-items-start">
+    <ListGroup style={{  maxHeight: '300px', overflowY: 'auto' }}>
+      {getSensorList(key)}
+    </ListGroup>
+
+    <div style= {{ paddingLeft: 10, paddingTop: 10, display: (Object.keys(schema).length==0)? "none" :""  }} >
+
+    <Form
+      schema={schema}
+      validator={validator}
+      uiSchema={uiSchema}
+      onChange={(e) => {
+          const s = sensorMap.get(e.formData.mac_address)
+          s._changesMade=true
+          setSensorData(e.formData)
+        }
+      }
+      onSubmit={({ formData }, e) => {
+        console.log(formData) 
+        updateSensorData(formData)
+        setSchema({})
+        alert("Changes saved")
+      }}
+      onError={log('errors')}
+      formData={sensorData}>
+      <div>
+      <Grid direction="row" style={{spacing:5}}>
+      <Button type='submit' color="primary" variant="contained">Save</Button>
+      <Button variant="contained" onClick={()=>{undoChanges(sensorData.mac_address)}}>Undo</Button>
+      <Button variant="contained" color="secondary" onClick={(e)=>confirmDelete(sensorData.mac_address)}>Delete</Button>
+
+      </Grid>
+      </div>
+    </Form>
+
+    </div>
+    </div>
+    </Tab>
+  }
+
   if (pluginState=="stopped" || pluginState=="unknown")
     return (<h1  >Enable plugin to see configuration (if plugin is Enabled and you're seeing this message, restart SignalK)</h1>)
   else
@@ -335,7 +422,7 @@ useEffect(()=>{
         schema={baseSchema}
         validator={validator}
         onChange={(e) => setBaseData(e.formData)}
-        onSubmit={ ({ formData }, e) => {setSensorData(null); updateBaseData(formData) }}
+        onSubmit={ ({ formData }, e) => { updateBaseData(formData); setSchema({}) } }
         onError={log('errors')}
         formData={baseData}
       />
@@ -349,43 +436,13 @@ useEffect(()=>{
       <h2>{`${sensorMap.size>0?"Bluetooth Devices - Select to configure" :""}`}</h2>
       <h2>{`${sensorMap.size>0?"(* = sensor has unsaved changes)" :""}`}</h2>
       <p></p>
-      <div style={{paddingBottom: 20}} class="d-flex flex-wrap justify-content-start align-items-start">
-      <ListGroup style={{  maxHeight: '300px', overflowY: 'auto' }}>
-        {sensorList}
-      </ListGroup>
-      <div style= {{ paddingLeft: 10, paddingTop: 10, display: (Object.keys(schema).length==0)? "none" :""  }} >
-      <Form
-        schema={schema}
-        validator={validator}
-        uiSchema={uiSchema}
-        onChange={(e) => {
-            const s = sensorMap.get(e.formData.mac_address)
-            s._changesMade=true
-            //s.config = e.formData; 
-
-            setSensorData(e.formData)
-          }
-        }
-        onSubmit={({ formData }, e) => {
-          console.log(formData) 
-          updateSensorData(formData)
-          setSchema({})
-          alert("Changes saved")
-        }}
-        onError={log('errors')}
-        formData={sensorData}>
-        <div>
-        <Grid direction="row" style={{spacing:5}}>
-        <Button type='submit' color="primary" variant="contained">Save</Button>
-        <Button variant="contained" onClick={()=>{undoChanges(sensorData.mac_address)}}>Undo</Button>
-        <Button variant="contained" color="secondary" onClick={(e)=>confirmDelete(sensorData.mac_address)}>Delete</Button>
-
-        </Grid>
-        </div>
-      </Form>
-
-      </div>
-      </div>
+      <Tabs
+      defaultActiveKey="_configured"
+      id="domain-tabs"
+      className="mb-3"
+      >
+      {getTabs()}
+      </Tabs>
     </div>
   )
     

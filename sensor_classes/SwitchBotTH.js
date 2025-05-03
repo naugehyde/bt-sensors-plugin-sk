@@ -1,6 +1,8 @@
 const BTSensor = require("../BTSensor");
 
 class SwitchBotTH extends  BTSensor {
+    static Domain = BTSensor.SensorDomains.environmental
+		
     static async test(){
 
         const p = {[this.ID.toString()]: [0xd8, 0x35, 0x34, 0x38, 0x4f, 0x70, 0x07, 0x02, 0x04, 0x96, 0x2c, 0x00]}

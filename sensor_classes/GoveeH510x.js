@@ -19,7 +19,7 @@ function decodeTempHumid(tempHumidBytes) {
     }
   }
 class GoveeH510x extends BTSensor{
-
+    static Domain = this.SensorDomains.environmental
     static async  identify(device){
         const regex = /^GVH510[0-9]_[a-f,A-F,0-9]{4}$/
         const name = await this.getDeviceProp(device,"Name")

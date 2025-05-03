@@ -19,6 +19,7 @@ class AranetSensor extends BTSensor{
         
         return null
     }
+    static Domain = BTSensor.SensorDomains.environmental
     initSchema(){
         super.initSchema()
         this.addDefaultParam("zone")

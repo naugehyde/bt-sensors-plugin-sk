@@ -1,7 +1,7 @@
 const BTSensor = require("../BTSensor");
 
 class GoveeH50xx extends  BTSensor {
-
+    static Domain = this.SensorDomains.environmental
     static async  identify(device){
         const regex = /^Govee_H50[0-9]{2}_[a-f,A-F,0-9]{4}$/
         //this.getManufacturer()

@@ -201,12 +201,14 @@ class MopekaIOTBluetoothDeviceData(BluetoothData):
 */
 
 class MopekaDevice{
+    
     constructor (ID, name, lengthOfAd = 10){
         this.ID=ID
         this.name=name
         this.lengthOfAd=lengthOfAd
     }
 }
+    
 MopekaDevices = new Map()
 MopekaDevices.set()
     .set (0x0, new MopekaDevice("XXXX","Unknown Mopeka device"))
@@ -238,6 +240,8 @@ MopekaDevices.set()
     
 const BTSensor = require("../BTSensor");
 class MopekaTankSensor extends BTSensor{
+    static Domain = BTSensor.SensorDomains.tanks
+
     static serviceID = "0000fee5-0000-1000-8000-00805f9b34fb"
     static serviceID16 = 0xFEE5
 

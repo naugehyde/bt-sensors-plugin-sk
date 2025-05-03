@@ -7,6 +7,8 @@ const AbstractBTHomeSensor = require("./BTHome/AbstractBTHomeSensor");
  * This sensor is publishing data utilising the BTHome format and inherits from {@link AbstractBTHomeSensor}.
  */
 class ShellySBHT003C extends AbstractBTHomeSensor {
+	static Domain = AbstractBTHomeSensor.SensorDomains.environmental
+		
 	/**
 	 * The shortened local name as advertised by the Shelly BLU H&T.
 	 * @type {string}

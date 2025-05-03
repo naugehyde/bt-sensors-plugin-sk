@@ -35,6 +35,8 @@
 
 const BTSensor = require("../BTSensor");
 class KilovaultHLXPlus extends BTSensor{
+    static Domain = BTSensor.SensorDomains.electrical
+    
     constructor(device, config, gattConfig) {
         super(device, config, gattConfig)
         this.accumulated_buffer = Buffer.alloc(0)

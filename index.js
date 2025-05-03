@@ -12,7 +12,6 @@ const loadClassMap = require('./classLoader.js')
 
 class MissingSensor  {
 
-
 	constructor(config){
 		this.config=config
 		this.addPath=BTSensor.prototype.addPath.bind(this)
@@ -23,6 +22,7 @@ class MissingSensor  {
 
 		this.getJSONSchema = BTSensor.prototype.getJSONSchema.bind(this)
 		this.initSchema = BTSensor.prototype.initSchema.bind(this)
+
 
 		this.initSchema()
 		var keys = Object.keys(config?.paths??{})
@@ -58,6 +58,9 @@ class MissingSensor  {
 	}
 	getMacAddress(){
 		return this.mac_address
+	}
+	getDomain(){
+		return BTSensor.SensorDomains.unknown
 	}
 	getDescription(){
 		return ""
@@ -208,7 +211,12 @@ module.exports =   function (app) {
 					}
 				)
 			});
-		
+			router.get('/getDomains', (req, res) => {
+				
+				res.status(200).json(
+					BTSensor.SensorDomains
+				);
+			})
 		
 			router.get('/getBaseData', (req, res) => {
 				
@@ -262,12 +270,12 @@ module.exports =   function (app) {
 
 		function getSensorInfo(sensor){
 	
-			const etslc = sensor.elapsedTimeSinceLastContact()
 			return { mac: sensor.getMacAddress(),
 				     name: sensor.getName(),
+					 domain: sensor.getDomain().name,
 					 RSSI: sensor.getRSSI(),
 					 signalStrength: sensor.getSignalStrength(),
-					 lastContactDelta: etslc
+					 lastContactDelta: sensor.elapsedTimeSinceLastContact()
 			}
 		}
 
@@ -277,7 +285,6 @@ module.exports =   function (app) {
 					info: getSensorInfo(sensor),
 					schema: sensor.getJSONSchema(),
 					config: config?config:{}
-			
 				}
 		}
 		async function startScanner(transport) {
@@ -480,9 +487,8 @@ module.exports =   function (app) {
 			adapterID = "hci0"
 		//Check if Adapter has changed since last start()
 		if (adapter) {
-			const n = await adapter.getName()
-			if (n!=adapterID) {
-				adapter.helper.removeAllListeners()
+			if (adapter.adapter!=adapterID) {
+				adapter.helper._propsProxy.removeAllListeners()
 				adapter=null
 			}
 		}
@@ -628,14 +634,17 @@ module.exports =   function (app) {
 			}
 		}
 		sensorMap.clear()
-		if (adapter && await adapter.isDiscovering())
+
+		if (adapter) {
+			adapter.helper._propsProxy.removeAllListeners()
+			if( await adapter.isDiscovering())
 			try{
 				await adapter.stopDiscovery()
 				app.debug('Scan stopped')
 			} catch (e){
 				app.debug(`Error stopping scan: ${e.message}`)
 			}
-
+		}
 		app.debug('BT Sensors plugin stopped')
 
 	}

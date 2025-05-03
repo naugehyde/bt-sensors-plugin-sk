@@ -5,6 +5,7 @@ function sleep(ms) {
   });
 }
 class JBDBMS extends BTSensor {
+      static Domain = BTSensor.electrical
 
   static TX_RX_SERVICE = "0000ff00-0000-1000-8000-00805f9b34fb"  
   static NOTIFY_CHAR_UUID = "0000ff01-0000-1000-8000-00805f9b34fb"

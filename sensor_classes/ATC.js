@@ -1,5 +1,6 @@
 const BTSensor = require("../BTSensor");
 class ATC extends BTSensor{
+    static Domain = this.SensorDomains.environmental
     
     constructor(device, config={}){
         super(device,config)

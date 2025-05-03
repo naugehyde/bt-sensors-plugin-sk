@@ -1,6 +1,7 @@
 const BTSensor = require("../BTSensor");
 class SwitchBotMeterPlus extends BTSensor{
-    
+    static Domain = BTSensor.SensorDomains.environmental
+		
     constructor(device, config={}){
         super(device,config)
         if (config.parser){

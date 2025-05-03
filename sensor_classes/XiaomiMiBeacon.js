@@ -71,7 +71,8 @@ const DEVICE_TYPES = new Map([
   ]);
 
 class XiaomiMiBeacon extends BTSensor{
-
+    static Domain = BTSensor.SensorDomains.environmental
+		
     constructor(device, config, gattConfig){
         super(device, config, gattConfig)
         this.encryptionKey = config?.encryptionKey

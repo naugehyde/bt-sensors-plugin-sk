@@ -1,5 +1,7 @@
 const BTSensor = require("../BTSensor");
 class UltrasonicWindMeter extends BTSensor{
+    static Domain = BTSensor.SensorDomains.environmental
+		
     static async identify(device){
         
         const uuids = await this.getDeviceProp(device,'UUIDs')

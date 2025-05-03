@@ -5,7 +5,7 @@ const BTSensor = require("../../BTSensor.js");
 const VC = require('./RenogyConstants.js');
 const crc16Modbus = require('./CRC.js')
 class RenogySensor extends BTSensor{
-
+    static Domain=BTSensor.SensorDomains.electrical
     static ALIAS_PREFIX = 'BT-TH'
     static TX_SERVICE = "0000ffd0-0000-1000-8000-00805f9b34fb"
     static RX_SERVICE = "0000fff0-0000-1000-8000-00805f9b34fb"  

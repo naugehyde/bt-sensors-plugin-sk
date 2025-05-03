@@ -102,7 +102,14 @@ function preparePath(obj, str) {
 class BTSensor extends EventEmitter {
  
     static DEFAULTS = require('./plugin_defaults.json');
-    
+
+    static SensorDomains={
+        unknown: { name: "unknown", description: "Unknown sensor domain "},
+        environmental: { name: "environmental", description: "Sensors that measure environmental conditions - air temperature, humidity etc."},
+        electrical: { name: "electrical", description: "Electrical sensor - chargers, batteries, inverters etc."},
+        tanks: { name: "tanks", description: "Sensors that measure level in tanks (gas, propane, water etc.) "}
+    }
+    static Domain = this.SensorDomains.unknown   
     /**
      * 
      * @param {module:node-ble/Device} device 
@@ -404,7 +411,8 @@ class BTSensor extends EventEmitter {
             path.type="string"
 
         if (!path.pattern)
-            path.pattern="^(?:[^{}\\s]*\\{[a-zA-Z0-9]+\\}[^{}\\s]*|[^{}\\s]*)$"
+            path.pattern=//"^(?:[^{}\\s]*\\{[a-zA-Z0-9]+\\}[^{}\\s]*|[^{}\\s]*)$"
+                "^((\\{[a-zA-Z0-9]+\\}|[a-zA-Z0-9]+))(\\.(\\{[a-zA-Z0-9]+\\}|[a-zA-Z0-9]+))*$"
         this._schema.properties.paths.properties[tag]=path
         return this._schema.properties.paths.properties[tag]
     }
@@ -642,6 +650,10 @@ class BTSensor extends EventEmitter {
 
     getState(){
         return this._state
+    }
+
+    getDomain(){
+        return this.constructor.Domain
     }
 
     isActive(){

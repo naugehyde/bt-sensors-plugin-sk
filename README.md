@@ -2,6 +2,12 @@
 
 ## What's New
 
+## 1.2.0-beta-0.1.0
+
+Sensors on config page appear under tabs indicating their domain (Environmental, Electrical etc.)
+
+Gobius C tank meter support added.
+
 ## 1.2.0-beta-0.0.10
 
 Better handling of plugin config screen when Disabled

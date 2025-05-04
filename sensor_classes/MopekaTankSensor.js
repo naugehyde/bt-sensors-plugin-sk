@@ -209,7 +209,7 @@ class MopekaDevice{
     }
 }
     
-MopekaDevices = new Map()
+const MopekaDevices = new Map()
 MopekaDevices.set()
     .set (0x0, new MopekaDevice("XXXX","Unknown Mopeka device"))
     .set (0x3, new MopekaDevice("M1017", "Pro Check"))

@@ -339,19 +339,23 @@ module.exports =   function (app) {
 				if (startNumber != starts ) {
 					return
 				}
-				//app.debug(`Found ${config.mac_address}`)
 				s = await instantiateSensor(device,config) 
-	
+				//app.debug(`Instantiated ${config.mac_address}`)
+				
 				if (s instanceof BLACKLISTED)
 					reject ( `Device is blacklisted (${s.reasonForBlacklisting()}).`)
 				else{
+					//app.debug(`Adding sensor to list ${config.mac_address}`)
+				
 					addSensorToList(s)
 					s._lastRSSI=-1*Infinity
 					s.on("RSSI",(()=>{
-						if (Date.now()-s._lastRSSI > 20000) { //only update RSSI on client every five seconds
+						if (Date.now()-s._lastRSSI > 20000) { //only update RSSI on client every 20 seconds
 							//app.debug(`${s.getMacAddress()} ${Date.now()-s._lastRSSI}`) 
 							s._lastRSSI=Date.now()
+				
 							updateSensor(s)
+							//app.debug(`Updated Sensor ${config.mac_address}`)
 						}	
 
 					}))
@@ -591,7 +595,7 @@ module.exports =   function (app) {
 				const dt = config?.discoveryTimeout??options.discoveryTimeout
 				const lc=sensor.elapsedTimeSinceLastContact()
 				if (lc > dt) { 
-					app.debug(`${sensor.getMacAddress()} not heard from in ${lc} seconds`)
+					//app.debug(`${sensor.getMacAddress()} not heard from in ${lc} seconds`)
 					channel.broadcast(getSensorInfo(sensor), "sensorchanged")
 				}
 			})

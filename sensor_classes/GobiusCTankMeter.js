@@ -295,7 +295,8 @@ class GobiusCTankMeter extends BTSensor{
               ]
         })
 
-        this.addDefaultPath("id")
+        this.addDefaultParam("id")
+                .default="1"
 
         this.addMetadatum("mst","","Device state",
             (buffer)=>{return GobiusState.get(buffer.readInt8(0))}
@@ -319,7 +320,7 @@ class GobiusCTankMeter extends BTSensor{
         .default='tanks.{type}.{id}.currentLevel'
 
         this.addMetadatum("minc","rad","Sensor inclination",
-            (buffer)=>{return buffer.readInt8(5) * Math.pi/180}
+            (buffer)=>{return buffer.readInt8(5) * Math.PI/180}
         )
         .default='tanks.{type}.{id}.inclination'
 

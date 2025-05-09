@@ -465,23 +465,24 @@ class BTSensor extends EventEmitter {
 
     deviceConnect() {
 
-        /* CAUTION: HACK AHEAD 
-
-        Bluez for some cockamamie reason (It's 2025 for chrissake. 
-        BLUETOOTH ISN'T JUST FOR DESKTOPS ANYMORE, BLUEZ DEVS!)
-        SUSPENDS scanning while connected to a device.
-
-        The next line of code gives the scanner a kick in the arse, 
-        starting it up again so, I dunno, another device might be able 
-        to connect and sensor classes could maybe get beacon updates.
-
-        You know, the little things.
-      */
+     
         return connectQueue.enqueue( async ()=>{
             this.debug(`Connecting to ${this.getName()}`)
             await this.device.connect()
             try {
 
+               /* CAUTION: HACK AHEAD 
+
+                    Bluez for some cockamamie reason (It's 2025 for chrissake. 
+                    BLUETOOTH ISN'T JUST FOR DESKTOPS ANYMORE, BLUEZ DEVS!)
+                    SUSPENDS scanning while connected to a device.
+
+                    The next line of code gives the scanner a kick in the arse, 
+                    starting it up again so, I dunno, another device might be able 
+                    to connect and sensor classes could maybe get beacon updates.
+
+                    You know, the little things.
+                */
                 await this._adapter.helper.callMethod('StopDiscovery')
                 await this._adapter.helper.callMethod('SetDiscoveryFilter', {
                     Transport: new Variant('s', this._adapter?._transport??"le")
@@ -492,9 +493,13 @@ class BTSensor extends EventEmitter {
                 //probably ignorable error. probably.
                 console.log(e)
             }
+              /* END HACK*/
+              this.device.on("disconnect", ()=>{
+                this.debug(`${this.macAndName()} disconnected`)
+            })        
         })
-    /* END HACK*/
-  }
+
+}
 
     /**
      * 
@@ -771,7 +776,9 @@ class BTSensor extends EventEmitter {
 
     async stopListening(){
         this.removeAllListeners()
+        this.device.removeAllListeners()
         this.device.helper.removeListeners()
+ 
         if (this.intervalID){
             clearInterval(this.intervalID)
         }

@@ -50,6 +50,7 @@ export default (props) => {
   const [pluginState, setPluginState ] = useState("unknown")
   const [error, setError ] = useState()
 
+
   function sendJSONData(cmd, data){
 
     console.log(`sending ${cmd}`)
@@ -188,20 +189,21 @@ export default (props) => {
 
   useEffect(()=>{
     console.log("useEffect([])")
+    let eventSource=null
+
     fetchJSONData("getPluginState").then( async (response)=> {
       if (response.status==404) {
         setPluginState("unknown")
         throw new Error("unable to get plugin state")
       }
       const json = await response.json()
-      setPluginState(json.state)
+      console.log("Setting up eventsource")
+      eventSource = new EventSource("/plugins/bt-sensors-plugin-sk/sse", { withCredentials: true })
 
+      setPluginState(json.state)
       
       _sensorDomains = await getDomains()
 
-      console.log("Setting up eventsource")
-      const eventSource = new EventSource("/plugins/bt-sensors-plugin-sk/sse")
-      
       eventSource.addEventListener("newsensor", (event) => {
         console.log("newsensor")
         let json = JSON.parse(event.data)
@@ -235,14 +237,18 @@ export default (props) => {
         const json = JSON.parse(event.data)  
         setPluginState(json.state)
       });
-      return () => eventSource.close();
+     
     })
 
     .catch( (e) => { 
         setError(e)
       }
-    )      
-},[])
+    )
+    return () => { 
+      console.log("Closing connection to SSE")
+      eventSource.close()
+    };
+ },[])
 
 useEffect(()=>{
   console.log("useEffect([pluginState])")

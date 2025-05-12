@@ -125,6 +125,7 @@ module.exports =   function (app) {
 	var discoveryIntervalID, progressID, progressTimeoutID, deviceHealthID
 	var adapter 
 	const channel = createChannel()
+
 	const classMap = loadClassMap(app)
 	const sensorMap=new Map()
 
@@ -248,17 +249,20 @@ module.exports =   function (app) {
 			  });
 			
 			router.get('/getPluginState', async (req, res) => {
-		
 				res.status(200).json({
+					"connectionId": Date.now(),
 					"state":(plugin.started?"started":"stopped")
 				})
 			});
 			router.get("/sse", async (req, res) => {
-				const session = await createSession(req, res);
+				const session = await createSession(req,res)
 				channel.register(session)
-		   });
-	
-
+				req.on("close", ()=>{
+					app.debug("deregistering session")
+					channel.deregister(session)	
+				})
+			});
+		
 		};
 
 		function sensorsToJSON(){
@@ -350,12 +354,12 @@ module.exports =   function (app) {
 					addSensorToList(s)
 					s._lastRSSI=-1*Infinity
 					s.on("RSSI",(()=>{
-						if (Date.now()-s._lastRSSI > 20000) { //only update RSSI on client every 20 seconds
-							//app.debug(`${s.getMacAddress()} ${Date.now()-s._lastRSSI}`) 
+						if (Date.now()-s._lastRSSI > 30000) { //only update RSSI on client every 30 seconds
+							//app.debug(`Updating ${s.getMacAddress()} RSSI after ${Date.now()-s._lastRSSI} ms`) 
+
 							s._lastRSSI=Date.now()
 				
 							updateSensor(s)
-							//app.debug(`Updated Sensor ${config.mac_address}`)
 						}	
 
 					}))
@@ -528,8 +532,9 @@ module.exports =   function (app) {
 		}
 	
 		sensorMap.clear()
-		if (channel)
+		if (channel){
 			channel.broadcast({state:"started"},"pluginstate")
+		}
 		deviceConfigs=options?.peripherals??[]
 
 		if (plugin.stopped) {

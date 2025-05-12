@@ -106,6 +106,7 @@ module.exports =   function (app) {
 				type: "string", default: "hci0"},
 			transport: {title: "Transport ",
 				type: "string", enum: ["auto","le","bredr"], default: "le", enumNames:["Auto", "LE-Bluetooth Low Energy", "BR/EDR Bluetooth basic rate/enhanced data rate"]},
+			duplicateData: {title: "Set scanner to report duplicate data", type: "boolean", default: false, },
 			discoveryTimeout: {title: "Default device discovery timeout (in seconds)", 
 				type: "integer", default: 30,
 				minimum: 10,
@@ -227,6 +228,7 @@ module.exports =   function (app) {
 					data: {
 						adapter: options.adapter,
 						transport: options.transport,
+						duplicateData: options.duplicateData,
 						discoveryTimeout: options.discoveryTimeout,
 						discoveryInterval: options.discoveryInterval
 					}
@@ -291,8 +293,11 @@ module.exports =   function (app) {
 					config: config?config:{}
 				}
 		}
-		async function startScanner(transport) {
+
+		async function startScanner(options) {
 		
+			const transport = options?.transport??"le"
+			const duplicateData = options?.duplicateData??false
 			app.debug("Starting scan...");
 			//Use adapter.helper directly to get around Adapter::startDiscovery()
 			//filter options which can cause issues with Device::Connect() 
@@ -300,10 +305,10 @@ module.exports =   function (app) {
 			//try {await adapter.startDiscovery()}
 			try{ 
 				if (transport) {
-					app.debug(`Setting Bluetooth transport option to ${transport}`)
+					app.debug(`Setting Bluetooth transport option to ${transport}. DuplicateData to ${duplicateData}`)
 					await adapter.helper.callMethod('SetDiscoveryFilter', {
 						Transport: new Variant('s', transport),
-						DuplicateData: new Variant('b', true)
+						DuplicateData: new Variant('b', duplicateData)
 					  })
 					}
 				await adapter.helper.callMethod('StartDiscovery') 
@@ -312,8 +317,7 @@ module.exports =   function (app) {
 				app.debug(error)
 			}
 			
-		}
-		
+		}		
 		function updateSensor(sensor){
 			channel.broadcast(getSensorInfo(sensor), "sensorchanged")			
 		}
@@ -550,7 +554,7 @@ module.exports =   function (app) {
 			plugin.schema.properties.adapter.enumNames.push(`${a.adapter} @ ${ await a.getAddress()} (${await a.getName()})`)
 		}
 		
-		await startScanner(options.transport)
+		await startScanner(options)
 		if (starts>0){
 			app.debug(`Plugin ${packageInfo.version} restarting...`);
 		} else {
@@ -560,7 +564,7 @@ module.exports =   function (app) {
 		starts++
 		if (!await adapter.isDiscovering())
 			try{
-				await startScanner()
+				await startScanner(options)
 			} catch (e){
 				app.debug(`Error starting scan: ${e.message}`)
 		}

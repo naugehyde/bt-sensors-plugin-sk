@@ -302,7 +302,8 @@ module.exports =   function (app) {
 				if (transport) {
 					app.debug(`Setting Bluetooth transport option to ${transport}`)
 					await adapter.helper.callMethod('SetDiscoveryFilter', {
-						Transport: new Variant('s', transport)
+						Transport: new Variant('s', transport),
+						DuplicateData: new Variant('b', true)
 					  })
 					}
 				await adapter.helper.callMethod('StartDiscovery') 

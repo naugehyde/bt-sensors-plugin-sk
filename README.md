@@ -1,6 +1,10 @@
 # Bluetooth Sensors for [Signal K](http://www.signalk.org)
 
 ## What's New
+## 1.2.0-beta-0.1.2
+
+SSE deregister fix (long story)
+
 ## 1.2.0-beta-0.1.1
 
 Gobius fix for inclination path, id parameter.

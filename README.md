@@ -1,4 +1,9 @@
 # Bluetooth Sensors for [Signal K](http://www.signalk.org)
+## RELEASE 1.1.2
+
+## WHAT'S NEW
+
+Duplicate Data discovery filter (useful for Shelly devices which deceive DBus into thinking they aren't broadcasting. Somehow.)
 
 ## RELEASE 1.1.1
 

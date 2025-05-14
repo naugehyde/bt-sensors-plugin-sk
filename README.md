@@ -1,6 +1,6 @@
 # Bluetooth Sensors for [Signal K](http://www.signalk.org)
 
-## 1.1.2.a
+## 1.1.3
 
 ## WHAT'S NEW
 

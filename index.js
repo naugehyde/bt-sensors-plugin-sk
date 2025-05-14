@@ -171,7 +171,7 @@ module.exports =   function (app) {
 		const _classMap = utilities_sk.loadClasses(path.join(__dirname, 'sensor_classes'))
 		classMap = new Map([..._classMap].filter(([k, v]) => !k.startsWith("_") ))
 		const libPath = app.config.appPath +(
-			semver.gte(app.config.version,"2.13.5")?"dist":"lib" 
+			semver.gt(app.config.version,"2.13.5")?"dist":"lib" 
 		)
 		//+ app.config.version 
 		import(libPath+"/modules.js").then( (modulesjs)=>{

@@ -20,7 +20,7 @@ const semver = require('semver')
         const _classMap = loadClasses(path.join(__dirname, 'sensor_classes'))
         const classMap = new Map([..._classMap].filter(([k, v]) => !k.startsWith("_") ))
         const libPath = app.config.appPath +(
-            semver.gte(app.config.version,"2.13.5")?"dist":"lib"
+            semver.gt(app.config.version,"2.13.5")?"dist":"lib"
         )
         import(libPath+"/modules.js").then( (modulesjs)=>{
         const { default:defaultExport} = modulesjs

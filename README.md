@@ -1,4 +1,11 @@
 # Bluetooth Sensors for [Signal K](http://www.signalk.org)
+
+## 1.1.2.a
+
+## WHAT'S NEW
+
+Module load fix
+
 ## RELEASE 1.1.2
 
 ## WHAT'S NEW

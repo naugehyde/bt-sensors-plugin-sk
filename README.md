@@ -4,8 +4,6 @@
 
 ## WHAT'S NEW
 
-Module load fix
-
 ## RELEASE 1.1.2
 
 ## WHAT'S NEW

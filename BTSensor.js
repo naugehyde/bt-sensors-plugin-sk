@@ -362,6 +362,8 @@ class BTSensor extends EventEmitter {
             }
         }
         this._state="ACTIVE"
+        this._propertiesChanged(this.currentProperties)
+
     }
 
     activateGATT(){
@@ -760,7 +762,6 @@ class BTSensor extends EventEmitter {
     listen(){
         try{
             this.initPropertiesChanged()       
-            this._propertiesChanged(this.currentProperties)
         } catch(e){
             this.debug(e)
         }

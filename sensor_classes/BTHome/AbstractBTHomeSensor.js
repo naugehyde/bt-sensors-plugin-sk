@@ -1,7 +1,18 @@
 const BTSensor = require("../../BTSensor");
 const BTHomeServiceData = require("./BTHomeServiceData");
 const KaitaiStream = require("kaitai-struct/KaitaiStream");
+/**
+ * @typedef ButtonPressEvent {string}
+ */
+/**
+ * Shelly Blu devices support single press and hold press options.
+ * @type {Readonly<{PRESS: string, HOLD_PRESS: string}>}
+ */
 
+const ButtonPressEvent = Object.freeze({
+		PRESS: "press",
+		HOLD_PRESS: "hold_press",
+	});
 /**
  * Base class for sensors publishing BTHome data.
  *
@@ -11,6 +22,8 @@ const KaitaiStream = require("kaitai-struct/KaitaiStream");
  * @see https://bthome.io/
  */
 class AbstractBTHomeSensor extends BTSensor {
+
+	
 	/**
 	 * Offset from Celsius to Kelvin, used to convert between these units.
 	 * 273.15 degrees Kelvin correspond to 0 degrees Celsius.
@@ -25,16 +38,25 @@ class AbstractBTHomeSensor extends BTSensor {
 	 */
 	static BTHOME_SERVICE_ID = "0000fcd2-0000-1000-8000-00805f9b34fb";
 
+
+
 	/**
-	 * Returns measurement data for the given object ID from the given BTHomeData.
+	 * Returns the `AbstractBTHomeSensor` sensor class if the specified device has been identified as Shelly BLU H&T.
 	 *
-	 * @param btHomeData {BTHomeServiceData.BthomeServiceData}
-	 * @param objectId {number}
-	 * @return {any|null} Returns the measurement data for the given object ID, or `null`, if the BTHomeData does not
-	 * contain the measurement.
+	 * @param device The Bluetooth device to be identified.
+	 * @returns {Promise<AbstractBTHomeSensor|null>} Returns the sensor class if the device has been identified, or null.
 	 */
-	static getSensorDataByObjectId(btHomeData, objectId) {
-		return btHomeData.measurement.find((m) => m.objectId === objectId)?.data;
+	static async identify(device) {
+		if (
+			(await this.hasBtHomeServiceData(device)) &&
+			(await this.hasName(
+				device,
+				this.SHORTENED_LOCAL_NAME,
+			))
+		) {
+			return this;
+		}
+		return null;
 	}
 
 	/**
@@ -56,12 +78,12 @@ class AbstractBTHomeSensor extends BTSensor {
 	 * if not.
 	 */
 	static async hasBtHomeServiceData(device) {
-		const serviceData = await AbstractBTHomeSensor.getDeviceProp(
+		const serviceData = await this.getDeviceProp(
 			device,
 			"ServiceData",
 		);
 		if (serviceData) {
-			if (AbstractBTHomeSensor.BTHOME_SERVICE_ID in serviceData) {
+			if (this.BTHOME_SERVICE_ID in serviceData) {
 				return true;
 			}
 		}
@@ -88,7 +110,7 @@ class AbstractBTHomeSensor extends BTSensor {
 	 * if not.
 	 */
 	static async hasName(device, name) {
-		const deviceName = await AbstractBTHomeSensor.getDeviceProp(device, "Name");
+		const deviceName = await this.getDeviceProp(device, "Name");
 		if (deviceName) {
 			if (deviceName === name) {
 				return true;
@@ -96,15 +118,25 @@ class AbstractBTHomeSensor extends BTSensor {
 		}
 		return false;
 	}
-
+/**
+	 * Returns measurement data for the given object ID from the given BTHomeData.
+	 *
+	 * @param btHomeData {BTHomeServiceData.BthomeServiceData}
+	 * @param objectId {number}
+	 * @return {any|null} Returns the measurement data for the given object ID, or `null`, if the BTHomeData does not
+	 * contain the measurement.
+	 */
+	getSensorDataByObjectId(btHomeData, objectId) {
+		return btHomeData.measurement.find((m) => m.objectId === objectId)?.data;
+	}
 	/**
 	 * Extracts battery level from the given BTHome data.
 	 *
 	 * @param btHomeData {BTHomeServiceData.BthomeServiceData} The BTHome data provided by the device.
 	 * @returns {number|null} The device's battery level as ratio (0‒1).
 	 */
-	static parseBatteryLevel(btHomeData) {
-		const batteryLevel = AbstractBTHomeSensor.getSensorDataByObjectId(
+	parseBatteryLevel(btHomeData) {
+		const batteryLevel = this.getSensorDataByObjectId(
 			btHomeData,
 			BTHomeServiceData.BthomeObjectId.SENSOR_BATTERY,
 		)?.battery;
@@ -120,14 +152,14 @@ class AbstractBTHomeSensor extends BTSensor {
 	 * @param btHomeData {BTHomeServiceData.BthomeServiceData} The BTHome data provided by the device.
 	 * @returns {number|null} The temperature in Kelvin.
 	 */
-	static parseTemperature(btHomeData) {
-		const tempCelsius = AbstractBTHomeSensor.getSensorDataByObjectId(
+	parseTemperature(btHomeData) {
+		const tempCelsius = this.getSensorDataByObjectId(
 			btHomeData,
 			BTHomeServiceData.BthomeObjectId.SENSOR_TEMPERATURE_0_1,
 		)?.temperature;
 		if (tempCelsius) {
 			return Number.parseFloat(
-				(AbstractBTHomeSensor.KELVIN_OFFSET + tempCelsius).toFixed(2),
+				(this.KELVIN_OFFSET + tempCelsius).toFixed(2),
 			);
 		}
 		return null;
@@ -139,8 +171,8 @@ class AbstractBTHomeSensor extends BTSensor {
 	 * @param btHomeData {BTHomeServiceData.BthomeServiceData} The BTHome data provided by the device.
 	 * @returns {number|null} The relative humidity as ratio (0‒1).
 	 */
-	static parseHumidity(btHomeData) {
-		const humidity = AbstractBTHomeSensor.getSensorDataByObjectId(
+	parseHumidity(btHomeData) {
+		const humidity = this.getSensorDataByObjectId(
 			btHomeData,
 			BTHomeServiceData.BthomeObjectId.SENSOR_HUMIDITY,
 		)?.humidity;
@@ -151,13 +183,41 @@ class AbstractBTHomeSensor extends BTSensor {
 	}
 
 	/**
+	 * Extracts luminance from the given BTHome data.
+	 *
+	 * @param btHomeData {BTHomeServiceData.BthomeServiceData} The BTHome data provided by the device.
+	 * @returns {number|null} The luminance as float.
+	 */
+	parseIlluminance(btHomeData) {
+		const illuminance = this.getSensorDataByObjectId(
+			btHomeData,
+			BTHomeServiceData.BthomeObjectId.SENSOR_ILLUMINANCE_0_01,
+		)?.illuminance;
+		return illuminance;
+	}
+	/**
+	 * Extracts motion detection from the given BTHome data.
+	 *
+	 * @param btHomeData {BTHomeServiceData.BthomeServiceData} The BTHome data provided by the device.
+	 * @returns {Boolean|null} The device's button press state.
+	 */
+	parseMotion(btHomeData) {
+		const motion = this.getSensorDataByObjectId(
+			btHomeData,
+			BTHomeServiceData.BthomeObjectId.BINARY_MOTION,
+		)?.motion;
+		return motion.intValue==1
+	}
+	
+
+	/**
 	 * Extracts button press event from the given BTHome data.
 	 *
 	 * @param btHomeData {BTHomeServiceData.BthomeServiceData} The BTHome data provided by the device.
 	 * @returns {BTHomeServiceData.ButtonEventType|null} The device's button press state.
 	 */
-	static parseButton(btHomeData) {
-		const buttonEvent = AbstractBTHomeSensor.getSensorDataByObjectId(
+	parseButton(btHomeData) {
+		const buttonEvent = this.getSensorDataByObjectId(
 			btHomeData,
 			BTHomeServiceData.BthomeObjectId.EVENT_BUTTON,
 		)?.event;
@@ -165,7 +225,37 @@ class AbstractBTHomeSensor extends BTSensor {
 			return buttonEvent;
 		}
 		return null;
+	} 
+
+	/**
+	 * Parses the relevant button press events for the Shelly BLU H&T from the specified BTHome data. This device only
+	 * uses a subset of all available BTHome button press events.
+	 *
+	 * @param btHomeData {BTHomeServiceData.BthomeServiceData} The BTHome data provided by the device.
+	 * @returns {ButtonPressEvent|null} The device's button state.
+	 * @see https://shelly-api-docs.shelly.cloud/docs-ble/Devices/ht/#button-press-events
+	 * @see https://bthome.io/format/
+	 */
+	parseShellyButton(btHomeData) {
+		const buttonEvent = this.parseButton(btHomeData);
+		if (buttonEvent) {
+			if (buttonEvent === BTHomeServiceData.ButtonEventType.PRESS) {
+				return ButtonPressEvent.PRESS;
+				/*
+				 * Prior to firmware version 1.0.20, the hold press event is indicated by 0xFE, which does
+				 * not conform with the BTHome standard.
+				 */
+			}
+			if (
+				buttonEvent === BTHomeServiceData.ButtonEventType.HOLD_PRESS ||
+				buttonEvent === 0xfe
+			) {
+				return ButtonPressEvent.HOLD_PRESS;
+			}
+		}
+		return null;
 	}
+
 
 	propertiesChanged(props) {
 		super.propertiesChanged(props);
@@ -176,7 +266,7 @@ class AbstractBTHomeSensor extends BTSensor {
 		}
 
 		// Retrieve BTHome data
-		const buffer = this.getServiceData(AbstractBTHomeSensor.BTHOME_SERVICE_ID);
+		const buffer = this.getServiceData(this.constructor.BTHOME_SERVICE_ID);
 		if (!buffer) {
 			this.debug(
 				`ServiceData does not contain BTHome service, which is unexpected for ${this.getDisplayName()}`,
@@ -189,6 +279,7 @@ class AbstractBTHomeSensor extends BTSensor {
 			const btHomeData = new BTHomeServiceData(new KaitaiStream(buffer));
 			this.emitValuesFrom(btHomeData);
 		} catch (e) {
+			this.debug(e)
 			throw new Error(
 				`Unable to parse BTHome data for ${this.getDisplayName()}`,
 			);

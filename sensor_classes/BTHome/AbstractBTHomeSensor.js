@@ -49,10 +49,16 @@ class AbstractBTHomeSensor extends BTSensor {
 	static async identify(device) {
 		if (
 			(await this.hasBtHomeServiceData(device)) &&
-			(await this.hasName(
+			((await this.hasName(
 				device,
 				this.SHORTENED_LOCAL_NAME,
-			))
+			)) || (await this.hasNameAndAddress(
+				device,
+				this.SHORTENED_LOCAL_NAME,
+			)) || (await this.hasName(
+				device,
+				this.LOCAL_NAME,
+			)))
 		) {
 			return this;
 		}
@@ -111,6 +117,7 @@ class AbstractBTHomeSensor extends BTSensor {
 	 */
 	static async hasName(device, name) {
 		const deviceName = await this.getDeviceProp(device, "Name");
+		
 		if (deviceName) {
 			if (deviceName === name) {
 				return true;
@@ -118,7 +125,36 @@ class AbstractBTHomeSensor extends BTSensor {
 		}
 		return false;
 	}
-/**
+
+		/**
+	 * Returns whether the specified device has a given name plus the last two bytes of its address. 
+	 *
+	 * This method can be included in the {@link BTSensor#identify} method of inheriting sensor classes.
+	 *
+	 * @example
+	 * static async identify(device) {
+	 *   if (await this.hasNameAndAddress(device)) {
+	 *     // Additional checks, if required
+	 *     return YourSensorClass;
+	 *   }
+	 *   return null;
+	 * }
+	 * @see BTSensor#identify
+	 * @param device The Bluetooth device to check the name.
+	 * @param name {string} The name to be checked for.
+	 * @returns {Promise<boolean>} Returns `true`, if the device exposes BTHome service data, or `false`,
+	 * if not.
+	 */
+	static async hasNameAndAddress(device, name) {
+		let deviceName = await this.getDeviceProp(device, "Name");
+		const address = (await this.getDeviceProp(device, "Address")).split(":")
+		if (deviceName) {
+			if (`${name}-${address[4]}${address[5]}`.localeCompare(deviceName, undefined,  { sensitivity: 'base' } )==0)
+				return true;
+		}
+		return false;
+	}
+	/**
 	 * Returns measurement data for the given object ID from the given BTHomeData.
 	 *
 	 * @param btHomeData {BTHomeServiceData.BthomeServiceData}
@@ -159,7 +195,7 @@ class AbstractBTHomeSensor extends BTSensor {
 		)?.temperature;
 		if (tempCelsius) {
 			return Number.parseFloat(
-				(this.KELVIN_OFFSET + tempCelsius).toFixed(2),
+				(this.constructor.KELVIN_OFFSET + tempCelsius).toFixed(2),
 			);
 		}
 		return null;
@@ -204,11 +240,23 @@ class AbstractBTHomeSensor extends BTSensor {
 	parseMotion(btHomeData) {
 		const motion = this.getSensorDataByObjectId(
 			btHomeData,
-			BTHomeServiceData.BthomeObjectId.BINARY_MOTION,
+			BTHomeServiceData.BthomeObjectId.BINARY_MOTION
 		)?.motion;
 		return motion.intValue==1
 	}
 	
+	/**
+	 * Extracts packet ID from the given BTHome data.
+	 *
+	 * @param btHomeData {BTHomeServiceData.BthomeServiceData} The BTHome data provided by the device.
+	 * @returns {Number|null} The packet ID.
+	 */
+	parsePacketID(btHomeData) {
+		return this.getSensorDataByObjectId(
+			btHomeData,
+			BTHomeServiceData.BthomeObjectId.MISC_PACKET_ID,
+		).packetId
+	}
 
 	/**
 	 * Extracts button press event from the given BTHome data.

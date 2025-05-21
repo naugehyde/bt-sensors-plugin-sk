@@ -2,7 +2,7 @@ const BTHomeServiceData = require("./BTHome/BTHomeServiceData");
 const AbstractBTHomeSensor = require("./BTHome/AbstractBTHomeSensor");
 
 /**
- * Sensor class representing the Shelly BLU H&T.
+ * Sensor class representing the Shelly BLU Motion.
  *
  * This sensor is publishing data utilising the BTHome format and inherits from {@link AbstractBTHomeSensor}.
  */
@@ -10,11 +10,16 @@ class ShellySBMO003Z extends AbstractBTHomeSensor {
 	static Domain = this.SensorDomains.environmental
 		
 	/**
-	 * The shortened local name as advertised by the Shelly BLU H&T.
+	 * The shortened local name as advertised by the Shelly BLU Motion.
 	 * @type {string}
 	 */
 	static SHORTENED_LOCAL_NAME = "SBMO-003Z";
 
+		/**
+	 * The local name as advertised by the Shelly BLU Motion after pairing .
+	 * @type {string}
+	 */
+	static LOCAL_NAME="Shelly BLU Motion";
 
 	initSchema() {
 		super.initSchema()
@@ -51,6 +56,16 @@ class ShellySBMO003Z extends AbstractBTHomeSensor {
 			this.parseShellyButton.bind(this),
 		)
 		.default="sensors.{macAndName}.button"
+
+/*
+		this.addMetadatum(
+			"packetID",
+			null,
+			"packetID from sensor",
+			this.parsePacketID.bind(this)
+		)
+		.default="sensors.{macAndName}.packetID"
+*/
 
 	}
 }

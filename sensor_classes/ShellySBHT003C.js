@@ -14,7 +14,7 @@ class ShellySBHT003C extends AbstractBTHomeSensor {
 	 * @type {string}
 	 */
 	static SHORTENED_LOCAL_NAME = "SBHT-003C";
-
+	static LOCAL_NAME = "TBD"
 	
 	initSchema() {
 		super.initSchema()

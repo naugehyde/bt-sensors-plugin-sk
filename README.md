@@ -2,10 +2,14 @@
 
 ## What's New
 
+
+## 1.2.0-beta-0.1.4
+
+Added support for paired Shelly devices.
+
 ## 1.2.0-beta-0.1.3
 
 Added support for [Shelly Blu Motion sensor ](https://us.shelly.com/products/shelly-blu-motion)
-
 
 ## 1.2.0-beta-0.1.2.b
 

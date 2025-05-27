@@ -2,7 +2,7 @@
 
 ## What's New
 
-## 1.2.0-beta-0.1.4
+## 1.2.0-beta-0.1.5/6
 
 Renogy and JBDBMS fixes
 

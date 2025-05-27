@@ -284,7 +284,7 @@ class BTSensor extends EventEmitter {
      *  
      */
 
-    initSchema(){
+    async initSchema(){
         this._schema = {
             properties:{
                 active: {title: "Active", type: "boolean", default: true },
@@ -338,13 +338,13 @@ class BTSensor extends EventEmitter {
     }
     async init(){
         this.currentProperties = await this.constructor.getDeviceProps(this.device)
-        this.initSchema()
+        await this.initSchema()
 
         this.initListen()
     }
 
     initListen(){
-        Promise.resolve(this.listen())
+        this.listen()
     }
     activate(config, plugin){
         if (config.paths){
@@ -369,9 +369,8 @@ class BTSensor extends EventEmitter {
     activateGATT(){
         this.initGATTConnection().then(async ()=>{
             this.emitGATT()
-            if (this.pollFreq){
+            if (this.pollFreq)
                 this.initGATTInterval()
-            }
             else 
                 await this.initGATTNotifications()
         }).catch((e)=>{
@@ -469,8 +468,10 @@ class BTSensor extends EventEmitter {
 
      
         return connectQueue.enqueue( async ()=>{
-            this.debug(`Connecting to ${this.getName()}`)
+            this.debug(`Connecting... ${this.getName()}`)
             await this.device.connect()
+            this.debug(`Connected to ${this.getName()}`)
+
             try {
 
                /* CAUTION: HACK AHEAD 

@@ -276,6 +276,7 @@ module.exports =   function (app) {
 
 		function getSensorInfo(sensor){
 	
+
 			return { mac: sensor.getMacAddress(),
 				     name: sensor.getName(),
 					 domain: sensor.getDomain().name,

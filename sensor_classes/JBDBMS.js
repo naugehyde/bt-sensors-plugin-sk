@@ -62,11 +62,15 @@ class JBDBMS extends BTSensor {
           (buffer)=>{return buffer.readUInt8(24)} )
           .default="electrical.batteries.{batteryID}.FETControl"
   
-      await this.deviceConnect()
-      await this.initCharacteristics()
-      const cellsAndTemps = await this.getNumberOfCellsAndTemps()
-      this.numberOfCells=cellsAndTemps.cells
-      this.numberOfTemps=cellsAndTemps.temps
+      await this.deviceConnect() 
+        const gattServer = await this.device.gatt()
+        const txRxService= await gattServer.getPrimaryService(this.constructor.TX_RX_SERVICE)
+        this.rxChar = await txRxService.getCharacteristic(this.constructor.NOTIFY_CHAR_UUID)
+        this.txChar = await txRxService.getCharacteristic(this.constructor.WRITE_CHAR_UUID)
+        await this.rxChar.startNotifications()
+        const cellsAndTemps = await this.getNumberOfCellsAndTemps()
+        this.numberOfCells=cellsAndTemps.cells
+        this.numberOfTemps=cellsAndTemps.temps
 
       for (let i=0; i<this.numberOfTemps; i++){
         this.addMetadatum(`temp${i}`, 'K', `Temperature${i+1} reading`,
@@ -87,14 +91,6 @@ class JBDBMS extends BTSensor {
   }
   hasGATT(){
     return true
-  }
-  async initCharacteristics(){ 
-      const gattServer = await this.device.gatt()
-      const txRxService= await gattServer.getPrimaryService(this.constructor.TX_RX_SERVICE)
-      this.rxChar = await txRxService.getCharacteristic(this.constructor.NOTIFY_CHAR_UUID)
-      this.txChar = await txRxService.getCharacteristic(this.constructor.WRITE_CHAR_UUID)
-      await this.rxChar.startNotifications()
-      return this
   }
 
   async initGATTNotifications(){

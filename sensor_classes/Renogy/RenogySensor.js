@@ -40,8 +40,8 @@ class RenogySensor extends BTSensor{
         return null
     }
 
-    async init(){
-        await super.init()
+    async initSchema(){
+        await super.initSchema()
         this.addParameter(
             "refreshInterval",
             {
@@ -54,16 +54,7 @@ class RenogySensor extends BTSensor{
             {
                 title: 'ID of device'
             }
-        )
-      
-
-        await this.deviceConnect()
-        const rw = await this.constructor.getReadWriteCharacteristics(this.device)
-
-        this.readChar = rw.read    
-        this.writeChar = rw.write
-        await this.readChar.startNotifications()
-        
+        ) 
     }
 
     emitGATT(){
@@ -94,26 +85,37 @@ class RenogySensor extends BTSensor{
             this.writeChar, this.getDeviceID(), writeReq, words) 
     }
 
-    async initGATTNotifications(){
-        this.getAllEmitterFunctions().forEach(async (emitter)=>
+    initGATTInterval(){
+           this.emitGATT()
+        this.intervalID = setInterval(()=>{
+            this.emitGATT()
+        }, 1000*(this?.pollFreq??60) )
+    }
+    emitGATT(){
+         this.getAllEmitterFunctions().forEach(async (emitter)=>
             await emitter()
         )
-        this.intervalID = setInterval(()=>{
-            this.getAllEmitterFunctions().forEach(async (emitter)=>
-                await emitter()
-            )
-        }, 1000*(this?.refreshInterval??60) )
+    }
+    
+    async initGATTNotifications(){
+ 
     }
 
+    async initGATTConnection() {   
+        await this.deviceConnect()      
+        const rw = await this.constructor.getReadWriteCharacteristics(this.device)
 
-    async initGATTConnection() {
-        return this  
+        this.readChar = rw.read    
+        this.writeChar = rw.write
+        await this.readChar.startNotifications()
+     
     }
+
     usingGATT(){
         return true
     }
     hasGATT(){
-        return false
+        return true
     }
 
     async stopListening(){

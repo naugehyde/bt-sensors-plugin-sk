@@ -5,7 +5,7 @@ function sleep(ms) {
   });
 }
 class JBDBMS extends BTSensor {
-      static Domain = BTSensor.electrical
+      static Domain = BTSensor.SensorDomains.electrical
 
   static TX_RX_SERVICE = "0000ff00-0000-1000-8000-00805f9b34fb"  
   static NOTIFY_CHAR_UUID = "0000ff01-0000-1000-8000-00805f9b34fb"
@@ -29,15 +29,18 @@ class JBDBMS extends BTSensor {
     return await this.txChar.writeValueWithResponse(Buffer.from(this.jbdCommand(command)))
 
 }
+
   async initSchema(){
       super.initSchema()
       this.addDefaultParam("batteryID")
      
       this.addDefaultPath('voltage','electrical.batteries.voltage')
-        .read=(buffer)=>{return buffer.readUInt16BE(4) / 100}
+        .read=
+        (buffer)=>{return buffer.readUInt16BE(4) / 100}
 
-      this.addDefaultPath('voltage','electrical.batteries.current')
-        .read=(buffer)=>{return buffer.readInt16BE(6) / 100} 
+      this.addDefaultPath('current','electrical.batteries.current')
+        .read=
+        (buffer)=>{return buffer.readInt16BE(6) / 100} 
       
       this.addDefaultPath('remainingCapacity','electrical.batteries.capacity.remaining')
         .read=(buffer)=>{return buffer.readUInt16BE(8) / 100} 
@@ -70,6 +73,7 @@ class JBDBMS extends BTSensor {
           (buffer)=>{
             return buffer.readUInt16BE(27+(i*2))/10
           })
+         .default=`electrical.batteries.{batteryID}.Temperature${i+1}`
       }
       
       for (let i=0; i<this.numberOfCells; i++){
@@ -95,20 +99,23 @@ class JBDBMS extends BTSensor {
 
   async initGATTNotifications(){
     this.intervalID = setInterval(()=>{
+
         this.emitGATT()
     }, 1000*(this?.pollFreq??60) )
   }
 
   emitGATT(){
     this.getAndEmitBatteryInfo()
-    setTimeout(()=>{this.getAndEmitCellVoltages()}, 10000)
+      setTimeout(()=>{this.getAndEmitCellVoltages()}, 10000)
   }
+
 
   async getNumberOfCellsAndTemps(){
     var b = await this.getBuffer(0x3)
     return {cells:b[25], temps:b[26]}
   }  
-  
+
+
   getBuffer(command){
 
     return new Promise( async ( resolve, reject )=>{
@@ -122,9 +129,9 @@ class JBDBMS extends BTSensor {
         }, 30000);
 
         const valChanged = async (buffer) => {
-          this.debug(buffer)
           buffer.copy(result,offset)
           if (buffer[buffer.length-1]==0x77){
+            this.debug(result)
             this.rxChar.removeAllListeners()
             clearTimeout(timer)
             resolve(result)
@@ -142,7 +149,7 @@ async initGATTConnection() {
 }
 
 getAndEmitBatteryInfo(){
-  this.getBuffer(0x03).then((buffer)=>{
+    this.getBuffer(0x03).then((buffer)=>{
     (["current", "voltage", "remainingCapacity", "capacity","cycles", "protectionStatus", "SOC","FET",]).forEach((tag) =>
       this.emitData( tag, buffer )
     )
@@ -170,8 +177,10 @@ initGATTInterval(){
 
 async stopListening(){
   super.stopListening()
-  this.rxChar.stopNotifications()
-  await this.device.disconnect()
+  if (this.rxChar) 
+    this.rxChar.stopNotifications()
+  if (this.device)
+    await this.device.disconnect()
 }
   
 }

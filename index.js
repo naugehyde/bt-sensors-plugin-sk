@@ -394,7 +394,7 @@ module.exports =   function (app) {
 					const sensor = new c(device,config?.params, config?.gattParams)
 					sensor.debug=app.debug
 					sensor.app=app
-					sensor._adapter=adapter //HACK!
+					  sensor._adapter=adapter //HACK!
 
 					await sensor.init()
 					//app.debug(`instantiated ${await BTSensor.getDeviceProp(device,"Address")}`)
@@ -418,6 +418,7 @@ module.exports =   function (app) {
 			sensor = new c(device,config?.params, config?.gattParams)
 			sensor.debug=app.debug
 			sensor.app=app
+			sensor._adapter=adapter //HACK!
 
 			await sensor.init()
 			return sensor

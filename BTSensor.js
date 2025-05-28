@@ -368,7 +368,7 @@ class BTSensor extends EventEmitter {
 
     activateGATT(){
         this.initGATTConnection().then(async ()=>{
-            this.emitGATT()
+            await this.emitGATT()
             if (this.pollFreq)
                 this.initGATTInterval()
             else 
@@ -516,8 +516,8 @@ class BTSensor extends EventEmitter {
         this.device.disconnect().then(()=>{
             this.initPropertiesChanged()
             this.intervalID = setInterval( () => {
-                this.initGATTConnection().then(()=>{
-                    this.emitGATT()
+                this.initGATTConnection().then(async ()=>{
+                    await this.emitGATT()
                     this.device.disconnect()
                         .then(()=>
                             this.initPropertiesChanged()
@@ -733,7 +733,7 @@ class BTSensor extends EventEmitter {
    * 
    */
 
-    emitGATT(){
+    async emitGATT(){
         throw new Error("Subclass must implement ::emitGATT function")
     }
 

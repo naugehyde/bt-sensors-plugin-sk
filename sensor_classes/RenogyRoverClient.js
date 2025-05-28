@@ -4,7 +4,6 @@
 
 const RenogySensor = require("./Renogy/RenogySensor.js");
 const RC=require("./Renogy/RenogyConstants.js")
-const crc16Modbus = require('./Renogy/CRC.js')
 
 class RenogyRoverClient extends RenogySensor {
 

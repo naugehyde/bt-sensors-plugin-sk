@@ -139,22 +139,26 @@ class JBDBMS extends BTSensor {
         const r = await this.sendReadFunctionRequest(command)
         let result = Buffer.alloc(256)
         let offset = 0
-
+        let datasize = -1
         const timer = setTimeout(() => {
           clearTimeout(timer)
           reject(new Error(`Response timed out from JBDBMS device ${this.getName()}. `));
         }, 30000);
 
         const valChanged = async (buffer) => {
+          if (offset==0){ //first packet
+            if (buffer[0]!==0xDD || buffer.length < 5 || buffer[1] !== command)
+                reject(`Invalid buffer from ${this.getName()}, not processing.`)
+            else 
+                datasize=buffer[2]
+          }
           buffer.copy(result,offset)
-          if (buffer[buffer.length-1]==0x77){
+          if (buffer[buffer.length-1]==0x77 && offset+buffer.length-6==datasize){
             
             result = Uint8Array.prototype.slice.call(result, 0, offset+buffer.length)
             this.debug(result)
             this.rxChar.removeAllListeners()
             clearTimeout(timer)
-            if (result[0]!==0xDD || result[1] !== command)
-                reject(`Invalid buffer from ${this.getName()}, not processing.`)
             if (!checkSum(result)) 
                 reject(`Invalid checksum from ${this.getName()}, not processing.`)
             

@@ -55,6 +55,16 @@ Signalk users with a Linux boat-puter (Windows and MacOS are NOT currently suppo
 
 The plugin is currently available in the Signalk Appstore. <br>
 
+### Signal K Server in Docker?
+
+If you are running SK Server in Docker you need to mount the dbus system from the host and run as privileged. For example in `docker-compose.yml`:
+
+```
+    volumes:
+      - /var/run/dbus:/var/run/dbus
+    privileged: true
+```
+
 ### NPM
 
 Go to you signalk home (usually ~/.signalk) and run:

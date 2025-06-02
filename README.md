@@ -96,7 +96,18 @@ NOTE: If you're running the 1.0.3 release, you will have to reconfigure your dev
 ### Signalk Appstore
 The beta plugin is not currently available in the Signalk Appstore. <br>
 
-### NPM
+### Signal K Server in Docker
+
+If you are running SK Server in Docker you need to mount the dbus system from the host and run as privileged. For example in `docker-compose.yml`:
+
+```
+    volumes:
+      - /var/run/dbus:/var/run/dbus
+    privileged: true
+```
+
+
+### NPM Installation
 
 Go to you signalk home (usually ~/.signalk) and run:
 

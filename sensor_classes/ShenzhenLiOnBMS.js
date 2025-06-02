@@ -6,6 +6,18 @@
 
 const BTSensor = require("../BTSensor");
 
+const ProtectionStatus = {
+ 4:"Over Charge Protection", 
+ 20:"Over-discharge Protection", 
+ 40: "Charging Over Current Protection", 
+ 80: "Discharging Over Current Protection",
+ 100: "High-temp Protection" ,
+ 200:  "High-temp Protection", 
+ 400: "Low-temp Protection",
+ 800: "Low-temp Protection", 
+ 4000: "Short Circuit Protection"
+}
+
 class ShenzhenLiONBMS extends BTSensor{
     static Domain = BTSensor.SensorDomains.electrical
     static Commands = {
@@ -67,7 +79,7 @@ class ShenzhenLiONBMS extends BTSensor{
 		'discharges_count': HexTo10Str(t.slice(96, 100).reverse().join("")),
 		'discharges_amph_count': HexTo10Str(t.slice(100, 104).reverse().join("")),
 */
-        this.addMetadatum('mtv','V', 'measured total voltage',
+        this.addMetadatum('measuredTotalVoltage','V', 'measured total voltage',
                 (buff)=>{return buff.readUInt32LE(8)/1000})
         
         this.addDefaultPath('voltage', "electrical.batteries.voltage")
@@ -95,6 +107,38 @@ class ShenzhenLiONBMS extends BTSensor{
 
         this.addDefaultPath('actualAh','electrical.batteries.capacity.actual')
             .read=(buff)=>{return this.buff.readUInt16LE(64)/100}
+
+        this.addMetadatum('heat','', 'discharge disabled due to app button = 00000080, heater_error = 00000002',
+                (buff)=>{return buff.slice(68,72).reverse().join("")})
+            .default="electrical.batteries.{batteryID}.heat"
+
+        this.addMetadatum('balanceMemoryActive','', 'activates when the battery has saved information about what cell it will balance',
+            (buff)=>{return buff.slice(72,76).reverse().join("")})
+            .default="electrical.batteries.{batteryID}.balanceMemoryActive"
+
+        this.addMetadatum('protectionState','', 'protection state',
+                (buff)=>{return buff.slice(76,80).reverse().join("")})
+            .default="electrical.batteries.{batteryID}.protectionState"
+
+        this.addMetadatum('failureState','', 'failure state',
+                (buff)=>{return buff.slice(80,84).reverse().join("").slice(-3)})
+            .default="electrical.batteries.{batteryID}.failureState"
+        
+        this.addMetadatum('balanceState','', '1 = cell at offset is balancing',
+                (buff)=>{return buff.slice(84,88).reverse().join("")})
+            .default="electrical.batteries.{batteryID}.balanceState"
+
+        this.addMetadatum('batteryState','', 'charge disabled = "0004", charging = "0001" (when charging active app will show estimated time untill fully charged), discharging/idle: "0000", unkown = "0002"',
+            (buff)=>{return buff.slice(88,90).reverse().join("")})
+        .default="electrical.batteries.{batteryID}.batteryState"
+
+        this.addMetadatum('dischargeCount','', 'discharge count',
+            (buff)=>{return buff.readUInt32LE(96)})
+        .default="electrical.batteries.{batteryID}.dischargeCount"
+
+        this.addMetadatum('dischargeAhCount','', 'discharge ah count',
+            (buff)=>{return buff.readUInt32LE(100)})
+        .default="electrical.batteries.{batteryID}.dischargeAhCount"
     
         this.addDefaultPath( 'soc',"electrical.batteries.capacity.stateOfCharge") 
             .read=(buff)=>{return buff.readUInt16LE(90)/100}

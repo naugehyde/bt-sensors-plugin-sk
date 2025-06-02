@@ -103,12 +103,9 @@ class JBDBMS extends BTSensor {
   hasGATT(){
     return true
   }
-
-  async initGATTNotifications(){
-    
-    this.intervalID = setInterval(async ()=>{
-
-          await this.emitGATT()
+  initGATTNotifications(){
+    this.intervalID = setInterval( async ()=>{
+        await this.emitGATT()
     }, 1000*(this?.pollFreq??60) )
   }
 

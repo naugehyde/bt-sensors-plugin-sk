@@ -338,8 +338,23 @@ class GobiusCTankMeter extends BTSensor{
                 this.service = await this.gattServer.getPrimaryService("0000ffe0-0000-1000-8000-00805f9b34fb") 
                 this.characteristic = await this.service.getCharacteristic("0000ffe9-0000-1000-8000-00805f9b34fb")
             }
+                this.device.on("disconnect", ()=>{
+                        if (this.isActive()) {
+                        this.debug(`Device disconnected. Attempting to reconnect to ${this.getName()}`)  
+                                try {        
+                                this.deviceConnect().then(()=>{
+                                        this.debug(`Device reconnected -- ${this.getName()}`)  
+                                })
+                                }
+                                catch (e) {
+                                        this.debug(`Error while reconnecting to ${this.getName()}`)
+                                }
+                        }
+                })     
+  
             resolve(this)
             }).catch((e)=>{ reject(e.message) }) }) 
+
     }
     initGATTNotifications() { 
         Promise.resolve(this.characteristic.startNotifications().then(()=>{    

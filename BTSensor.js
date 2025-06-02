@@ -354,7 +354,7 @@ class BTSensor extends EventEmitter {
         }
         if (this.usingGATT()){
             try {
-            this.activateGATT()
+                this.activateGATT()
             } catch (e) {
                 this.debug(`GATT services unavailable for ${this.getName()}. Reason: ${e}`)
                 this._state="ERROR"
@@ -497,9 +497,7 @@ class BTSensor extends EventEmitter {
                 console.log(e)
             }
               /* END HACK*/
-              this.device.on("disconnect", ()=>{
-                this.debug(`${this.macAndName()} disconnected`)
-            })        
+                 
         })
 
 }
@@ -750,6 +748,27 @@ class BTSensor extends EventEmitter {
             .forEach(
                 (tag)=>this.emitData(tag,buffer)
         )
+    }
+
+  /**
+   * ::reactivate()
+   */
+ 
+    async reactivate(){
+        await this.stopListening()
+        this.listen()
+        this.currentProperties = await this.constructor.getDeviceProps(this.device)
+        if (this.usingGATT()){
+            try {
+                this.activateGATT()
+            } catch (e) {
+                this.debug(`GATT services unavailable for ${this.getName()}. Reason: ${e}`)
+                this._state="ERROR"
+                return
+            }
+        }
+        this._state="ACTIVE"
+        this._propertiesChanged(this.currentProperties)
     }
 
   /**

@@ -59,7 +59,7 @@ class ATC extends BTSensor{
                     .read=(buff)=>{return ((buff.readUInt16BE(10))/1000)}
 
                 this.addDefaultPath('temp', 'environment.temperature')
-                    .read=(buff)=>{return parseFloat((273.15+(buff.readInt8(7))/100).toFixed(2))}
+                    .read=(buff)=>{return parseFloat((273.15+(buff.readInt8(7))/10).toFixed(2))}
 
                 this.addDefaultPath('humidity','environment.humidity')
                     .read=(buff)=>{return ((buff.readUInt8(8))/100)} 

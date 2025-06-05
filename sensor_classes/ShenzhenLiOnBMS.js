@@ -7,15 +7,15 @@
 const BTSensor = require("../BTSensor");
 
 const ProtectionStatus = {
- 4:"Over Charge Protection", 
- 20:"Over-discharge Protection", 
- 40: "Charging Over Current Protection", 
- 80: "Discharging Over Current Protection",
- 100: "High-temp Protection" ,
- 200:  "High-temp Protection", 
- 400: "Low-temp Protection",
- 800: "Low-temp Protection", 
- 4000: "Short Circuit Protection"
+ 0x4:"Over Charge Protection", 
+ 0x20:"Over-discharge Protection", 
+ 0x40: "Charging Over Current Protection", 
+ 0x80: "Discharging Over Current Protection",
+ 0x100: "High-temp Protection" ,
+ 0x200:  "High-temp Protection", 
+ 0x400: "Low-temp Protection",
+ 0x800: "Low-temp Protection", 
+ 0x4000: "Short Circuit Protection"
 }
 
 class ShenzhenLiONBMS extends BTSensor{

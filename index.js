@@ -88,7 +88,7 @@ class MissingSensor  {
 
 }
 module.exports =   function (app) {
-	var deviceConfigs
+	var deviceConfigs=[]
 	var starts=0
 	
 	var plugin = {};

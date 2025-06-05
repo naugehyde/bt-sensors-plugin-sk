@@ -67,11 +67,19 @@ export default (props) => {
 
   async function fetchJSONData(path){
     console.log(`fetching ${path}`)
-     
-    return fetch(`/plugins/bt-sensors-plugin-sk/${path}`, {
-      credentials: 'include'
-    })
-
+    var result
+    try {
+      result = fetch(`/plugins/bt-sensors-plugin-sk/${path}`, {
+        credentials: 'include'
+      })
+    } catch (e) {
+      result=
+        {
+          status: 500,
+          statusText: e.toString()
+        }
+    }
+    return result
   }
 
   async function getSensors(){
@@ -110,7 +118,7 @@ export default (props) => {
     console.log("getProgress")
     const response = await fetchJSONData("getProgress")
     if (response.status!=200){
-      throw new Error(`Unable get progres: ${response.statusText} (${response.status}) `)
+      throw new Error(`Unable to get progress: ${response.statusText} (${response.status}) `)
     }
     const json = await response.json()
     console.log(json)

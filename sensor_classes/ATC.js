@@ -24,7 +24,7 @@ class ATC extends BTSensor{
             {
                 title:'data parsing strategy',
                 type: 'string',
-                enum:["ATC-LE","ATC-BE"],
+                enum:["ATC-LE","ATC-BE", "ATC-Exploit"],
                 default: "ATC-LE"
             }
         )
@@ -51,6 +51,20 @@ class ATC extends BTSensor{
         
             } else{
 
+                if (this.parser=="ATC-Exploit"){
+                this.getPath("batteryStrength")
+                    .read=(buff)=>{return ((buff.readUInt8(9))/100)}
+
+                this.addDefaultPath('voltage','sensors.batteryVoltage')
+                    .read=(buff)=>{return ((buff.readUInt16BE(10))/1000)}
+
+                this.addDefaultPath('temp', 'environment.temperature')
+                    .read=(buff)=>{return parseFloat((273.15+(buff.readInt8(7))/100).toFixed(2))}
+
+                this.addDefaultPath('humidity','environment.humidity')
+                    .read=(buff)=>{return ((buff.readUInt8(8))/100)} 
+                } 
+                else{
                 this.addDefaultPath('voltage','sensors.batteryVoltage')
                     .read=(buff)=>{return ((buff.readUInt16BE(10))/1000)}
 
@@ -59,6 +73,7 @@ class ATC extends BTSensor{
 
                 this.addDefaultPath('humidity','environment.humidity')
                     .read=(buff)=>{return ((buff.readUInt16BE(8))/10000)}
+                }
                 
             }
     }

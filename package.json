@@ -33,6 +33,7 @@
     "mocha": "^8.0.1",
     "prettier-standard": "^6.0.0",
     "react": "^16.13.1",
+    "react-html-parser":"^2.0.2",
     "react-bootstrap": "^2.10.9",
     "react-dom": "^16.13.1",
     "react-markdown": "^4.3.1",

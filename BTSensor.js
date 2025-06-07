@@ -286,6 +286,9 @@ class BTSensor extends EventEmitter {
 
     async initSchema(){
         this._schema = {
+            type: "object",
+            description: this.getDescription(),
+            title: this.getName(),
             properties:{
                 active: {title: "Active", type: "boolean", default: true },
                 discoveryTimeout: {title: "Device discovery timeout (in seconds)", 
@@ -295,7 +298,6 @@ class BTSensor extends EventEmitter {
             
                 params:{
                     title:`Device parameters`,
-                    description: this.getDescription(),
                     type:"object",
                     properties:{}
                 },

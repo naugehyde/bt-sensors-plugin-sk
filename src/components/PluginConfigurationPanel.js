@@ -1,6 +1,8 @@
 import Form from '@rjsf/core' ;
 import validator from '@rjsf/validator-ajv8';
-import React from 'react'
+import React from "react";
+import ReactHtmlParser from 'react-html-parser';
+
 import {useEffect, useState} from 'react'
 
 import {Button, Grid} from '@material-ui/core';
@@ -24,7 +26,7 @@ export default (props) => {
   const hideSubmit= {
     'ui:submitButtonOptions': {
       props: {
-        disabled: false,
+        disabled: false, 
         className: 'btn btn-info',
       },
       norender: true,
@@ -90,6 +92,9 @@ export default (props) => {
     }
     const json = await response.json()
     console.log(json)
+    for (let i=0;i<json.length;i++){
+      json[i].schema.description=<div>{ReactHtmlParser(json[i].schema.description)}<p></p></div>
+    }
     return json
 
   }

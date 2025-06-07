@@ -96,5 +96,9 @@ class ATC extends BTSensor{
     getManufacturer(){
         return "ATC1441 (custom firmware see: https://github.com/atc1441)"
     }
+
+    getDescription(){
+        return '<div><img src="https://raw.githubusercontent.com/thiagogalvao/LYWSD03MMC/master/LYWSD03MMC-Device.jpg" alt=LYWSD03MMC image" style="float: left; margin-right: 10px;" /><b>ATC1441</b> custom firmware for Xiaomi LYWSD03MMC see: <a href=https://github.com/atc1441/ATC_MiThermometer?tab=readme-ov-file#atc_mithermometer target="_blank">ATC_MiThermometer</a><div>'
+    }
 }
 module.exports=ATC

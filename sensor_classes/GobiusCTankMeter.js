@@ -363,7 +363,9 @@ class GobiusCTankMeter extends BTSensor{
             })
         }))
     }
-  
+    getDescription(){
+        return '<a href="https://gobiusc.com/"><img src="https://www.leesan.com/uploaded_files/product_images/970442%20%20Gobius%20C.png" alt="Gobius C Tank Measure" "></a>'
+    }
     async stopListening(){
         super.stopListening()
         if (this.characteristic  && await this.characteristic.isNotifying()) {

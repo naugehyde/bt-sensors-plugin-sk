@@ -195,6 +195,10 @@ class VictronBatteryMonitor extends VictronSensor{
         return "To use the GATT connection the SignalK server computer and the Smart Shunt must first be paired."
     }
 
+    getDescription(){
+        return super.getDescription()
+    }
+
     async stopListening(){
         super.stopListening()
         for (var c of this.characteristics){

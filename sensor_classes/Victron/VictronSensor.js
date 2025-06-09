@@ -1,6 +1,8 @@
+const  VC = require( './VictronConstants.js');
+const Images = require('./VictronImages.js')
+
 const BTSensor = require("../../BTSensor.js");
 const crypto = require('node:crypto');
-const VC = require('./VictronConstants.js');
 function sleep(x) {
     return new Promise((resolve) => {
       setTimeout(() => {
@@ -64,7 +66,15 @@ function sleep(x) {
         return this.constructor.AlarmReason[alarmValue]
     }
     getModelName(){
-        return VC?.MODEL_ID_MAP[this.model_id]??this.constructor.name+" (Model ID:"+this.model_id+")"
+        const m = VC.MODEL_ID_MAP[this.model_id]
+        if(m) {
+            if(m instanceof String ) {
+                return m
+            } else {
+                return m.name
+            }
+        }
+        return this.constructor.name+" (Model ID:"+this.model_id+")"
     }
 
     decrypt(data){
@@ -110,7 +120,17 @@ function sleep(x) {
         throw new Error( "GATT Connection unimplemented for "+this.getDisplayName())
     }
 
-   
+   getImage(){
+        const m = VC.MODEL_ID_MAP[this.model_id]
+        if (m && m.image)
+            return m.image
+        else
+            return Images.generic
+   }
+
+   getDescription(){
+    return `<img src="../bt-sensors-plugin-sk/images/${this.getImage()}"></img>`
+   }
 
 }
 module.exports=VictronSensor

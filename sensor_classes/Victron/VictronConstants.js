@@ -1,24 +1,8 @@
-module.exports = { 
+const Images = require('./VictronImages.js')
 
-  /*Device State?
-  0x00: Off
-0x01: Low Power Mode,
-0x02: Fault,
-0x03: Bulk,
-0x04: Absorption,
-0x05: Float,
-0x06: Storage,
-0x07: Equalize,
-0x08: Passthru,
-0x09: Inverting,
-0x0A: Assisting,
-0x0B: Power Supply Mode,
-0x0C-0xFA: Reserved,
-0xFB: Test,
-0xFC: Hub-1,
-0xFD-0xFE: Reserved,
-0xFF: Not Available
-  */
+ const VC=
+ {
+
     OperationMode: new Map([
     [0, 'OFF'],
     [1, 'LOW_POWER'],
@@ -73,9 +57,9 @@ module.exports = {
     [8, 'WATER_HEATER']
   ]),
   MODEL_ID_MAP :{
-    0x203: "BMV-700",
-    0x204: "BMV-702",
-    0x205: "BMV-700H",
+    0x203: {name: "BMV-700",image: Images.bmv},
+    0x204: {name: "BMV-702",image: Images.bmv},
+    0x205: {name: "BMV-700H",image: Images.bmv},
     0x0300: "BlueSolar MPPT 70|15",
     0xA040: "BlueSolar MPPT 75|50",
     0xA041: "BlueSolar MPPT 150|35",
@@ -207,12 +191,12 @@ module.exports = {
     0xA346: "Phoenix Smart IP43 Charger 24|16 (1+1)",
     0xA347: "Phoenix Smart IP43 Charger 24|16 (3)",
     0xA350: "Phoenix Smart IP43 Charger 12|50 (1+1) 120-240V A350",
-    0xA381: "BMV-712 Smart",
-    0xA382: "BMV-710H Smart",
-    0xA383: "BMV-712 Smart Rev2",
-    0xA389: "SmartShunt 500A/50mV",
-    0xA38A: "SmartShunt 1000A/50mV",
-    0xA38B: "SmartShunt 2000A/50mV",
+    0xA381: {name: "BMV-712 Smart", image: Images.bmv},
+    0xA382: {name: "BMV-710H Smart", image: Images.bmv},
+    0xA383: {name: "BMV-712 Smart Rev2", image: Images.bmv},
+    0xA389: {name:"SmartShunt 500A/50mV",image: Images.shunt},
+    0xA38A: {name:"SmartShunt 1000A/50mV",image: Images.shunt},
+    0xA38B: {name:"SmartShunt 2000A/50mV",image: Images.shunt},
     0xA3A4: "Smart Battery Sense",
     0xA3A5: "Smart Battery Sense",
     0xA3B0: "Smart Battery Protect",
@@ -239,7 +223,7 @@ module.exports = {
     0xA3E6: "Lynx Smart BMS 1000",
     0x2780: "Victron Multiplus II 12/3000/120-50 2x120V",
     0xC00A: "Cerbo GX",
-    0xC030: "SmartShunt IP65 500A/50mV",
+    0xC030: {name:"SmartShunt IP65 500A/50mV",image: Images.shunt},
     0xeba0: "Smart Lithium Battery",
     
 },
@@ -249,6 +233,7 @@ AuxMode:{
     TEMPERATURE: 2,
     DISABLED: 3
  },
+ 
 ChargerError:new Map()
     .set(0,"NO_ERROR")
     .set(1,"TEMPERATURE_BATTERY_HIGH")
@@ -330,6 +315,6 @@ OffReasons : new Map([
     [0x00000080, 'ENGINE_SHUTDOWN'],
     [0x00000081, 'ENGINE_SHUTDOWN_AND_INPUT_VOLTAGE_LOCKOUT'],
     [0x00000100, 'ANALYSING_INPUT_VOLTAGE']
-  ]),
-  
+  ])
 }
+module.exports = VC

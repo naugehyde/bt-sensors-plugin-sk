@@ -97,6 +97,11 @@ class XiaomiMiBeacon extends BTSensor{
         this.emit("humidity", buffer.readUInt8(2)/100)
         this.emitData("voltage",buffer,3);
     }
+
+    getDescription(){
+        return `<div><p><img src="../bt-sensors-plugin-sk/images/LYWSD03MMC-Device.jpg" alt=LYWSD03MMC image" style="float: left; margin-right: 10px;" /> The LYWSD03MMC temperature and humidity sensor is an inexpensive environmental sensor from Xiaomi Inc. <p> WARNING: If you use the GATT connection, you won't need an encrypytion//bind key to get your data but the energy cost of maintaining a GATT connection is high and will drain your battery in about 2 weeks of persistent use. Instead follow the instructions <a href=https://github.com/PiotrMachowski/Xiaomi-cloud-tokens-extractor/?tab=readme-ov-file#linux--home-assistant-in-ssh--web-terminal target="_blank">here</a> to get your device's encryption key.<div>`
+    }
+    
     getManufacturer(){
         return "Xiaomi Inc."
     }

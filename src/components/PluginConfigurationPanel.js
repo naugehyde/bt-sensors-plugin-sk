@@ -18,12 +18,13 @@ import { ListGroupItem } from 'react-bootstrap';
 
 import ProgressBar from 'react-bootstrap/ProgressBar';
 
-
 var _sensorMap, _sensorDomains={}, _sensorList={}
 
 export default (props) => {
 
-  const hideSubmit= {
+  const _uiSchema= {
+    "ui:options": {label: false},
+    'title': { 'ui:widget': 'hidden' },
     'ui:submitButtonOptions': {
       props: {
         disabled: false, 
@@ -33,11 +34,13 @@ export default (props) => {
       submitText: 'Submit',
     },
   }
+
   const [baseSchema, setBaseSchema] = useState({})
+
   const [baseData, setBaseData] = useState({})
 
   const [schema, setSchema] = useState({}) 
-  const [ uiSchema, setUISchema] = useState(hideSubmit )
+  const [ uiSchema, setUISchema] = useState(_uiSchema )
   const [sensorList, setSensorList] = useState([])
 
   const [sensorData, setSensorData] = useState()
@@ -52,10 +55,15 @@ export default (props) => {
   const [pluginState, setPluginState ] = useState("unknown")
   const [error, setError ] = useState()
 
+  function validate(formData, errors) {
+  debugger
+  return errors;
+}
+
 
   function sendJSONData(cmd, data){
 
-    console.log(`sending ${cmd}`)
+    console.log(`sending ${cmd}`) 
     console.log(data)
     const headers = new Headers();
     headers.append("Content-Type", "application/json");
@@ -92,9 +100,9 @@ export default (props) => {
     }
     const json = await response.json()
     console.log(json)
-    for (let i=0;i<json.length;i++){
-      json[i].schema.description=<div>{ReactHtmlParser(json[i].schema.description)}<p></p></div>
-    }
+    //for (let i=0;i<json.length;i++){
+    //  json[i].schema.htmlDescription=<div>{ReactHtmlParser(json[i].schema.htmlDescription)}<p></p></div>
+    //}
     return json
 
   }
@@ -113,10 +121,11 @@ export default (props) => {
     console.log("getBaseData")
     const response = await fetchJSONData("getBaseData")
     if (response.status!=200){
-      throw new Error(`Unable get base data: ${response.statusText} (${response.status}) `)
+      throw new Error(`Unable to get base data: ${response.statusText} (${response.status}) `)
     }
     const json = await response.json()
     console.log(json)
+    json.schema.htmlDescription=<div>{ReactHtmlParser(json.schema.htmlDescription)}<p></p></div>
     return json
   }
   async function getProgress(){
@@ -176,14 +185,13 @@ export default (props) => {
     sendJSONData("updateBaseData", data).then( (response )=>{
       if (response.status != 200) {
         setError(new Error(`Unable to update base data: ${response.statusText} (${response.status})`))
-      } else {
+      } /*else {
         getProgress().then((json)=>{
           setProgress(json)
         }).catch((e)=>{
           setError(e)
         })
-        refreshSensors()
-      }
+      }*/
       })
   }
     
@@ -234,6 +242,7 @@ export default (props) => {
         
         if (_sensorMap.has(json.mac)) {      
           let sensor = _sensorMap.get(json.mac)
+
           Object.assign(sensor.info, json )
           setSensorMap(new Map ( _sensorMap ))
         }
@@ -387,16 +396,19 @@ useEffect(()=>{
   }
   function getTab(key){
     var title = key.slice(key.charAt(0)==="_"?1:0)
-    
+
     return <Tab eventKey={key} title={title.charAt(0).toUpperCase()+title.slice(1)    }>
         
     <div style={{paddingBottom: 20}} class="d-flex flex-wrap justify-content-start align-items-start">
     <ListGroup style={{  maxHeight: '300px', overflowY: 'auto' }}>
       {getSensorList(key)}
     </ListGroup>
-
-    <div style= {{ paddingLeft: 10, paddingTop: 10, display: (Object.keys(schema).length==0)? "none" :""  }} >
-
+    <div style= {{ paddingLeft: 10, paddingTop: 10, display: (Object.keys(schema).length==0)? "none" :""  }}>
+    <div class="d-flex flex-column" >
+    <h2>{schema?.title}</h2><p></p>
+    {ReactHtmlParser(schema?.htmlDescription)}
+    <hr style={{"width":"100%","height":"2px","color":"gray","background-color":"gray","text-align":"left","margin-left":0}}></hr>
+   
     <Form
       schema={schema}
       validator={validator}
@@ -424,18 +436,19 @@ useEffect(()=>{
       </Grid>
       </div>
     </Form>
-
+    </div>
     </div>
     </div>
     </Tab>
   }
 
   if (pluginState=="stopped" || pluginState=="unknown")
-    return (<h1  >Enable plugin to see configuration (if plugin is Enabled and you're seeing this message, restart SignalK)</h1>)
+    return (<h3>Enable plugin to see configuration</h3>)
   else
   return(
 
     <div>
+      {baseSchema.htmlDescription}
       {error?<h2 style="color: red;">{error}</h2>:""}
       <Form 
         schema={baseSchema}

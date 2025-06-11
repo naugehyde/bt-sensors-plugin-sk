@@ -5,7 +5,8 @@ import ReactHtmlParser from 'react-html-parser';
 
 import {useEffect, useState} from 'react'
 
-import {Button, Grid} from '@material-ui/core';
+import {Button, Grid } from '@material-ui/core';
+import { makeStyles } from '@material-ui/core/styles';
 
 import { SignalCellular0Bar, SignalCellular1Bar, SignalCellular2Bar, SignalCellular3Bar, SignalCellular4Bar, SignalCellularConnectedNoInternet0Bar    } from '@material-ui/icons';
 
@@ -14,13 +15,26 @@ const log = (type) => console.log.bind(console, type);
 import ListGroup from 'react-bootstrap/ListGroup';
 import Tabs from 'react-bootstrap/Tabs';
 import Tab from 'react-bootstrap/Tab';
+
 import { ListGroupItem } from 'react-bootstrap';
 
 import ProgressBar from 'react-bootstrap/ProgressBar';
 
 var _sensorMap, _sensorDomains={}, _sensorList={}
 
+
+const useStyles = makeStyles((theme) => ({
+  root: {
+    '& > *': {
+      margin: theme.spacing(1),
+    },
+  },
+}));
+
+
+
 export default (props) => {
+  const classes = useStyles();
 
   const _uiSchema= {
     "ui:options": {label: false},
@@ -394,21 +408,93 @@ useEffect(()=>{
     
     return Object.keys(_sensorList).map((domain)=> {return getTab(domain)})
   }
+    // <div style={{paddingBottom: 20}} class="d-flex flex-wrap justify-content-start align-items-start">
+    //    <div class="d-flex flex-column" >
+
   function getTab(key){
     var title = key.slice(key.charAt(0)==="_"?1:0)
-
+    
     return <Tab eventKey={key} title={title.charAt(0).toUpperCase()+title.slice(1)    }>
         
-    <div style={{paddingBottom: 20}} class="d-flex flex-wrap justify-content-start align-items-start">
     <ListGroup style={{  maxHeight: '300px', overflowY: 'auto' }}>
       {getSensorList(key)}
     </ListGroup>
-    <div style= {{ paddingLeft: 10, paddingTop: 10, display: (Object.keys(schema).length==0)? "none" :""  }}>
-    <div class="d-flex flex-column" >
-    <h2>{schema?.title}</h2><p></p>
-    {ReactHtmlParser(schema?.htmlDescription)}
-    <hr style={{"width":"100%","height":"2px","color":"gray","background-color":"gray","text-align":"left","margin-left":0}}></hr>
-   
+    
+
+    </Tab>
+  }
+
+ 
+  function openInNewTab (url)  {
+    window.open(url, "_blank", "noreferrer");
+  }
+
+  function CustomFieldTemplate(props) {
+  const { id, classNames, style, label, help, required, description, errors, children } = props;
+  return (
+    <div className={classNames} style={style}>
+      <Grid container xs={12} direction="row" spacing="1">
+        <Grid item xs={1} sm container direction="column">
+        <Grid item ><label htmlFor={id}>{label}{required ? '*' : null}</label></Grid>
+        <Grid item> {description}</Grid>
+        </Grid>
+        <Grid item>{children}</Grid>
+      </Grid>
+      {errors}
+      {help}
+    </div>
+  );
+}
+
+  if (pluginState=="stopped" || pluginState=="unknown")
+    return (<h3>Enable plugin to see configuration</h3>)
+  else
+  return(
+
+    <div>
+       <div className={classes.root}>
+          
+          <Button  variant="contained" onClick={()=>{openInNewTab("https://github.com/naugehyde/bt-sensors-plugin-sk/tree/1.2.0-beta#configuration")}}>Documentation</Button>
+          <Button variant="contained"  onClick={()=>{openInNewTab("https://github.com/naugehyde/bt-sensors-plugin-sk/issues/new/choose")}}>Report Issue</Button>
+          <Button variant="contained"  onClick={()=>{openInNewTab("https://discord.com/channels/1170433917761892493/1295425963466952725" )}}>Discord Thread</Button>
+          <p></p>
+          <p></p>
+      </div>
+      <hr style={{"width":"100%","height":"1px","color":"gray","background-color":"gray","text-align":"left","margin-left":0}}></hr>
+
+      {error?<h2 style="color: red;">{error}</h2>:""}
+      <Form 
+        schema={baseSchema}
+        validator={validator}
+        onChange={(e) => setBaseData(e.formData)}
+        onSubmit={ ({ formData }, e) => { updateBaseData(formData); setSchema({}) } }
+
+        onError={log('errors')}
+        formData={baseData}
+      />
+    <hr style={{"width":"100%","height":"1px","color":"gray","background-color":"gray","text-align":"left","margin-left":0}}></hr>
+      <p></p>
+      <p></p>
+      { (progress.deviceCount<progress.totalDevices)?
+        <ProgressBar max={progress.maxTimeout} 
+                     now={progress.progress} 
+        />:""
+      }
+      <p></p>
+      <Tabs
+      defaultActiveKey="_configured"
+      id="domain-tabs"
+      className="mb-3"
+      onClick={()=>{setSchema({})}}
+      >
+      {getTabs()}
+      </Tabs>
+      <div style= {{ paddingLeft: 10, paddingTop: 10, display: (Object.keys(schema).length==0)? "none" :""  }}>
+      <Grid container direction="column" style={{spacing:5}}>
+      <Grid item><h2>{schema?.title}</h2><p></p></Grid>
+      <Grid item>{ReactHtmlParser(schema?.htmlDescription)}</Grid>
+      </Grid>
+    
     <Form
       schema={schema}
       validator={validator}
@@ -420,61 +506,21 @@ useEffect(()=>{
         }
       }
       onSubmit={({ formData }, e) => {
-        console.log(formData) 
         updateSensorData(formData)
         setSchema({})
         alert("Changes saved")
       }}
       onError={log('errors')}
       formData={sensorData}>
-      <div>
-      <Grid direction="row" style={{spacing:5}}>
-      <Button type='submit' color="primary" variant="contained">Save</Button>
-      <Button variant="contained" onClick={()=>{undoChanges(sensorData.mac_address)}}>Undo</Button>
-      <Button variant="contained" color="secondary" onClick={(e)=>confirmDelete(sensorData.mac_address)}>Delete</Button>
-
-      </Grid>
-      </div>
+      <div className={classes.root}>
+        <Button type='submit' color="primary" variant="contained">Save</Button>
+        <Button variant="contained" onClick={()=>{undoChanges(sensorData.mac_address)}}>Undo</Button>
+        <Button variant="contained" color="secondary" onClick={(e)=>confirmDelete(sensorData.mac_address)}>Delete</Button>
+      </div>  
     </Form>
-    </div>
-    </div>
-    </div>
-    </Tab>
-  }
 
-  if (pluginState=="stopped" || pluginState=="unknown")
-    return (<h3>Enable plugin to see configuration</h3>)
-  else
-  return(
-
-    <div>
-      {baseSchema.htmlDescription}
-      {error?<h2 style="color: red;">{error}</h2>:""}
-      <Form 
-        schema={baseSchema}
-        validator={validator}
-        onChange={(e) => setBaseData(e.formData)}
-        onSubmit={ ({ formData }, e) => { updateBaseData(formData); setSchema({}) } }
-        onError={log('errors')}
-        formData={baseData}
-      />
-      <p></p>
-      <p></p>
-      { (progress.deviceCount<progress.totalDevices)?
-        <ProgressBar max={progress.maxTimeout} 
-                     now={progress.progress} 
-        />:""
-      }
-      <h2>{`${sensorMap.size>0?"Bluetooth Devices - Select to configure" :""}`}</h2>
-      <h2>{`${sensorMap.size>0?"(* = sensor has unsaved changes)" :""}`}</h2>
-      <p></p>
-      <Tabs
-      defaultActiveKey="_configured"
-      id="domain-tabs"
-      className="mb-3"
-      >
-      {getTabs()}
-      </Tabs>
+   
+    </div>
     </div>
   )
     

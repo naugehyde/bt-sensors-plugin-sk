@@ -100,6 +100,9 @@ module.exports =   function (app) {
 	
 	plugin.schema = {			
 		type: "object",
+		htmlDescription: 
+`<h2><a href="https://github.com/naugehyde/bt-sensors-plugin-sk/tree/1.2.0-beta#configuration" target="_blank">Plugin Documenation</a><p/><a href="https://github.com/naugehyde/bt-sensors-plugin-sk/issues/new/choose" target="_blank">Report an issue</a><p/><a href="https://discord.com/channels/1170433917761892493/1295425963466952725" target="_blank">Discord thread</a></h2>
+ `,
 		required:["adapter","discoveryTimeout", "discoveryInterval"],
 		properties: {
 			adapter: {title: "Bluetooth adapter",
@@ -129,21 +132,6 @@ module.exports =   function (app) {
 
 	const classMap = loadClassMap(app)
 	const sensorMap=new Map()
-
-	
-/*	plugin.registerWithRouter = function(router) {
-		router.get('/sendPluginState', async (req, res) => {
-		
-			res.status(200).json({
-				"state":(plugin.started?"started":"stopped")
-			})
-		});
-		router.get("/sse", async (req, res) => {
-			const session = await createSession(req, res);
-			channel.register(session)
-	   });
-	
-	}*/
 
 	plugin.start = async function (options, restartPlugin) {
 		plugin.started=true
@@ -288,9 +276,11 @@ module.exports =   function (app) {
 
 		function sensorToJSON(sensor){
 			const config = getDeviceConfig(sensor.getMacAddress())
+			const schema = sensor.getJSONSchema()
+			schema.htmlDescription = sensor.getDescription()
 			return {
 					info: getSensorInfo(sensor),
-					schema: sensor.getJSONSchema(),
+					schema: schema,
 					config: config?config:{}
 				}
 		}
@@ -330,8 +320,7 @@ module.exports =   function (app) {
 		
 		function addSensorToList(sensor){
 			app.debug(`adding sensor to list ${sensor.getMacAddress()}`)
-			if (sensorMap.has(sensor.getMacAddress()) )
-				debugger 
+
 			sensorMap.set(sensor.getMacAddress(),sensor)
 			channel.broadcast(sensorToJSON(sensor),"newsensor");
 		}
@@ -350,8 +339,9 @@ module.exports =   function (app) {
 					return
 				}
 				s = await instantiateSensor(device,config) 
-				//app.debug(`Instantiated ${config.mac_address}`)
-				
+				if (!s) 
+					reject("Unable to create sensor")
+				else
 				if (s instanceof BLACKLISTED)
 					reject ( `Device is blacklisted (${s.reasonForBlacklisting()}).`)
 				else{
@@ -384,45 +374,47 @@ module.exports =   function (app) {
 		}
 		function getDeviceConfig(mac){
 			return deviceConfigs.find((p)=>p.mac_address==mac) 
-		}	
-		async function instantiateSensor(device,config){
-			try{
+		}
+		async function getClassFor(device,config){
+			
+			if (config.params?.sensorClass){
+				const c = classMap.get(config.params.sensorClass)
+				if (c==null)
+					throw new Error ("Cannot find class "+config.params.sensorClass)
+				return c
+			}			
 			for (var [clsName, cls] of classMap) {
 				if (clsName.startsWith("_")) continue
 				const c = await cls.identify(device)
 				if (c) {
-					c.debug=app.debug
-					const sensor = new c(device,config?.params, config?.gattParams)
-					sensor.debug=app.debug
-					sensor.app=app
-					  sensor._adapter=adapter //HACK!
-
-					await sensor.init()
-					//app.debug(`instantiated ${await BTSensor.getDeviceProp(device,"Address")}`)
-					
-					return sensor
+					if (Object.hasOwn(config, "params")) {
+						config.params.sensorClass=clsName
+					}
+					return c
 				}
-			}} catch(error){
+			}
+			return classMap.get('UNKNOWN')
+		}
+				
+		async function instantiateSensor(device,config){
+			try{
+				const c = await getClassFor(device,config)
+				c.debug=app.debug
+				const sensor = new c(device, config?.params, config?.gattParams)
+				sensor.debug=app.debug
+				sensor.app=app
+				sensor._adapter=adapter //HACK!
+				await sensor.init()				
+				return sensor
+			}
+			catch(error){
 				const msg = `Unable to instantiate ${await BTSensor.getDeviceProp(device,"Address")}: ${error.message} `
 				app.debug(msg)
 				app.debug(error)
 				app.setPluginError(msg)
+				return null
 			}
-			//if we're here ain't got no class for the device
-			var sensor 
-			if (config.params?.sensorClass){
-				var c = classMap.get(config.params.sensorClass)
-			} else{
-				c = classMap.get('UNKNOWN')
-			}
-			c.debug=app.debug
-			sensor = new c(device,config?.params, config?.gattParams)
-			sensor.debug=app.debug
-			sensor.app=app
-			sensor._adapter=adapter //HACK!
 
-			await sensor.init()
-			return sensor
 		}	
 		
 		function initConfiguredDevice(deviceConfig){

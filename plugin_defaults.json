@@ -1,45 +1,52 @@
 {
     "params":{
         "name":{
+            "title": "Name",
             "description": "Sensor name"
         },
         "location":{
-            "description": "Sensor location",
+            "title": "Location",
+            "description": "Sensor location on boat",
             "examples": ["inside", "outside", "galley", "freezer", "refrigerator", "head", "cabin", "engine", "deck", "cockpit"]
         },
         "zone":{
+            "title":"Zone",
             "description": "Zone where sensor operates on boat AKA location ",
             "examples": ["inside", "outside", "galley", "freezer", "refrigerator", "head", "cabin", "engine", "deck", "cockpit"]
         },
         "batteryID":{
-            "description": "Battery ID",
+            "title": "Battery ID",
             "examples": ["starter", "house"]
         },
         "id":{
+            "title": "ID",
             "description": "Sensor ID"
         }
     },
     "environment":{
         "temperature": 
             {
-                "title":"Current zone's temperature",
+                "title": "Temperature",
+                "description":"Current zone's temperature",
                 "unit":"K",
                 "default": "environment.{zone}.temperature"
             },
         "humidity":
             {
+                "title": "Humidity",
+                "description":"Current zone's humidity",
                 "unit":"ratio",
                 "default":"environment.{zone}.humidity"
             },
         "relativeHumidity":
             {
-                "title":"Current zone's relative humidity",
+                "description":"Current zone's relative humidity",
                 "unit":"ratio",
                 "default":"environment.{zone}.relativeHumidity"
             },
         "pressure":
             {
-                "title": "Current zone's ambient air pressure",
+                "description": "Current zone's ambient air pressure",
                 "unit":"Pa",
                 "default":"environment.{zone}.pressure"
             }
@@ -129,6 +136,7 @@
         },
         "batteryStrength":
         {
+            "title": "Battery Strength",
             "unit":"ratio",
             "default":"sensors.{macAndName}.battery.strength",
             "description":"Sensor battery strength" 
@@ -136,6 +144,7 @@
     
         "batteryVoltage":
         {
+            "title":"Battery Voltage",
             "unit":"V",
             "default":"sensors.{macAndName}.battery.voltage",
             "description":"Sensor battery voltage"

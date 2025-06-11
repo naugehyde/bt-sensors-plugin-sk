@@ -61,6 +61,7 @@ function sleep(x) {
             }
         )
         this.model_id=this.getManufacturerData(0x2e1)?.readUInt16LE(2)??"Unknown"
+        this._schema.title = this.getName()
     }
     alarmReason(alarmValue){
         return this.constructor.AlarmReason[alarmValue]
@@ -68,7 +69,7 @@ function sleep(x) {
     getModelName(){
         const m = VC.MODEL_ID_MAP[this.model_id]
         if(m) {
-            if(m instanceof String ) {
+            if(typeof m == 'string' || m instanceof String ) {
                 return m
             } else {
                 return m.name
@@ -129,7 +130,10 @@ function sleep(x) {
    }
 
    getDescription(){
-    return `<img src="../bt-sensors-plugin-sk/images/${this.getImage()}"></img>`
+    //return `<img src="https://www.victronenergy.com/_next/image?url=https%3A%2F%2Fwww.victronenergy.com%2Fupload%2Fproducts%2FSmartShunt%2520500_nw.png&w=1080&q=70"" height="150" object-fit="cover" ></img>`
+
+
+    return `<img src="../bt-sensors-plugin-sk/images/${this.getImage()}" height="300" object-fit="cover" ></img>`
    }
 
 }

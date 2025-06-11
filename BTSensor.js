@@ -287,7 +287,6 @@ class BTSensor extends EventEmitter {
     async initSchema(){
         this._schema = {
             type: "object",
-            description: this.getDescription(),
             title: this.getName(),
             properties:{
                 active: {title: "Active", type: "boolean", default: true },
@@ -303,7 +302,7 @@ class BTSensor extends EventEmitter {
                 },
                 paths:{
                     title:"Signalk Paths",
-                    description: `Signalk paths to be updated when ${this.getName()}'s values change`,
+                    description: `Signalk paths to be updated when the device's values change`,
                     type:"object",
                     properties:{}
                 }
@@ -585,8 +584,20 @@ class BTSensor extends EventEmitter {
         return this.currentProperties.Address
     }
 
-    getDescription(){
+    getImage(){
+        return "bluetooth-logo.png" 
+    }
+    getImageHTML(){
+        return `<img src="../bt-sensors-plugin-sk/images/${this.getImage()}" height="150" object-fit="cover" ></img>`
+    }
+
+    getTextDescription(){
         return `${this.getName()} from ${this.getManufacturer()}`
+    }
+
+    getDescription(){
+        return `<div>${this.getImageHTML()} ${this.getTextDescription()} </div>`
+
     }
     getName(){
         const name = this?.name??this.currentProperties.Name
@@ -860,6 +871,8 @@ class BTSensor extends EventEmitter {
     elapsedTimeSinceLastContact(){
         return (Date.now()-this?._lastContact??Date.now())/1000
     }
+
+
 }
 
 module.exports = BTSensor   

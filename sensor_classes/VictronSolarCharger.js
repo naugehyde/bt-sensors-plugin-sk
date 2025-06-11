@@ -39,5 +39,6 @@ class VictronSolarCharger extends VictronSensor{
             .default="electrical.solar.{id}.loadCurrent" 
   
     }
+
 }
 module.exports=VictronSolarCharger 

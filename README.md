@@ -192,17 +192,41 @@ After installing and restarting Signalk you should see a "BT Sensors Plugin" opt
 
 On initial configuration, wait for your Bluetooth adapter to scan devices. The plugin will scan for new devices at whatever you set the "scan for new devices interval" value to. <br><br>
 
-Select the sensor you want Signalk to listen to from the list.<br>
+<img width="1182" alt="Screenshot 2025-06-12 at 9 33 57 AM" src="https://github.com/user-attachments/assets/f0e1d644-3090-4f13-820e-748e9c83bc82" />
+<br><br>
+Select the sensor you want Signalk to listen to from the list below.<br>
 
-If you don't see your device and you know that it's on and nearby to the server, it may not be currently supported (It could also be out of range.) But fear not, you can add custom sensor classes yourself. (Check out the [development README](./sensor_classes/DEVELOPMENT.md).) <br><br>
+<img width="1115" alt="Screenshot 2025-06-12 at 9 34 16 AM" src="https://github.com/user-attachments/assets/70baf082-c181-4482-bde4-1e65c07702de" />
+
+NOTE: Devices that are not configured appear in *italics*. Configured devices with unsaved changes are asterisked.
+
+Your device's configuration will appear below the list of found devices.
+
+<img width="1095" alt="Screenshot 2025-06-12 at 9 34 48 AM" src="https://github.com/user-attachments/assets/48670df2-7f85-4ca1-9ea2-c1cf49087858" />
+
+If your device is UNKNOWN it may not be currently supported. But fear not, you can add custom sensor classes yourself. (Check out the [development README](./sensor_classes/DEVELOPMENT.md).) <br><br>
 
 Now it's a simple matter of associating the data emitted by the sensor with the Signalk path you want it to update. (Also, you can name your sensor so when it appears in logs its easy to recognize.) <br><br>
 
+<img width="1087" alt="Screenshot 2025-06-12 at 9 35 01 AM" src="https://github.com/user-attachments/assets/6deee310-57ec-4df6-979a-6ca16699392d" />
+
 Most devices will have default paths already established and should align with the SignalK spec. If the sensor is missing defaults or the defaults are not consistent with the SK spec, create an issue or open a pull request and add your own to the sensor's `initSchema()` method. 
 
-<img width="1125" alt="Screenshot 2024-10-13 at 9 30 53 PM" src="https://github.com/user-attachments/assets/5284539e-d5ee-488f-bbab-901258eb1c0b">
+Be sure to Save your device configuration by selecting Save. 
 
-The plugin doesn't need for Signalk to restart after submitting your config but restart if that makes you more comfortable. <br><br>
+<img width="325" alt="Screenshot 2025-06-12 at 9 35 16 AM" src="https://github.com/user-attachments/assets/951f41ce-2363-4527-9d9b-d5aa9aca7e14" />
+
+To delete the configuration, select Delete. To undo any changes, select Undo.
+
+Your device will restart its connection automatically after saving.
+
+You may see embedded in a default path values like `{zone}`. This is parameter variable you can set in the config whose value can cascade through the configuration.
+
+<img width="309" alt="Screenshot 2025-06-12 at 9 37 15 AM" src="https://github.com/user-attachments/assets/3b02e819-4408-4b37-a257-cda8f4a035c5" /><img width="192" alt="Screenshot 2025-06-12 at 9 37 28 AM" src="https://github.com/user-attachments/assets/1cf13934-4c09-47b3-8eef-d215fcd93374" />  
+
+Any member variable of the sensor class can be used as a parameter variable. Equally, any unary function that returns a string can be used as a parameter variable (`{macAndName}` for example).
+
+<br><br>
 
 ### ADVERTISED DATA
 

@@ -22,6 +22,40 @@ import ProgressBar from 'react-bootstrap/ProgressBar';
 
 var _sensorMap, _sensorDomains={}, _sensorList={}
 
+export default function BTConfig (props)  {
+
+   const _uiSchema= {
+    "ui:options": {label: false},
+    'title': { 'ui:widget': 'hidden' }
+  }
+
+  const baseUISchema = 
+  {
+  "ui:field": "LayoutGridField",
+  "ui:layoutGrid": {
+      "ui:row":[
+      {
+        "ui:row": {
+          "className": "row",
+          "children": [
+            {
+              "ui:columns": {
+                "className": "col-xs-4",
+                "children": [
+                  "adapter",
+                  "transport",
+                  "duplicateData",
+                  "discoveryTimeout",
+                  "discoveryInterval"
+                ]
+              }
+            }
+          ]
+        }
+      }
+      ]
+    }
+  }
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -30,24 +64,6 @@ const useStyles = makeStyles((theme) => ({
     },
   },
 }));
-
-
-
-export default (props) => {
-  const classes = useStyles();
-
-  const _uiSchema= {
-    "ui:options": {label: false},
-    'title': { 'ui:widget': 'hidden' },
-    'ui:submitButtonOptions': {
-      props: {
-        disabled: false, 
-        className: 'btn btn-info',
-      },
-      norender: true,
-      submitText: 'Submit',
-    },
-  }
 
   const [baseSchema, setBaseSchema] = useState({})
 
@@ -68,13 +84,9 @@ export default (props) => {
  
   const [pluginState, setPluginState ] = useState("unknown")
   const [error, setError ] = useState()
+  const classes = useStyles();
 
-  function validate(formData, errors) {
-  debugger
-  return errors;
-}
-
-
+ 
   function sendJSONData(cmd, data){
 
     console.log(`sending ${cmd}`) 
@@ -466,6 +478,7 @@ useEffect(()=>{
       <Form 
         schema={baseSchema}
         validator={validator}
+        uiSchema={baseUISchema}
         onChange={(e) => setBaseData(e.formData)}
         onSubmit={ ({ formData }, e) => { updateBaseData(formData); setSchema({}) } }
 

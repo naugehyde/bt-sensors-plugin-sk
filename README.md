@@ -1,104 +1,160 @@
 # Bluetooth Sensors for [Signal K](http://www.signalk.org)
 
-## What's New
-
-## 1.2.0-beta-0.1.5/6
-
-Renogy and JBDBMS fixes
-
-## 1.2.0-beta-0.1.4
-
-Added support for paired Shelly devices.
-
-## 1.2.0-beta-0.1.3
-
-Added support for [Shelly Blu Motion sensor ](https://us.shelly.com/products/shelly-blu-motion)
-
-## 1.2.0-beta-0.1.2.b
-
-Module load unfix
-
-## 1.2.0-beta-0.1.2.a
-
-Module load fix
-
-## 1.2.0-beta-0.1.2
-
-SSE deregister fix (long story)
-
-## 1.2.0-beta-0.1.1
-
-Gobius fix for inclination path, id parameter.
-
-## 1.2.0-beta-0.1.0
-
-Sensors on config page appear under tabs indicating their domain (Environmental, Electrical etc.)
-
-Gobius C tank meter support added.
-
-## 1.2.0-beta-0.0.10
-
-Better handling of plugin config screen when Disabled
-
-## 1.2.0-beta-0.0.9
-
-Fixes to config page RSSI update.
-
-## 1.2.0-beta-0.0.8
-
-Improved handling of changed state on config page.
-
-Several small fixes to various sensor classes.
-
-## 1.2.0-beta-0.0.7
-
-Added zone config param for environmental sensors. Removed location parameter. 
-
-## 1.2.0-beta-0.0.6
-Default values for paths for most sensor classes. 
-
-## 1.2.0-beta-0.0.5
-
-Added workaround to support multiple simultaneous GATT connections. Owing to problematic behavior in Bluez where making a GATT connection halted the scanner which made additional updates and connections impossible, added a scanner restart after making each GATT connection. 
-
-## 1.2.0-beta-0.0.1
-
-Dynamic configuration added. List updates when new devices are found by scanner. (No more screen refreshing necessary).
-
 ## WHAT IT IS
 
-BT Sensors Plugin for Signalk is a lightweight BLE (Bluetooth Low Energy) framework for listening and connecting to Bluetooth sensors on your boat and sending deltas to Signalk paths with the values the sensors reports. <br>
+BT Sensors Plugin for Signalk is a lightweight BLE (Bluetooth Low Energy) framework for listening and connecting to Bluetooth sensors on your boat. After discovery and configuration the plugin sends deltas to Signalk paths with values your sensor reports. <br>
 
-The Plugin currently supports every documented Victron device (AC Charger, Battery Monitor, DC-DC Converter, DC Energy Meter, GX Device, Inverter, Inverter RS, Lynx Smart BMS, Orion XS, Smart Battery Protect, Smart Lithium and VE Bus),  [Lancol Battery Meters ](https://www.lancol.com/product/12v-bluetooth-4-0-battery-tester-micro-10-c/), [Kilovault HLX+ smart batteries ](https://sunwatts.com/content/manual/KiloVault_HLX_PLUS_Datasheet_06252021%20%281%29.pdf?srsltid=AfmBOooY-cGnC_Qm6V1T9Vg5oZzBCJurS0AOGoWqWeyy-dwz2vA-l1Jb), Xiaomi devices, [ATC devices](https://github.com/atc1441/ATC_MiThermometer), RuuviTags, Renogy BMS, Ultrasonic Wind Meters, SwitchBotTH and Meterplus, Aranet 2/4 environmental sensors, Govee 50/51xx sensors, and Inkbird thermometers.
+It runs on any 2.0 or greater SignalK installation but on Linux only. It's been tested on Desktop and headless RPis, OpenPlotter, and Cerbo GX/Ekrano.
 
 A typical use case is a Bluetooth thermometer like the Xiaomi LYWSD03MMC, an inexpensive Bluetooth thermometer that runs on a 3V watch battery that can report the current temperature and humidity in your refrigerator or cabin or wherever you want to stick it (no judgement.) <br>
 
-The reported temperature can then be displayed on a Signalk app like Kip, WilhelmSK or, with appropiate mapping to NMEA-2000, a NMEA 2000 Multi-function display. 
+The reported temperature can then be displayed on a Signalk app like Kip, WilhelmSK or, with appropriate mapping to NMEA-2000, a NMEA 2000 Multi-function display. 
 
 It's pretty easy to write and deploy your own sensor class for any currently unsupported sensor. More on that in [the development README](./sensor_classes/DEVELOPMENT.md).
 
-## WHO IS IT FOR
+## WHAT'S NEW SINCE VERSION 1.1.x
+
+- Dynamic configuration screen. The Device list automatically updates when new devices are found by the BT scanner. (No more annoying screen refresh necessary!). 
+
+- Sensors appear under tabs indicating their domain (Environmental, Electrical etc.)
+
+- Support added for [Shelly Blu Motion sensor ](https://us.shelly.com/products/shelly-blu-motion), Gobius C tank meter and LiTime/Rebodo Smart Batteries.
+
+- Default values for paths for most sensor classes. 
+
+- Support for multiple simultaneous GATT connections. 
+
+## SUPPORTED SENSORS
+
+### NOTE 
+
+- Not all listed devices and variants have been thoroughly tested. If you encounter any issues, please report on github.  
+- Some supported devices cannot be automatically identified -- at least not reliably. You'll need to select the sensor class configuration variable manually.
+- Not all supported devices are enumerated under their manufacturer. Some device models that are not known to this  developer may share a protocol with another brand/model and in fact be supported. Please raise an issue on github if you discover a supported device that's not listed or implied below. 
+
+### Electrical 
+| Manufacturer | Devices |
+|--------------|---------|
+|[Victron](https://www.victronenergy.com/)|All documented (as of May 2025) devices that support instant readout (AC Charger, Battery Monitor, DC-DC Converter, DC Energy Meter, GX Device, Inverter, Inverter RS, Lynx Smart BMS, Orion XS, Smart Battery Protect, Smart Lithium and VE Bus) See: https://www.victronenergy.com/panel-systems-remote-monitoring/victronconnect|  
+|[Renogy](https://www.renogy.com/)| Renogy Smart Batteries, Inverters and Rover Client |
+|[JBD/Jibada](https://www.jbdbms.com/)| Smart BMS devices see: https://www.jbdbms.com/collections/smart-bms |
+|Xiaoxiang| Rebranded JBD/Jibada |
+|[LiTime](https://www.litime.com/)| LifePo4 Smart Batteries |
+|Redodo| Rebranded LiTime |
+|Kilovault| [Kilovault HLX+ smart batteries ](https://sunwatts.com/content/manual/KiloVault_HLX_PLUS_Datasheet_06252021%20%281%29.pdf?srsltid=AfmBOooY-cGnC_Qm6V1T9Vg5oZzBCJurS0AOGoWqWeyy-dwz2vA-l1Jb) |
+|[Lancol](www.Lancol.com)| [Micro 10C 12V Car Battery Monitor](https://www.lancol.com/product/12v-bluetooth-4-0-battery-tester-micro-10-c/)|
+
+
+### Environmental 
+| Manufacturer |  Devices | 
+|--------------|----------|
+|[Ruuvi](https://ruuvi.com/)| Ruuvi Tag and Ruuvi Tag Pro|
+|[Switch Bot](https://www.switch-bot.com/)| Meter Plus and TH devices |
+|[Xiaomi](https://www.mi.com/global/)|  LYWSD03MMC (and variants) Temp and Humidity Sensor |
+|[ATC](https://github.com/atc1441/ATC_MiThermometer)| Custom firmware for LYWSD03MMC |
+|Shelly| Shelly SBHT003C Temperature and Humidity Sensor and Shelly SBMO003Z Motion Sensor |
+|[Calypso Instruments](https://calypsoinstruments.com)| [Wireless Wind Meters](https://calypsoinstruments.com/sailing)  |
+|[Aranet](https://www.aranet.com)| Aranet 2 Temp and Humidity Sensor. Aranet 4 Temp/Humidity/Co2 Sensor. |
+|[Govee](http://www.govee.com)| Govee H50xx and H510x Temperature and humidity sensors |
+|[BTHome](https://bthome.io/)| NOTE: Framework for IOT sensor devices. |
+|[Inkbird](https://inkbird.com/)| TH-2 Temp and Humidity Sensor |
+
+
+### Tanks 
+| Manufacturer |  Devices | 
+|--------------|----------|
+| [Gobius](https://gobiusc.com/) | Gobius-C Tank level sensor|
+| [Mopeka](https://www.mopeka.com) | [Mopeka Pro Chek](https://mopeka.com/product-category/recreational-sensors-rv-bbq-etc/) ultrasonic tank level sensor  |
+
+
+## WHO IT'S FOR
 
 Signalk users with a Linux boat-puter (Windows and MacOS are NOT currently supported) and Bluetooth sensors they'd like to integrate into their Signalk datastream.
 
+## WORKING WITH BLUETOOTH DEVICES
+
+This project got started when I wanted to monitor the temperature in my boat's refrigerator. The thought of spending > $100 US and straining the back muscles so I could run NMEA wires under my cabin sole or behind my water heater got me thinking "Wireless, that sounds like a good idea."
+
+A year or so later, I have wireless Bluetooth sensors reporting not only on my refrigerator temperature but on the temperature and humidity in the vberth, on the deck and at the nav table. I'm getting wireless electrical data from my house and starter battery banks as well as on the levels of my propane tank. When there's motion detected on my boat, I get an email and a text telling me so. All wirelessly. All on inexpensive devices powered by inexpensice batteries that last sometimes for years and can be purchased at my local CVS (a US mega-pharmacy).
+ 
+Bluetooth LE (Low Energy) sensors are very inexpensive (especially compared to marine vendor options), widely available, and depending on the brand, very durable (even in marine environments).
+
+Some things I've learned that may be of use.
+
+### The Interference is Real
+
+Bluetooth LE runs at 2.4 GHZ. This is an, uh, oversubscribed part of the EM spectrum. If you're not careful with  the placement and shielding of your 2.4Ghz devices, you will encounter interference and signal/connection dropoff. 
+
+HDMI and USB 3.0, both of which operate at approximately twice the frequency of BT-LE can cause as much signal interference as a 2.4Ghz device. One plugin user noticed that when he turned on the HDMI monitor to his RPI, the plugin would lose a connection to some of his devices. 
+
+### It's Not as Simple as You Think
+
+There are two ways that Bluetooth devices emit their data. One, the old-fashioned way is through a full-fledged connection. Generally, that's a GATT (for Generic ATTribute Profile) connection. The other, which makes sense for IOT devices like most sensors, is by squeezing data into the device's Advertisement protocol.
+
+GATT connections require a lot of power and drain batteries pretty quickly, hence the Advertisement protocol hack that IOT devices use. 
+
+It's also a pain in the butt to maintain a GATT connection. AND you can only have so many per client device (seven, usually). 
+
+Victron, for example, started off its instant readout program with GATT connections (the battery power didn't matter as their devices are all powered by wire) but eventually gave up and went to an encrypted Advertising protocol which allowed them in the Connect App and their Cerbo devices to monitor multiple devices without a connection.
+
+Not all BMS manufacturers are as wise. Many of the inexpensive BMSes developed in China (several of which the plugin supports) use GATT connections. GATT connections are perfectly adequate if all you're doing is connecting through an app, checking your starter battery voltage, for instance, then closing the app. It's another thing when you've got a client like Signal K which is listening for changes to the starter battery voltage at all times.
+
+All of which is to say, be aware that if your device uses a GATT connection, it may suffer from connection loss.
+
+If your device is connection-y and frequently drops its connection and there's not a lot of obvious interference, please fill out an issue on github.
+
+### RPI 3/4/4b/5 Bluetooth Sucks
+
+The Raspberry Pi's native BT radio strength is weak. Unless all your sensors are within direct line of sight and less than 20 or so feet from your RPI you'll get inconsistent results. 
+
+Get yourself a BT 5.3 USB adapter. They're inexpensive (around $20 US). I have a [Tp-link UB500-Plus](https://www.tp-link.com/us/home-networking/usb-adapter/ub500-plus/) on my boat. *chef's kiss*
+
+
+### Bluetooth on Linux ain't Great
+
+Linux, IMHO, is a server OS first, a desktop OS second. Unfortunately, a lot of Linux developers have dreams of killing OSx and Windows and saving the world with open source (a noble but foolosh conceit). As a result, things like the Bluetooth stack on Linux skew toward desktop-friendly devices like headphones, keyboards, mice and the like. 
+
+The use pattern for a connected bluetooth peripheral is: start the scanner for one-time discovery and pairing which is followed by regular connection and usage (with no scanning necessary).
+
+For most Advertisement-oriented devices, the use pattern is turn scanner on and listen for changes to Advertised values. As most sensors are Advertisement-oriented, the plug-in keeps the Bluetooth scanner on at all times. 
+
+If a process on the server turns off the scanner, the plugin will, at least for Advertisement-oriented devices, appear to have stopped. Connected devices will continue to run normally, however.
+
+Because Desktop installations are oriented toward connected peripherals, the Bluetooth manager on Rasberry Pi's may turn off the scanner when it's closed by a user. So keep that in mind. 
+
+Disable/enable the plugin or submit your changes to restart the scanner if it stops.
+
+#### D-BUS
+Linux uses D-Bus, a path-oriented data store for getting and setting system info. 
+
+Bluez, the Debian standard for interacting with BT devices is D-Bus oriented. This plug-in relies on D-Bus for its BT data. 
+
+D-Bus keeps a reference to scanned BT devices for a default of 30s. If a device is not paired, D-Bus tosses that reference out and waits for another Advertisement from the device before adding the device back into its database. 
+
+As a result, some devices with Advertisement periods of less than the default Bluez stay alive parameter (30s) appear to be permanently unavailable.
+
+The simplest solution is pair any device that fails to show up in the scan. See [pairing guide](./pairing.md) for more info on how to pair a device to your Signal K server. 
+
+Future versions of the plugin will allow you to pair from the configuration interface (assuming it's possible and I have the time.)
+
 ## REQUIREMENTS
 
-* A Linux Signalk boat-puter with bluetooth-DBUS support 
-* A Bluetooth adapter
+* A Linux Signalk boat-puter with bluetooth-DBUS support
+* A Bluetooth adapter, either built-in or a USB external adapter
 * [Bluez](https://www.bluez.org) installed
 (Go here for [Snap installation instructions](https://snapcraft.io/bluez))
 * [Node-ble](https://www.npmjs.com/package/node-ble) (installs with the plugin)
 
 ## INSTALLATION
 
-NOTE: If you're running the 1.0.3 release, you will have to reconfigure your devices.<br>
-
 ### Signalk Appstore
-The beta plugin is not currently available in the Signalk Appstore. <br>
+The plugin is available in the Signalk Appstore. Yay. <br>
 
 ### Signal K Server in Docker
 
-If you are running SK Server in Docker you need to mount the dbus system from the host and run as privileged. For example in `docker-compose.yml`:
+If you are running SK Server in a Docker container you'll need to mount the dbus system from the host and run as privileged. <br><br>
+
+Add the following lines `docker-compose.yml`:
 
 ```
     volumes:
@@ -106,12 +162,11 @@ If you are running SK Server in Docker you need to mount the dbus system from th
     privileged: true
 ```
 
-
 ### NPM Installation
 
 Go to you signalk home (usually ~/.signalk) and run:
 
-npm i bt-sensors-plugin-sk@1.2.0-beta.0.0.7
+npm i bt-sensors-plugin-sk@latest
 
 ### Linux
 
@@ -120,7 +175,6 @@ If you want to install directly from source (this is mostly of interest to custo
 <pre>  cd ~/[some_dir]
   git clone https://github.com/naugehyde/bt-sensors-plugin-sk
   cd bt-sensors-plugin-sk
-  git switch '1.2.0-beta'
   git pull
   npm i
   [sudo] npm link
@@ -136,17 +190,15 @@ Finally, restart SK. Plugin should appear in your server plugins list.<br>
 
 After installing and restarting Signalk you should see a "BT Sensors Plugin" option in the Signalk->Server->Plugin Config page.<br><br>
 
-<img width="1130" alt="Screenshot 2024-10-13 at 6 50 09 PM" src="https://github.com/user-attachments/assets/4180504e-1ca8-48af-babf-899486fb0a24"><br><br>
-
 On initial configuration, wait for your Bluetooth adapter to scan devices. The plugin will scan for new devices at whatever you set the "scan for new devices interval" value to. <br><br>
-
-<br><br>
 
 Select the sensor you want Signalk to listen to from the list.<br>
 
-If you don't see your device and you know that it's on and nearby to the server, it may not be currently supported (It could also be out of range.) But fear not, you can add custom sensor classes yourself. (Check out [the development section](#development).). <br><br>
+If you don't see your device and you know that it's on and nearby to the server, it may not be currently supported (It could also be out of range.) But fear not, you can add custom sensor classes yourself. (Check out the [development README](./sensor_classes/DEVELOPMENT.md).) <br><br>
 
 Now it's a simple matter of associating the data emitted by the sensor with the Signalk path you want it to update. (Also, you can name your sensor so when it appears in logs its easy to recognize.) <br><br>
+
+Most devices will have default paths already established and should align with the SignalK spec. If the sensor is missing defaults or the defaults are not consistent with the SK spec, create an issue or open a pull request and add your own to the sensor's `initSchema()` method. 
 
 <img width="1125" alt="Screenshot 2024-10-13 at 9 30 53 PM" src="https://github.com/user-attachments/assets/5284539e-d5ee-488f-bbab-901258eb1c0b">
 
@@ -154,7 +206,7 @@ The plugin doesn't need for Signalk to restart after submitting your config but 
 
 ### ADVERTISED DATA
 
-Most supported Bluetooth sensors broadcast (or advertise) their device's data without an explicit connection. Some devices broadcast their data encrypted. Supported devices with encrypted advertised data will allow you to input the encryption key as a config parameter. NOTE: the encryption key is currently stored on the server in plain text. 
+Most supported Bluetooth sensors broadcast (or advertise) their device's data without an explicit connection. Some devices broadcast their data encrypted. Supported devices with encrypted advertised data (Victron devices for example) will allow you to input the encryption key as a config parameter. NOTE: the encryption key is stored on the server in plain text. 
 
 ### GATT CONNECTIONS
 
@@ -172,7 +224,19 @@ You should see data appear in your data browser. Here's a screenshot of Signalk 
 
 You can now take the data and display it using Kip, WilhelmSK or route it to NMEA-2K and display it on a N2K MFD, or use it to create and respond to alerts in Node-Red. Isn't life grand?
 
+## THANKS
 
+Many thanks to all those who contributed to the project either with code or testing or just letting me sit on a dock near their boat and connect to their devices:
+
+- Michael aboard the A Bientot
+- Kevin 
+- Jason
+- Teppo
+- Ilya
+- Guthip
+- Peter
+
+It takes a village. Or more appropriately, an armada. Okay, regatta. But you get the idea.
   
   
  

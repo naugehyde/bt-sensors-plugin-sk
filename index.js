@@ -471,7 +471,7 @@ module.exports =   function (app) {
 
 						if (!deviceConfig) {
 							deviceConfig = {mac_address: mac, 
-											discoveryTimeout: discoveryTimeout*1000, 
+											discoveryTimeout: discoveryTimeout, 
 											active: false, unconfigured: true}
 							initConfiguredDevice(deviceConfig) 
 						} 

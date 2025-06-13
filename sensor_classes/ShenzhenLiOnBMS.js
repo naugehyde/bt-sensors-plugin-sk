@@ -32,12 +32,7 @@ class ShenzhenLiONBMS extends BTSensor{
         get_serial_number: new Uint8Array([0x00, 0x00, 0x04, 0x01, 0x10, 0x55, 0xAA, 0x14])
     };
     static async identify(device){
-        
-        const name = await this.getDeviceProp(device,"Name")
-        if (name && name.toLowerCase().startsWith('gobius c'))
-            return this 
-        else
-            return null
+        return null
     }
     hasGATT(){
         return true

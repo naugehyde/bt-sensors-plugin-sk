@@ -4,7 +4,7 @@ const path = require('path');
 const { ModuleFederationPlugin } = require('webpack').container;
 const { WatchIgnorePlugin } = require('webpack')
 
-require('@signalk/server-admin-ui-dependencies')
+//require('@signalk/server-admin-ui-dependencies')
 
 const packageJson = require('./package')
 

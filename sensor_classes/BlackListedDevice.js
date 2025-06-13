@@ -3,10 +3,18 @@ class BLACKLISTED extends BTSensor {
     static isSystem = true;
     static async identify(device) {
         const md = await this.getDeviceProp(device, "ManufacturerData");
+        const addrType  = await this.getDeviceProp(device, "AddressType");
+        const addr = await this.getDeviceProp(device, "Address")
+        const addrFirstByte = addr?parseInt((addr)[0]):0
+         if (addrType=="random" && addrFirstByte >= 4 && addrFirstByte<=7) {
+            return this
+        }
+        
         if (md && Object.hasOwn(md, 0x004c)){
             if (md[0x004c].value.slice(0,2).join() != [0x02, 0x15].join()){ // iBeacons are exempt
                 return this;
             }
+
         return null;
         }
     }
@@ -23,14 +31,9 @@ class BLACKLISTED extends BTSensor {
         switch (this.getManufacturerID()) {
             case 0x004c:
                 return "Randomized MAC address (Apple)";
-            case 0x02e1:
-                return "Device is using VE.Smart"; //NOTE: Victron/VictronSensor class
-            //determines if a device is using VE.Smart
-            //in identify(). If so, identify() returns
-            //BlackListedDevice
-
+     
             default:
-                return "";
+                return "Random Private Address";
         }
     }
 }

@@ -1,4 +1,5 @@
-# Bluetooth Sensors for [Signal K](http://www.signalk.org)
+# Bluetooth Sensors for [Signal K](http://www.signalk.org) 
+# Version 1.2.0 
 
 ## WHAT IT IS
 
@@ -41,7 +42,7 @@ It's pretty easy to write and deploy your own sensor class for any currently uns
 |Xiaoxiang| Rebranded JBD/Jibada |
 |[LiTime](https://www.litime.com/)| LifePo4 Smart Batteries |
 |Redodo| Rebranded LiTime |
-|Kilovault| [Kilovault HLX+ smart batteries ](https://sunwatts.com/content/manual/KiloVault_HLX_PLUS_Datasheet_06252021%20%281%29.pdf?srsltid=AfmBOooY-cGnC_Qm6V1T9Vg5oZzBCJurS0AOGoWqWeyy-dwz2vA-l1Jb) |
+|Kilovault| [Kilovault HLX+ smart batteries ](https://sunwatts.com/content/manual/KiloVault_HLX_PLUS_Datasheet_06252021%20%281%29.pdf?srsltid=AfmBOooY-cGnC_Qm6V1T9Vg5oZzBCJurS0AOGoWqWeyy-dwz2vA-l1Jb) (Note: Kilovault appears to be out of business as of March 2024) |
 |[Lancol](www.Lancol.com)| [Micro 10C 12V Car Battery Monitor](https://www.lancol.com/product/12v-bluetooth-4-0-battery-tester-micro-10-c/)|
 
 
@@ -52,7 +53,7 @@ It's pretty easy to write and deploy your own sensor class for any currently uns
 |[Switch Bot](https://www.switch-bot.com/)| Meter Plus and TH devices |
 |[Xiaomi](https://www.mi.com/global/)|  LYWSD03MMC (and variants) Temp and Humidity Sensor |
 |[ATC](https://github.com/atc1441/ATC_MiThermometer)| Custom firmware for LYWSD03MMC |
-|Shelly| Shelly SBHT003C Temperature and Humidity Sensor and Shelly SBMO003Z Motion Sensor |
+|[Shelly](https://www.shelly.com/)| Shelly SBHT003C Temperature and Humidity Sensor and Shelly SBMO003Z Motion Sensor |
 |[Calypso Instruments](https://calypsoinstruments.com)| [Wireless Wind Meters](https://calypsoinstruments.com/sailing)  |
 |[Aranet](https://www.aranet.com)| Aranet 2 Temp and Humidity Sensor. Aranet 4 Temp/Humidity/Co2 Sensor. |
 |[Govee](http://www.govee.com)| Govee H50xx and H510x Temperature and humidity sensors |
@@ -71,9 +72,114 @@ It's pretty easy to write and deploy your own sensor class for any currently uns
 
 Signalk users with a Linux boat-puter (Windows and MacOS are NOT currently supported) and Bluetooth sensors they'd like to integrate into their Signalk datastream.
 
-## WORKING WITH BLUETOOTH DEVICES
+## REQUIREMENTS
 
-This project got started when I wanted to monitor the temperature in my boat's refrigerator. The thought of spending > $100 US and straining the back muscles so I could run NMEA wires under my cabin sole or behind my water heater got me thinking "Wireless, that sounds like a good idea."
+* A Linux Signalk boat-puter with bluetooth-DBUS support
+* A Bluetooth adapter, either built-in or a USB external adapter
+* [Bluez](https://www.bluez.org) installed
+(Go here for [Snap installation instructions](https://snapcraft.io/bluez))
+* [Node-ble](https://www.npmjs.com/package/node-ble) (installs with the plugin)
+
+## INSTALLATION
+
+### Signalk Appstore
+The plugin is available in the Signalk Appstore. Yay. <br>
+
+### Signal K Server in Docker
+
+If you are running SK Server in a Docker container you'll need to mount the dbus system from the host and run as privileged. <br><br>
+
+Add the following lines `docker-compose.yml`:
+
+```
+    volumes:
+      - /var/run/dbus:/var/run/dbus
+    privileged: true
+```
+
+### NPM Installation
+
+Go to you signalk home (usually ~/.signalk) and run:
+
+npm i bt-sensors-plugin-sk@latest
+
+### Linux
+
+If you want to install directly from source (this is mostly of interest to custom sensor class developers) execute the following from a command prompt:<br>
+
+<pre>  cd ~/[some_dir]
+  git clone https://github.com/naugehyde/bt-sensors-plugin-sk
+  cd bt-sensors-plugin-sk
+  git pull
+  npm i
+  [sudo] npm link
+  cd [signalk_home] 
+  npm link bt-sensors-plugin-sk</pre>
+
+Finally, restart SK. Plugin should appear in your server plugins list.<br>
+
+> NOTE: "~/.signalk" is the default signalk home on Linux. If you're 
+> getting permissions errors executing npm link, try executing "npm link" under sudo.
+
+## CONFIGURATION
+
+After installing and restarting Signalk you should see a "BT Sensors Plugin" option in the Signalk->Server->Plugin Config page.<br><br>
+
+On initial configuration, wait for your Bluetooth adapter to scan devices. The plugin will scan for new devices at whatever you set the "scan for new devices interval" value to. (NOTE: You only need to scan for new devices during configuration. Once your config is set, set the new devices interval to 0.) <br><br>
+
+<img width="1182" alt="Screenshot 2025-06-12 at 9 33 57 AM" src="https://github.com/user-attachments/assets/f0e1d644-3090-4f13-820e-748e9c83bc82" />
+<br><br>
+
+Select the sensor you want Signalk to listen to from the categorized list.<br>
+
+<img width="1115" alt="Screenshot 2025-06-12 at 9 34 16 AM" src="https://github.com/user-attachments/assets/70baf082-c181-4482-bde4-1e65c07702de" />
+
+NOTE: Devices that are not configured appear in *italics*. Configured devices with unsaved changes are asterisked.
+
+The selected device's configuration will appear below the list of found devices.
+
+<img width="1095" alt="Screenshot 2025-06-12 at 9 34 48 AM" src="https://github.com/user-attachments/assets/48670df2-7f85-4ca1-9ea2-c1cf49087858" />
+
+If you see your device in the UNKNOWN tab it may not be currently supported. But fear not, you can add custom sensor classes yourself. (Check out the [development README](./sensor_classes/DEVELOPMENT.md).) 
+
+If your device appears as UNKNOWN and is a supported sensor it's likely that it can't be automatically identified by the plugin. Select the senor and then select the appropriate Sensor Class from the dropdown list. After saving, you should see your sensor in the tab under its type (Electrical, etc). You'll be able to edit the paths for the sensor now. 
+<br><br>
+
+
+
+Now it's a simple matter of associating the data emitted by the sensor with the Signalk path you want it to update. (Also, you can name your sensor so when it appears in logs its easy to recognize.) <br><br>
+
+<img width="1087" alt="Screenshot 2025-06-12 at 9 35 01 AM" src="https://github.com/user-attachments/assets/6deee310-57ec-4df6-979a-6ca16699392d" />
+
+Most devices will have default paths that should align with the SignalK spec. If the sensor is missing defaults or the defaults are not consistent with the SK spec, create an issue or open a pull request and add your own to the sensor's `initSchema()` method. 
+
+Be sure to Save your device configuration by selecting **Save**. 
+
+<img width="325" alt="Screenshot 2025-06-12 at 9 35 16 AM" src="https://github.com/user-attachments/assets/951f41ce-2363-4527-9d9b-d5aa9aca7e14" />
+
+To delete the configuration, select **Delete**. To undo any changes, select **Undo**.
+
+Your device will restart its connection automatically after saving.
+
+You may see embedded in a default path values like `{zone}`. This is a parameter variable you can set in the config whose value can cascade through the configuration of your paths.
+
+<img width="309" alt="Screenshot 2025-06-12 at 9 37 15 AM" src="https://github.com/user-attachments/assets/3b02e819-4408-4b37-a257-cda8f4a035c5" /><img width="192" alt="Screenshot 2025-06-12 at 9 37 28 AM" src="https://github.com/user-attachments/assets/1cf13934-4c09-47b3-8eef-d215fcd93374" />  
+
+Any member variable of the sensor class can be used as a parameter variable. Equally, any unary function that returns a string can be used as a parameter variable (`{macAndName}`, for example). Use with caution.
+
+<br><br>
+
+## NOW WHAT?
+
+You should see data appear in your data browser. Here's a screenshot of Signalk on my boat displaying battery data from a Victron SmartShunt. <br><br>
+
+<img width="1142" alt="Screenshot 2024-09-01 at 9 14 27 PM" src="https://github.com/user-attachments/assets/80abbc1c-e01e-4908-aa1a-eec83679cd7c"><br><br>
+
+You can now take the data and display it using Kip, WilhelmSK or route it to NMEA-2K and display it on a N2K MFD, or use it to create and respond to alerts in Node-Red. Isn't life grand?
+
+## NOTES ON WORKING WITH BLUETOOTH DEVICES
+
+This project got started when I wanted to monitor the temperature in my boat's refrigerator. The thought of spending > $100 US and straining my back muscles so I could run NMEA wires under my cabin sole or behind my water heater got me thinking "Wireless, that sounds like a good idea."
 
 A year or so later, I have wireless Bluetooth sensors reporting not only on my refrigerator temperature but on the temperature and humidity in the vberth, on the deck and at the nav table. I'm getting wireless electrical data from my house and starter battery banks as well as on the levels of my propane tank. When there's motion detected on my boat, I get an email and a text telling me so. All wirelessly. All on inexpensive devices powered by inexpensice batteries that last sometimes for years and can be purchased at my local CVS (a US mega-pharmacy).
  
@@ -137,128 +243,29 @@ The simplest solution is pair any device that fails to show up in the scan. See 
 
 Future versions of the plugin will allow you to pair from the configuration interface (assuming it's possible and I have the time.)
 
-## REQUIREMENTS
-
-* A Linux Signalk boat-puter with bluetooth-DBUS support
-* A Bluetooth adapter, either built-in or a USB external adapter
-* [Bluez](https://www.bluez.org) installed
-(Go here for [Snap installation instructions](https://snapcraft.io/bluez))
-* [Node-ble](https://www.npmjs.com/package/node-ble) (installs with the plugin)
-
-## INSTALLATION
-
-### Signalk Appstore
-The plugin is available in the Signalk Appstore. Yay. <br>
-
-### Signal K Server in Docker
-
-If you are running SK Server in a Docker container you'll need to mount the dbus system from the host and run as privileged. <br><br>
-
-Add the following lines `docker-compose.yml`:
-
-```
-    volumes:
-      - /var/run/dbus:/var/run/dbus
-    privileged: true
-```
-
-### NPM Installation
-
-Go to you signalk home (usually ~/.signalk) and run:
-
-npm i bt-sensors-plugin-sk@latest
-
-### Linux
-
-If you want to install directly from source (this is mostly of interest to custom sensor class developers) execute the following from a command prompt:<br>
-
-<pre>  cd ~/[some_dir]
-  git clone https://github.com/naugehyde/bt-sensors-plugin-sk
-  cd bt-sensors-plugin-sk
-  git pull
-  npm i
-  [sudo] npm link
-  cd [signalk_home] 
-  npm link bt-sensors-plugin-sk</pre>
-
-Finally, restart SK. Plugin should appear in your server plugins list.<br>
-
-> NOTE: "~/.signalk" is the default signalk home on Linux. If you're 
-> getting permissions errors executing npm link, try executing "npm link" under sudo.
-
-## CONFIGURATION
-
-After installing and restarting Signalk you should see a "BT Sensors Plugin" option in the Signalk->Server->Plugin Config page.<br><br>
-
-On initial configuration, wait for your Bluetooth adapter to scan devices. The plugin will scan for new devices at whatever you set the "scan for new devices interval" value to. <br><br>
-
-<img width="1182" alt="Screenshot 2025-06-12 at 9 33 57 AM" src="https://github.com/user-attachments/assets/f0e1d644-3090-4f13-820e-748e9c83bc82" />
-<br><br>
-Select the sensor you want Signalk to listen to from the list below.<br>
-
-<img width="1115" alt="Screenshot 2025-06-12 at 9 34 16 AM" src="https://github.com/user-attachments/assets/70baf082-c181-4482-bde4-1e65c07702de" />
-
-NOTE: Devices that are not configured appear in *italics*. Configured devices with unsaved changes are asterisked.
-
-Your device's configuration will appear below the list of found devices.
-
-<img width="1095" alt="Screenshot 2025-06-12 at 9 34 48 AM" src="https://github.com/user-attachments/assets/48670df2-7f85-4ca1-9ea2-c1cf49087858" />
-
-If your device is UNKNOWN it may not be currently supported. But fear not, you can add custom sensor classes yourself. (Check out the [development README](./sensor_classes/DEVELOPMENT.md).) <br><br>
-
-Now it's a simple matter of associating the data emitted by the sensor with the Signalk path you want it to update. (Also, you can name your sensor so when it appears in logs its easy to recognize.) <br><br>
-
-<img width="1087" alt="Screenshot 2025-06-12 at 9 35 01 AM" src="https://github.com/user-attachments/assets/6deee310-57ec-4df6-979a-6ca16699392d" />
-
-Most devices will have default paths already established and should align with the SignalK spec. If the sensor is missing defaults or the defaults are not consistent with the SK spec, create an issue or open a pull request and add your own to the sensor's `initSchema()` method. 
-
-Be sure to Save your device configuration by selecting Save. 
-
-<img width="325" alt="Screenshot 2025-06-12 at 9 35 16 AM" src="https://github.com/user-attachments/assets/951f41ce-2363-4527-9d9b-d5aa9aca7e14" />
-
-To delete the configuration, select Delete. To undo any changes, select Undo.
-
-Your device will restart its connection automatically after saving.
-
-You may see embedded in a default path values like `{zone}`. This is parameter variable you can set in the config whose value can cascade through the configuration.
-
-<img width="309" alt="Screenshot 2025-06-12 at 9 37 15 AM" src="https://github.com/user-attachments/assets/3b02e819-4408-4b37-a257-cda8f4a035c5" /><img width="192" alt="Screenshot 2025-06-12 at 9 37 28 AM" src="https://github.com/user-attachments/assets/1cf13934-4c09-47b3-8eef-d215fcd93374" />  
-
-Any member variable of the sensor class can be used as a parameter variable. Equally, any unary function that returns a string can be used as a parameter variable (`{macAndName}` for example).
-
-<br><br>
-
-### ADVERTISED DATA
-
-Most supported Bluetooth sensors broadcast (or advertise) their device's data without an explicit connection. Some devices broadcast their data encrypted. Supported devices with encrypted advertised data (Victron devices for example) will allow you to input the encryption key as a config parameter. NOTE: the encryption key is stored on the server in plain text. 
-
-### GATT CONNECTIONS
-
-If you see something like this on your device config:
-
-<img width="727" alt="Screenshot 2024-10-13 at 9 42 26 PM" src="https://github.com/user-attachments/assets/65fe1aa7-99a5-41ac-85dc-cfde00e95932">
-
-You have the option of making a GATT Connection to your device. A GATT Connection is energy-inefficient but serves data from your device in more or less real-time. To learn more about GATT check out: https://learn.adafruit.com/introduction-to-bluetooth-low-energy/gatt
-
-## NOW WHAT?
-
-You should see data appear in your data browser. Here's a screenshot of Signalk on my boat displaying battery data from a Victron SmartShunt. <br><br>
-
-<img width="1142" alt="Screenshot 2024-09-01 at 9 14 27 PM" src="https://github.com/user-attachments/assets/80abbc1c-e01e-4908-aa1a-eec83679cd7c"><br><br>
-
-You can now take the data and display it using Kip, WilhelmSK or route it to NMEA-2K and display it on a N2K MFD, or use it to create and respond to alerts in Node-Red. Isn't life grand?
 
 ## THANKS
 
-Many thanks to all those who contributed to the project either with code or testing or just letting me sit on a dock near their boat and connect to their devices:
+Many thanks to all those who contributed to the project either with code or testing or just letting me sit on a dock near their boat and connect to their devices.
 
 - Michael aboard the A Bientot
-- Kevin 
-- Jason
+- Kevin on the Luna Miel
+- Jason on the Apres Ski
 - Teppo
 - Ilya
 - Guthip
 - Peter
+- Greg
+- Bram
+- Karl
+- Mat in NZ
+- Kees
+- Scarns
+- John W.
+- Sebastian
+- Arjen
+- SDLee
+- Jordan
 
 It takes a village. Or more appropriately, an armada. Okay, regatta. But you get the idea.
   

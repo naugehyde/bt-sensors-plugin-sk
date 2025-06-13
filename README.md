@@ -1,17 +1,5 @@
 # Bluetooth Sensors for [Signal K](http://www.signalk.org) 
-# Version 1.2.0 
-
-## WHAT IT IS
-
-BT Sensors Plugin for Signalk is a lightweight BLE (Bluetooth Low Energy) framework for listening and connecting to Bluetooth sensors on your boat. After discovery and configuration the plugin sends deltas to Signalk paths with values your sensor reports. <br>
-
-It runs on any 2.0 or greater SignalK installation but on Linux only. It's been tested on Desktop and headless RPis, OpenPlotter, and Cerbo GX/Ekrano.
-
-A typical use case is a Bluetooth thermometer like the Xiaomi LYWSD03MMC, an inexpensive Bluetooth thermometer that runs on a 3V watch battery that can report the current temperature and humidity in your refrigerator or cabin or wherever you want to stick it (no judgement.) <br>
-
-The reported temperature can then be displayed on a Signalk app like Kip, WilhelmSK or, with appropriate mapping to NMEA-2000, a NMEA 2000 Multi-function display. 
-
-It's pretty easy to write and deploy your own sensor class for any currently unsupported sensor. More on that in [the development README](./sensor_classes/DEVELOPMENT.md).
+# Version 1.2.1
 
 ## WHAT'S NEW SINCE VERSION 1.1.x
 
@@ -24,6 +12,19 @@ It's pretty easy to write and deploy your own sensor class for any currently uns
 - Default values for paths for most sensor classes. 
 
 - Support for multiple simultaneous GATT connections. 
+
+
+## WHAT IT IS
+
+BT Sensors Plugin for Signalk is a lightweight BLE (Bluetooth Low Energy) framework for listening and connecting to Bluetooth sensors on your boat. After discovery and configuration the plugin sends deltas to Signalk paths with values your sensor reports. <br>
+
+It runs on any 2.0 or greater SignalK installation but on Linux only. It's been tested on Desktop and headless RPis, OpenPlotter, and Cerbo GX/Ekrano.
+
+A typical use case is a Bluetooth thermometer like the Xiaomi LYWSD03MMC, an inexpensive Bluetooth thermometer that runs on a 3V watch battery that can report the current temperature and humidity in your refrigerator or cabin or wherever you want to stick it (no judgement.) <br>
+
+The reported temperature can then be displayed on a Signalk app like Kip, WilhelmSK or, with appropriate mapping to NMEA-2000, a NMEA 2000 Multi-function display. 
+
+It's pretty easy to write and deploy your own sensor class for any currently unsupported sensor. More on that in [the development README](./sensor_classes/DEVELOPMENT.md).
 
 ## SUPPORTED SENSORS
 

@@ -24,9 +24,11 @@ class VictronLynxSmartBMS extends VictronSensor{
 
     initSchema(){
         super.initSchema()
+        this.addDefaultParam("batteryID")
         this.addMetadatum('error','', 'error code', 
             (buff)=>{return buff.readUInt8(0)})
- 
+        .default="electrical.batteries.{batteryID}.errorCode"
+
         this.addDefaultPath('ttg','electrical.batteries.capacity.timeRemaining')
             .read=(buff)=>{return this.NaNif(buff.readUInt16LE(1),0xFFFF)*60}
         this.addDefaultPath('voltage','electrical.batteries.voltage')
@@ -36,10 +38,12 @@ class VictronLynxSmartBMS extends VictronSensor{
         
         this.addMetadatum('ioStatus','','IO Status', //TODO
             (buff)=>{return buff.readUInt16LE(7)})
+        .default="electrical.batteries.{batteryID}.IOStatus"
 
         this.addMetadatum('warningsAndAlarms','','warnings and alarms')
 
         this.addDefaultPath('soc','electrical.batteries.capacity.stateOfCharge')
+        
         this.addMetadatum('consumedAh','Ah','amp-hours consumed')
         .default="electrical.batteries.{batteryID}.capacity.ampHoursConsumed"
         

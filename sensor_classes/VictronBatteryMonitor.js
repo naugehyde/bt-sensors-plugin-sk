@@ -56,7 +56,7 @@ class VictronBatteryMonitor extends VictronSensor{
         
         const alarmMD = this.addMetadatum('alarm','',  'alarm', 
                 (buff,offset=0)=>{return buff.readInt16LE(offset)})
-                alarmMD.default='"electrical.batteries.{batteryID}.alarm'                
+                alarmMD.default='electrical.batteries.{batteryID}.alarm'                
                 alarmMD.notify=true
 
         this.addMetadatum( 'consumed','Ah', 'amp-hours consumed', 
@@ -196,7 +196,7 @@ class VictronBatteryMonitor extends VictronSensor{
     }
 
     getDescription(){
-        return super.getDescription()
+        return `${super.getDescription()}.<p><p>After setting the encryption key, Save and reselect to configure the value of the Aux field (Secondary Battery, Midpoint or Battery Temperature)`
     }
 
     async stopListening(){

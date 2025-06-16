@@ -172,10 +172,19 @@ module.exports =   function (app) {
 			});
 			router.post('/removeSensorData', async (req, res) => {
 				app.debug(req.body)
+				const sensor = sensorMap.get(req.body.mac_address)
+				if (!sensor) {
+					res.status(404).json({message: "Sensor not found"})
+					return
+				}
 				const i = deviceConfigs.findIndex((p)=>p.mac_address==req.body.mac_address) 
 				if (i>=0){
 					deviceConfigs.splice(i,1)
 				}
+
+				if (sensor.isActive()) 
+					await sensor.stopListening()
+				
 				if (sensorMap.has(req.body.mac_address))
 					sensorMap.delete(req.body.mac_address)
 				app.savePluginOptions(

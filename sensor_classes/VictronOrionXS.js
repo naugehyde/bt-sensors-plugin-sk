@@ -34,7 +34,7 @@ class VictronOrionXS extends VictronSensor{
             (buff)=>{return this.NaNif(buff.readUInt16LE(8),0xFFFF)/10})
             .default="electrical.chargers.{id}.input.current"
         this.addMetadatum('deviceOffReason','', 'device off reason', 
-            (buff)=>{return VC.OffReasons(buff.readUInt32BE(10))})
+            (buff)=>{return VC.OffReasons.get(buff.readUInt32BE(10))})
             .default="electrical.chargers.{id}.offReason"    
         }
 

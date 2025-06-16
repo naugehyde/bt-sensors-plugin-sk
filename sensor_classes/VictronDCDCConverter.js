@@ -10,7 +10,7 @@ class VictronDCDCConverter extends VictronSensor{
    
     initSchema(){
         super.initSchema()
-        this.addDefaultPath("id")
+        this.addDefaultParam("id")
 
         this.addMetadatum('deviceState','', 'device state', 
                 (buff)=>{return VC.OperationMode.get(buff.readUInt8(0))})

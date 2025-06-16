@@ -122,6 +122,19 @@ Finally, restart SK. Plugin should appear in your server plugins list.<br>
 > NOTE: "~/.signalk" is the default signalk home on Linux. If you're 
 > getting permissions errors executing npm link, try executing "npm link" under sudo.
 
+## KNOWN ISSUES
+
+### Configuration Panel
+
+- Safari 18.1 on OsX produces errors on load that kill the configuration screen. No known cause. Upgrade to most recent Safari or use Chrome.
+- Unsaved sensor configuration changes are lost after selecting a different sensor. Be sure to Save changes for now.
+- Renogy Rover Client, Victron GX, Victron Smart Battery Protect, and Victron VE Bus sensor classes have no default paths currently. Users will need to manually input.
+
+### Runtime
+
+- IMPORTANT Set `Scan for new devices interval` to `0` after configuration is complete. The plugin will run but in Bluetooth-rich environments, or if you have a long range BT 5.3 device, the system Bluetooth stack may fail after 4 hours or so.
+- There's no way that I know of to remove a SK Path without restarting the server. So if any active paths are changed by the plugin, you'll still see them hanging around in the data browser growing stale until you restart the server.
+
 ## CONFIGURATION
 
 After installing and restarting Signalk you should see a "BT Sensors Plugin" option in the Signalk->Server->Plugin Config page.<br><br>
@@ -267,6 +280,7 @@ Many thanks to all those who contributed to the project either with code or test
 - Arjen
 - SDLee
 - Jordan
+- Jan of SKipper App fame
 
 It takes a village. Or more appropriately, an armada. Okay, regatta. But you get the idea.
   

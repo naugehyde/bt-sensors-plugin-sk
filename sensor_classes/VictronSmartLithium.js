@@ -50,7 +50,7 @@ class VictronSmartLithium extends VictronSensor{
             (buff)=>{return buff.readUInt16LE(4)})
             .default="electrical.batteries.{batteryID}.errors"
 
-        for (let i=0;i++;i<8){
+        for (let i=0;i<8; i++){
             this.addMetadatum(`cell${i+1}Voltage`,'V', `cell ${i+1} voltage`)
             .default=`electrical.batteries.{batteryID}.cell${i+1}.voltage`
         }

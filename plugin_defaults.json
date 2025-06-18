@@ -96,6 +96,17 @@
                 "default": "electrical.batteries.{batteryID}.voltage"
             },
             
+            "power":
+            { 
+                "unit": "W",
+                "default": "electrical.batteries.{batteryID}.power"
+            },
+                        
+            "impedance":
+            { 
+                "unit": "Ohm",
+                "default": "electrical.batteries.{batteryID}.impedance"
+            },
             "temperature":{
                 "unit": "K",
                 "default": "electrical.batteries.{batteryID}.temperature"
@@ -107,12 +118,20 @@
 
             "capacity":{
                 "remaining":{
-                    "unit":"Ah",
+                    "unit":"C",
                     "default": "electrical.batteries.{batteryID}.capacity.remaining"
                 },
                 "actual":{
-                    "unit":"Ah",
+                    "unit":"C",
                     "default": "electrical.batteries.{batteryID}.capacity.actual"
+                },
+                "discharge":{
+                    "unit":"KWh",
+                    "default": "electrical.batteries.{batteryID}.capacity.dischargeSinceFull"
+                },
+                "charge":{
+                    "unit":"KWh",
+                    "default": "electrical.batteries.{batteryID}.capacity.totalCharge"
                 },
                 "stateOfCharge":{
                     "unit":"ratio",

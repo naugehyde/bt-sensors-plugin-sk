@@ -578,7 +578,6 @@ module.exports =   function (app) {
 			progressID  = setInterval(()=>{
 				channel.broadcast({"progress":++progress, "maxTimeout": maxTimeout, "deviceCount":foundConfiguredDevices, "totalDevices": deviceConfigs.length},"progress")
 				if ( foundConfiguredDevices==deviceConfigs.length){
-					app.debug("progress complete") 
 					progressID,progressTimeoutID = null
 					clearTimeout(progressTimeoutID)
 					clearInterval(progressID)
@@ -587,7 +586,6 @@ module.exports =   function (app) {
 			},1000); 
 			if (progressTimeoutID==null)
 			progressTimeoutID = setTimeout(()=> {
-				app.debug("progress timed out ")
 				if (progressID) {
 
 					clearInterval(progressID);

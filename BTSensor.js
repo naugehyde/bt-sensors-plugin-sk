@@ -787,8 +787,6 @@ class BTSensor extends EventEmitter {
   /**
    *  Listen to sensor.
    *  ::listen() sets up listeners for property changes thru ::propertiesChanged(props)
-   *  If GATT connections are available and active, function inits the GATT connection and 
-   *  optional GATT connection interval
    */
 
 
@@ -842,7 +840,6 @@ class BTSensor extends EventEmitter {
             if (!(path===undefined))
                 this.app.handleMessage(id, 
                 {
-//                $source: source,
                 updates: 
                     [{ meta: [{path: preparePath(this, path), value: { units: pathMeta?.unit }}]}]
                 })

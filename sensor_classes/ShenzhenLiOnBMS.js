@@ -34,19 +34,21 @@ class ShenzhenLiONBMS extends BTSensor{
     static async identify(device){
         return null
     }
+    async sendCommand(cmd){
+        await this.txCharacteristic.writeValueWithResponse( Buffer.from(cmd))
+    }
+
+    async queryBatteryCommand(){
+        await this.sendCommand(this.constructor.Commands.query_battery_status)
+    }
+
     hasGATT(){
         return true
     }
     usingGATT(){
         return true
     }
-    emitGATT(){
-        this.characteristic.readValue()
-        .then((buffer)=>
-            this.emitValuesFrom( buffer)
-        )
 
-    }
      initSchema(){
         super.initSchema()
         this.getGATTParams()["useGATT"].default=true
@@ -82,7 +84,7 @@ class ShenzhenLiONBMS extends BTSensor{
 
         for(let cellNum=0; cellNum < this?.numberOfCells??4; cellNum++) {
             this.addMetadatum(`cell${cellNum+1}Voltage`,'V', `cell #${cellNum+1} voltage`,
-                (buff)=>{return buff.readInt16LE(16+(cellNum*2)) })
+                (buff)=>{return buff.readInt16LE(16+(cellNum*2)) /1000})
             .default=`electrical.batteries.{batteryID}.cells.${cellNum+1}.voltage`
         }
 
@@ -97,11 +99,11 @@ class ShenzhenLiONBMS extends BTSensor{
                 (buff)=>{return buff.readInt16LE(54) + 273.15})
             .default="electrical.batteries.{batteryID}.bms.temperature"
 
-        this.addDefaultPath('remainingAh','electrical.batteries.capacity.remaining')
-            .read=(buff)=>{return this.buff.readUInt16LE(62)/100}
+        this.addDefaultPath('remaining','electrical.batteries.capacity.remaining')
+            .read=(buff)=>{return (buff.readUInt16LE(62)/100)*3600}
 
-        this.addDefaultPath('actualAh','electrical.batteries.capacity.actual')
-            .read=(buff)=>{return this.buff.readUInt16LE(64)/100}
+        this.addDefaultPath('actual','electrical.batteries.capacity.actual')
+            .read=(buff)=>{return (buff.readUInt16LE(64)/100)*3600}
 
         this.addMetadatum('heat','', 'discharge disabled due to app button = 00000080, heater_error = 00000002',
                 (buff)=>{return buff.slice(68,72).reverse().join("")})
@@ -138,7 +140,6 @@ class ShenzhenLiONBMS extends BTSensor{
         this.addDefaultPath( 'soc',"electrical.batteries.capacity.stateOfCharge") 
             .read=(buff)=>{return buff.readUInt16LE(90)/100}
         
-       
         this.getJSONSchema().properties.params.required=["batteryID", "numberOfCells" ]
     }
 
@@ -155,16 +156,25 @@ class ShenzhenLiONBMS extends BTSensor{
             resolve(this)
         })})
     }
+
+    async initGATTInterval(){
+        await this.initGATTNotifications() 
+    }
+
     async initGATTNotifications() { 
-        await this.txCharacteristic.writeValue( Buffer.from(this.constructor.Commands.query_battery_status))
         await this.rxCharacteristic.startNotifications()    
         this.rxCharacteristic.on('valuechanged', buffer => {
                 this.emitValuesFrom(buffer)
         })
+        this.intervalID=setInterval(
+            async ()=>{
+                await this.queryBatteryCommand()
+            }, (this?.pollFreq??10)*1000
+        )    
     }
   
     async stopListening(){
-        super.stopListening()
+        super.stopListening() //clears IntervalID as it happens
         if (this.rxCharacteristic  && await this.rxCharacteristic.isNotifying()) {
             await this.rxCharacteristic.stopNotifications()
             this.rxCharacteristic=null

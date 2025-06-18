@@ -78,7 +78,7 @@ class KilovaultHLXPlus extends BTSensor{
         this.addDefaultPath("cycles",'electrical.batteries.cycles')
             .read=(buffer)=>{return buffer.readInt16LE(12)}
 
-        this.addDefaultPath("soc",'electrical.batteries.capacity,stateOfCharge')
+        this.addDefaultPath("soc",'electrical.batteries.capacity.stateOfCharge')
             .read=(buffer)=>{return buffer.readInt16LE(14)}
         
         this.addDefaultPath("temperature",'electrical.batteries.temperature')

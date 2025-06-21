@@ -1,6 +1,6 @@
 /**
  * Class to support Batteries with embedded Shenzhen Li-ion Battery Bodyguard Technology BMS 
- * Brands include Redodo, Litime PowerQueen and possibly others
+ * Brands include Redodo, Litime, PowerQueen and possibly others
  */
 
 

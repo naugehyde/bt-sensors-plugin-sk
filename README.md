@@ -1,5 +1,11 @@
 # Bluetooth Sensors for [Signal K](http://www.signalk.org) 
-# Version 1.2.1
+# Version 1.2.2
+
+## WHAT'S NEW SINCE VERSION 1.2.1
+
+- Junctek BMS and Remoran Wave 3 support (Note: both are not currently field tested)
+
+- Fixes to ShenzhenLiOn BMS, Victron Orion XS, Victron DC DC Converter, Victron Smart Lithium Classes
 
 ## WHAT'S NEW SINCE VERSION 1.1.x
 
@@ -45,6 +51,8 @@ It's pretty easy to write and deploy your own sensor class for any currently uns
 |Redodo| Rebranded LiTime |
 |Kilovault| [Kilovault HLX+ smart batteries ](https://sunwatts.com/content/manual/KiloVault_HLX_PLUS_Datasheet_06252021%20%281%29.pdf?srsltid=AfmBOooY-cGnC_Qm6V1T9Vg5oZzBCJurS0AOGoWqWeyy-dwz2vA-l1Jb) (Note: Kilovault appears to be out of business as of March 2024) |
 |[Lancol](www.Lancol.com)| [Micro 10C 12V Car Battery Monitor](https://www.lancol.com/product/12v-bluetooth-4-0-battery-tester-micro-10-c/)|
+|[Junctek](https://www.junteks.com)|[Junctek BMS](https://www.junteks.com/pages/product/index) |
+|[Remoran](https://remoran.eu)| [Remoran Wave.3](https://remoran.eu/wave.html)|
 
 
 ### Environmental 

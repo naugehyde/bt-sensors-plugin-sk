@@ -86,7 +86,7 @@ class RenogySensor extends BTSensor{
     }
 
     initGATTInterval(){
-           this.emitGATT()
+        this.emitGATT()
         this.intervalID = setInterval(()=>{
             this.emitGATT()
         }, 1000*(this?.pollFreq??60) )
@@ -121,7 +121,8 @@ class RenogySensor extends BTSensor{
     async stopListening(){
         super.stopListening()
     
-        await this.readChar.stopNotifications()
+        if (this.readChar)
+            await this.readChar.stopNotifications()
         
         if (await this.device.isConnected()){
             await this.device.disconnect()

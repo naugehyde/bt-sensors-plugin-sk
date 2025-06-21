@@ -32,7 +32,7 @@ const states= ["Charging Needed", "Charging", "Floating", "Idle"]
 
 const BTSensor = require("../BTSensor");
  class RemoranWave3 extends BTSensor{
-    static Domain = BTSensor.SensorDomains.environmental
+    static Domain = BTSensor.SensorDomains.electrical
     serviceUUID = "81D08DF0-C0F8-422A-9D9D-E4379BB1EA3B"
     info1CharUUID = "62C91222-FAFE-4F6E-95F0-AFC02BD19F2E"
     info2CharUUID = "f5d12d34-4390-486c-b906-24ea8906af71"
@@ -179,6 +179,7 @@ const BTSensor = require("../BTSensor");
                  resolve(this)
             }}) .catch((e)=>{ reject(e.message) }) }) 
      }
+     
      initGATTNotifications() { 
          Promise.resolve(this.info1Characteristic.startNotifications().then(()=>{    
              this.info1Characteristic.on('valuechanged', buffer => {
@@ -204,9 +205,9 @@ const BTSensor = require("../BTSensor");
     }
      async stopListening(){
         super.stopListening()
-        await stopNotications(this.info1Characteristic)
-        await stopNotications(this.info2Characteristic)
-        await stopNotications(this.eventCharacteristic)
+        await stopNotifations(this.info1Characteristic)
+        await stopNotifations(this.info2Characteristic)
+        await stopNotifations(this.eventCharacteristic)
         if (await this.device.isConnected()){
             await this.device.disconnect()
         }

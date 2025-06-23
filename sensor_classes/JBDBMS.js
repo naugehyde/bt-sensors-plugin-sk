@@ -52,10 +52,10 @@ class JBDBMS extends BTSensor {
         (buffer)=>{return buffer.readInt16BE(6) / 100} 
       
       this.addDefaultPath('remainingCapacity','electrical.batteries.capacity.remaining')
-        .read=(buffer)=>{return buffer.readUInt16BE(8) / 100} 
+        .read=(buffer)=>{return (buffer.readUInt16BE(8) / 100)*3600} 
       
       this.addDefaultPath('capacity','electrical.batteries.capacity.actual')
-        .read=(buffer)=>{return buffer.readUInt16BE(10) / 100} 
+        .read=(buffer)=>{return (buffer.readUInt16BE(10) / 100)*3600} 
      
       this.addDefaultPath('cycles','electrical.batteries.cycles' )
         .read=(buffer)=>{return buffer.readUInt16BE(12)} 
@@ -139,7 +139,7 @@ class JBDBMS extends BTSensor {
         let datasize = -1
         const timer = setTimeout(() => {
           clearTimeout(timer)
-          reject(new Error(`Response timed out from JBDBMS device ${this.getName()}. `));
+          reject(new Error(`Response timed out (+30s) from JBDBMS device ${this.getName()}. `));
         }, 30000);
 
         const valChanged = async (buffer) => {
@@ -147,13 +147,12 @@ class JBDBMS extends BTSensor {
             if (buffer[0]!==0xDD || buffer.length < 5 || buffer[1] !== command)
                 reject(`Invalid buffer from ${this.getName()}, not processing.`)
             else 
-                datasize=buffer[2]
+                datasize=buffer[3]
           }
           buffer.copy(result,offset)
-          if (buffer[buffer.length-1]==0x77 && offset+buffer.length-6==datasize){
+          if (buffer[buffer.length-1]==0x77 && offset+buffer.length-7==datasize){
             
             result = Uint8Array.prototype.slice.call(result, 0, offset+buffer.length)
-            this.debug(result)
             this.rxChar.removeAllListeners()
             clearTimeout(timer)
             if (!checkSum(result)) 
@@ -196,6 +195,20 @@ async getAndEmitCellVoltages(){
 }
 
 initGATTInterval(){
+  this.device.on("disconnect", ()=>{
+      if (this.isActive()) {
+      this.debug(`Device disconnected. Attempting to reconnect to ${this.getName()}`)  
+          try {        
+          this.deviceConnect(true).then(()=>{
+            this.debug(`Device reconnected -- ${this.getName()}`)  
+          })
+          }
+          catch (e) {
+                  this.debug(`Error while reconnecting to ${this.getName()}`)
+          }
+      }
+  })     
+  this.emitGATT()
   this.initGATTNotifications()
 }
 

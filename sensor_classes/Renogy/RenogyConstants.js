@@ -13,7 +13,8 @@ CHARGING_STATE:
     3: 'Equalizing',
     4: 'Boost',
     5: 'Floating',
-    6: 'Current limiting'
+    6: 'Current limiting',
+    8: 'Not charging'
 },
 
 LOAD_STATE: {

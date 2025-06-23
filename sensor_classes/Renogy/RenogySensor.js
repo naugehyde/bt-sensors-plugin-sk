@@ -57,9 +57,6 @@ class RenogySensor extends BTSensor{
         ) 
     }
 
-    emitGATT(){
-    }
-
     getModelName(){
         return this?.modelID??`${this.constructor.name} Unknown model` 
     }
@@ -86,7 +83,6 @@ class RenogySensor extends BTSensor{
     }
 
     initGATTInterval(){
-        this.emitGATT()
         this.intervalID = setInterval(()=>{
             this.emitGATT()
         }, 1000*(this?.pollFreq??60) )

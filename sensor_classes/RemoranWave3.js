@@ -33,10 +33,10 @@ const states= ["Charging Needed", "Charging", "Floating", "Idle"]
 const BTSensor = require("../BTSensor");
  class RemoranWave3 extends BTSensor{
     static Domain = BTSensor.SensorDomains.electrical
-    serviceUUID = "81D08DF0-C0F8-422A-9D9D-E4379BB1EA3B"
-    info1CharUUID = "62C91222-FAFE-4F6E-95F0-AFC02BD19F2E"
+    serviceUUID = "81d08df0-c0f8-422a-9d9d-e4379bb1ea3b"
+    info1CharUUID = "62c91222-fafe-4f6e-95f0-afc02bd19f2e"
     info2CharUUID = "f5d12d34-4390-486c-b906-24ea8906af71"
-    eventUuid =  "f12a8e25-59f7-42f2-b7ae-ba96fb25c13c"
+    eventUUID =  "f12a8e25-59f7-42f2-b7ae-ba96fb25c13c"
 
      static async identify(device){
          
@@ -53,57 +53,68 @@ const BTSensor = require("../BTSensor");
          return true
      }
     emitInfo1Data(buffer){
+        this.debug(`emitting info 1 data`)
         if (buffer.length < 20) {
             app.debug(`Bad buffer size ${buffer.length}. Buffer size must be 20 bytes or more.`)
             return
         }
-        emitData("versionNumber", buffer.readUInt8(0))
+        this.emit("versionNumber", buffer.readUInt8(0))
         const errors = buffer.readUInt8(2)
         const errorState = []
         for (var i = 0; i < 8; ++i) {
             var c = 1 << i;
-            r & c && errorState.push(errors[i])
+            errors & c && errorState.push(errors[i])
         }
-        emitData("errors", errorState)
-        emitData("state",  states[buffer.readUInt8(3)])
-        emitData("rpm", buffer.readUInt32LE(4))
-        emitData( "voltage" , buffer.readFloatLE(8))
-        emitData("current",  buffer.readFloatLE(12))
-        emitData( "power", buffer.readFloatLE(16))
+        this.emit("errors", errorState)
+        this.emit("state",  states[buffer.readUInt8(3)])
+        this.emit("rpm", buffer.readUInt32LE(4))
+        this.emit( "voltage" , buffer.readFloatLE(8))
+        this.emit("current",  buffer.readFloatLE(12))
+        this.emit( "power", buffer.readFloatLE(16))
                 
         if (buffer.length > 23) {
-            emitData( "temp", buffer.readFloatLE(20).toFixed(1))
-            emitData( "uptime", buffer.readUInt32(24))
+            this.emit( "temp", buffer.readFloatLE(20).toFixed(1))
+            this.emit( "uptime", buffer.readUInt32LE(24))
             if (versionNumber>1 && buffer.size > 31) {
-                emitData("energy", buffer.readFloatLE(32).toFixed(1))
+                this.emit("energy", buffer.readFloatLE(32).toFixed(1))
             }
         }
     
     }
     emitInfo2Data(buffer){
+        this.debug(`emitting info 2 data`)
+
         if (buffer.size < 12) {
             app.debug(`Bad buffer size ${buffer.length}. Buffer size must be 12 bytes or more.`)
             return
          }
-        emitData("versionNumber", buffer.getUint8(0))
-        emitData("temp",  buffer.readFloat32LE(4))
-        emitData("uptime", buffer.readUInt32(8))
-        emitData("lastBootTime", arduinoDateDecode(buffer.getUInt32LE(12)))
-        emitData("energy",   buffer.readFloat32LE(16))
+        this.emit("versionNumber", buffer.readUInt8(0))
+        this.emit("temp",  buffer.readFloatLE(4))
+        this.emit("uptime", buffer.readUInt32LE(8))
+        this.emit("lastBootTime", arduinoDateDecode(buffer.readUInt32LE(12)))
+        this.emit("energy",   buffer.readFloatLE(16))
     }
     emitEventData(buffer){
-        if (buffer.size < 14) {
+                this.debug(`emitting event data`)
+        if (buffer.length < 14) {
+            this.debug(buffer)
             app.debug(`Bad buffer size ${buffer.length}. Buffer size must be 14 bytes or more.`)
             return
          }
-        this.emitData("event", 
+        const eventType = buffer.readUInt16LE(8)
+        var eventDesc = eventType.toString()
+        if (Object.hasOwn(eventTypes,eventType))
+            eventDesc = eventTypes[eventType]
+
+
+        this.emit("event", 
             {
                 firstDate: arduinoDateDecode(buffer.readUInt32LE(0)),
                 lastDate: arduinoDateDecode(buffer.readUInt32LE(4)),
-                eventType: buffer.readUInt16LE(8),
+                eventType: eventType,
                 count: buffer.readUInt16LE(10),
                 index: buffer.readUInt16LE(12),
-                eventDesc: eventTypes[i]
+                eventDesc: eventDesc
             }
         )
     }
@@ -172,12 +183,14 @@ const BTSensor = require("../BTSensor");
          return new Promise((resolve,reject )=>{ this.deviceConnect().then(async ()=>{ 
              if (!this.gattServer) { 
                  this.gattServer = await this.device.gatt() 
+                 this.debug(`Getting primary service ${this.serviceUUID}`)
+                 //this.debug(this.gattServer._services)
                  this.service = await this.gattServer.getPrimaryService(this.serviceUUID) 
                  this.info1Characteristic = await this.service.getCharacteristic(this.info1CharUUID)
-                 this.info2Characteristic = await this.service.getPrimaryService(this.info2CharUUID) 
+                 this.info2Characteristic = await this.service.getCharacteristic(this.info2CharUUID) 
                  this.eventCharacteristic = await this.service.getCharacteristic(this.eventUUID)
                  resolve(this)
-            }}) .catch((e)=>{ reject(e.message) }) }) 
+            }}) .catch((e)=>{ this.debug(e); reject(e.message) }) }) 
      }
      
      initGATTNotifications() { 
@@ -205,9 +218,9 @@ const BTSensor = require("../BTSensor");
     }
      async stopListening(){
         super.stopListening()
-        await stopNotifations(this.info1Characteristic)
-        await stopNotifations(this.info2Characteristic)
-        await stopNotifations(this.eventCharacteristic)
+        await stopNotifications(this?.info1Characteristic)
+        await stopNotifications(this?.info2Characteristic)
+        await stopNotifications(this?.eventCharacteristic)
         if (await this.device.isConnected()){
             await this.device.disconnect()
         }

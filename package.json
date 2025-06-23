@@ -1,7 +1,7 @@
 {
   "name": "bt-sensors-plugin-sk",
   "version": "1.2.2",
-  "description": "Bluetooth Sensors for Signalk - see https://www.npmjs.com/package/bt-sensors-plugin-sk for a list of supported classes",
+  "description": "Bluetooth Sensors for Signalk - see https://www.npmjs.com/package/bt-sensors-plugin-sk#supported-sensors for a list of supported sensors",
   "main": "index.js",
   "dependencies": {
     "@rjsf/bootstrap-4": "^5.24.11",

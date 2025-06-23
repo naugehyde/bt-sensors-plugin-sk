@@ -465,13 +465,26 @@ class BTSensor extends EventEmitter {
         throw new Error("::initGATTNotifications() should be implemented by the BTSensor subclass")
     }
 
-    deviceConnect() {
+    deviceConnect(reconnect=false) {
 
      
         return connectQueue.enqueue( async ()=>{
             this.debug(`Connecting... ${this.getName()}`)
-            await this.device.connect()
+            await this.device.helper.callMethod('Connect')
+
             this.debug(`Connected to ${this.getName()}`)
+            if (!reconnect) {
+                this.device.helper.on('PropertiesChanged',  (propertiesChanged) => {
+                    if ('Connected' in propertiesChanged) {
+                        const { value } = propertiesChanged.Connected
+                        if (value) {
+                            this.device.emit('connect', { connected: true })
+                        } else {
+                            this.device.emit('disconnect', { connected: false })
+                        }
+                    }
+                })
+            }
 
             try {
 

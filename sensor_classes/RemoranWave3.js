@@ -73,10 +73,10 @@ const BTSensor = require("../BTSensor");
         this.emit( "power", buffer.readFloatLE(16))
                 
         if (buffer.length > 23) {
-            this.emit( "temp", buffer.readFloatLE(20).toFixed(1))
+            this.emit( "temp", ((buffer.readFloatLE(20))+273.15))
             this.emit( "uptime", buffer.readUInt32LE(24))
             if (versionNumber>1 && buffer.size > 31) {
-                this.emit("energy", buffer.readFloatLE(32).toFixed(1))
+                this.emit("energy", buffer.readFloatLE(32))
             }
         }
     
@@ -89,7 +89,7 @@ const BTSensor = require("../BTSensor");
             return
          }
         this.emit("versionNumber", buffer.readUInt8(0))
-        this.emit("temp",  buffer.readFloatLE(4))
+        this.emit("temp",  ((buffer.readFloatLE(4))+273.15))
         this.emit("uptime", buffer.readUInt32LE(8))
         this.emit("lastBootTime", arduinoDateDecode(buffer.readUInt32LE(12)))
         this.emit("energy",   buffer.readFloatLE(16))
@@ -183,8 +183,6 @@ const BTSensor = require("../BTSensor");
          return new Promise((resolve,reject )=>{ this.deviceConnect().then(async ()=>{ 
              if (!this.gattServer) { 
                  this.gattServer = await this.device.gatt() 
-                 this.debug(`Getting primary service ${this.serviceUUID}`)
-                 //this.debug(this.gattServer._services)
                  this.service = await this.gattServer.getPrimaryService(this.serviceUUID) 
                  this.info1Characteristic = await this.service.getCharacteristic(this.info1CharUUID)
                  this.info2Characteristic = await this.service.getCharacteristic(this.info2CharUUID) 
@@ -218,9 +216,9 @@ const BTSensor = require("../BTSensor");
     }
      async stopListening(){
         super.stopListening()
-        await stopNotifications(this?.info1Characteristic)
-        await stopNotifications(this?.info2Characteristic)
-        await stopNotifications(this?.eventCharacteristic)
+        await this.stopNotifications(this?.info1Characteristic)
+        await this.stopNotifications(this?.info2Characteristic)
+        await this.stopNotifications(this?.eventCharacteristic)
         if (await this.device.isConnected()){
             await this.device.disconnect()
         }

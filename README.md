@@ -1,4 +1,10 @@
 # Bluetooth Sensors for [Signal K](http://www.signalk.org) 
+# Version 1.2.3
+
+## WHAT'S NEW SINCE VERSION 1.2.2
+
+Bug fixes Remoran Wave.3, JunctekBMS, and ShenzhenLiOn
+
 # Version 1.2.2
 
 ## WHAT'S NEW SINCE VERSION 1.2.1

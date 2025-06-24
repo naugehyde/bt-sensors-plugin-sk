@@ -69,10 +69,10 @@ class JunctekBMS extends BTSensor{
                 const v = parseInt(bytesToBase10String(value))
                 switch (byte){
                 case 0xC0:{
-                    emitData("voltage",v/100)
+                    emit("voltage",v/100)
                 }
                 case 0xC1:{
-                    emitData("current",(v/100)*chargeDirection)
+                    emit("current",(v/100)*chargeDirection)
                 }
 
                 case 0xD1:{
@@ -81,29 +81,29 @@ class JunctekBMS extends BTSensor{
                 }
 
                 case 0xD2:{
-                    emitData("remainingAh",v/1000)
+                    emit("remainingAh",v/1000)
                 }
 
                 case 0xD3:{
-                    emitData("discharge",v/100000)
+                    emit("discharge",v/100000)
                 }
                 case 0xD4:{
-                    emitData("charge",v/100000)
+                    emit("charge",v/100000)
                 }
                 case 0xD6:{
-                    emitData("timeRemaining",v*60)
+                    emit("timeRemaining",v*60)
                 }
                 case 0xD7:{
-                    emitData("impedance",v/100)
+                    emit("impedance",v/100)
                 }
                 case 0xD8:{
-                    emitData("power",(v/100)*chargeDirection)
+                    emit("power",(v/100)*chargeDirection)
                 }
                 case 0xD9:{
-                    emitData("temperature",v + 173.15) //assume C not F
+                    emit("temperature",v + 173.15) //assume C not F
                 }
                 case 0xB1:{
-                    emitData("capacityActual",v /10 )
+                    emit("capacityActual",v /10 )
                 }
             }
             }

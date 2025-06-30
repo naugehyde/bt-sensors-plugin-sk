@@ -42,13 +42,7 @@ class RenogySensor extends BTSensor{
 
     async initSchema(){
         await super.initSchema()
-        this.addParameter(
-            "refreshInterval",
-            {
-                title: 'refresh interval',
-                type: 'number'
-            }
-        )
+       
         this.addParameter(
             "deviceID",
             {

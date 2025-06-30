@@ -484,7 +484,22 @@ class BTSensor extends EventEmitter {
                         }
                     }
                 })
-            }
+                this.device.on("disconnect", ()=>{
+                        if (this.isActive()) {
+                        this.debug(`Device disconnected. Attempting to reconnect to ${this.getName()}`)  
+                            try {        
+                            this.deviceConnect(true).then(()=>{
+                                this.debug(`Device reconnected -- ${this.getName()}`)  
+                            })
+                            }
+                            catch (e) {
+                                this.setPluginError( `Error while reconnecting to ${this.getName()}: ${e.message}`)
+                                this.debug( `Error while reconnecting to ${this.getName()}: ${e.message}`)
+                                this.debug(e)
+                            }
+                        }
+                    })     
+                }
 
             try {
 

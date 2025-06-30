@@ -195,19 +195,7 @@ async getAndEmitCellVoltages(){
 }
 
 initGATTInterval(){
-  this.device.on("disconnect", ()=>{
-      if (this.isActive()) {
-      this.debug(`Device disconnected. Attempting to reconnect to ${this.getName()}`)  
-          try {        
-          this.deviceConnect(true).then(()=>{
-            this.debug(`Device reconnected -- ${this.getName()}`)  
-          })
-          }
-          catch (e) {
-                  this.debug(`Error while reconnecting to ${this.getName()}`)
-          }
-      }
-  })     
+   
   this.emitGATT()
   this.initGATTNotifications()
 }

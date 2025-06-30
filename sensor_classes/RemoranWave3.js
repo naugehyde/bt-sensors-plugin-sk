@@ -53,7 +53,6 @@ const BTSensor = require("../BTSensor");
          return true
      }
     emitInfo1Data(buffer){
-        this.debug(`emitting info 1 data`)
         if (buffer.length < 20) {
             app.debug(`Bad buffer size ${buffer.length}. Buffer size must be 20 bytes or more.`)
             return
@@ -82,7 +81,6 @@ const BTSensor = require("../BTSensor");
     
     }
     emitInfo2Data(buffer){
-        this.debug(`emitting info 2 data`)
 
         if (buffer.size < 12) {
             app.debug(`Bad buffer size ${buffer.length}. Buffer size must be 12 bytes or more.`)
@@ -95,7 +93,6 @@ const BTSensor = require("../BTSensor");
         this.emit("energy",   buffer.readFloatLE(16))
     }
     emitEventData(buffer){
-                this.debug(`emitting event data`)
         if (buffer.length < 14) {
             this.debug(buffer)
             app.debug(`Bad buffer size ${buffer.length}. Buffer size must be 14 bytes or more.`)

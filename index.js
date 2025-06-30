@@ -409,8 +409,10 @@ module.exports =   function (app) {
 			try{
 				const c = await getClassFor(device,config)
 				c.debug=app.debug
+				
 				const sensor = new c(device, config?.params, config?.gattParams)
 				sensor.debug=app.debug
+				sensor.setPluginError=app.setPluginError
 				sensor.app=app
 				sensor._adapter=adapter //HACK!
 				await sensor.init()				
@@ -420,7 +422,8 @@ module.exports =   function (app) {
 				const msg = `Unable to instantiate ${await BTSensor.getDeviceProp(device,"Address")}: ${error.message} `
 				app.debug(msg)
 				app.debug(error)
-				app.setPluginError(msg)
+				if (config.active) 
+					app.setPluginError(msg)
 				return null
 			}
 

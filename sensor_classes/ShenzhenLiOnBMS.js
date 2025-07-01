@@ -160,7 +160,9 @@ class ShenzhenLiONBMS extends BTSensor{
     async initGATTInterval(){
         await this.initGATTNotifications() 
     }
-
+    emitGATT(){
+        
+    }
     async initGATTNotifications() { 
         await this.rxCharacteristic.startNotifications()    
         this.rxCharacteristic.on('valuechanged', buffer => {

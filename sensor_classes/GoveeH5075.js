@@ -1,28 +1,27 @@
 const GoveeSensor = require("./Govee/GoveeSensor");
 
-class GoveeH510x extends GoveeSensor{
+class GoveeH5075 extends  GoveeSensor {
     static getIDRegex(){
-        return /^GVH510[0-9]_[a-f,A-F,0-9]{4}$/
+        return /^Govee_H5075_[a-f,A-F,0-9]{4}$/
     }
-
-     static test(){
-        const sensor = new GoveeH510x()
-        sensor.getName=()=>{return "Govee H510x fake"}
+    static test(){
+        const sensor = new GoveeH5075()
+        sensor.getName=()=>{return "Govee H5075 fake"}
         sensor.initSchema()
         sensor.on("temp", (t)=>{console.log(`temp => ${t}`)})
         sensor.on("humidity", (t)=>{console.log(`humidity => ${t}`)})
         sensor.on("battery", (t)=>{console.log(`battery => ${t}`)})
-        sensor.emitValuesFrom(Buffer.from([0x01,0x01,0x03,0x6d,0xcc,0x5c]))
+        sensor.emitValuesFrom(Buffer.from([0x00, 0x81, 0xc2 ,0x89 ,0x64 ,0x00]))
+        sensor.emitValuesFrom(Buffer.from([0x00,0x03,0x68,0xd1,0x58,0x00]))
 
     }
-
     initSchema(){
         super.initSchema()
         this.addDefaultParam("zone")
 
         this.addDefaultPath("temp","environment.temperature")
         this.addDefaultPath("humidity", "environment.humidity")
-        this.addDefaultPath("battery","sensors.batteryStrength")        
+        this.addDefaultPath("battery","sensors.batteryStrength")   
     }
 
     emitValuesFrom(buffer){
@@ -30,12 +29,9 @@ class GoveeH510x extends GoveeSensor{
             this.debug(`Invalid buffer received. Cannot parse buffer ${buffer} for ${this.getMacAndName()}`)
             return
         }
-        const val = this.getPackedTempAndHumidity(buffer,2)
+        const val = this.getPackedTempAndHumidity(buffer,1)
         this.emitTemperatureAndHumidity(val.packedValue, val.tempIsNegative)
-        this.emit("battery", buffer[5]/100)
-
-    }
-
-                     
+        this.emit("battery", buffer[4]/100)
+    }                         
 }
-module.exports=GoveeH510x
+module.exports=GoveeH5075

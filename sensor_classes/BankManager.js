@@ -48,7 +48,7 @@ class BankManager extends BTSensor{
         this.emit("pbVoltage", parseFloat(data[2]))
         this.emit("current", parseFloat(data[3])) 
         this.emit("soc", parseFloat(data[4])/100) 
-        this.emit("connectionStatus", data[5]) 
+        this.emit("connectionStatus", parseInt(data[5])) 
 
     }
     emitGATT(){

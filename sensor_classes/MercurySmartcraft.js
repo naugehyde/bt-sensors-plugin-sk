@@ -37,9 +37,10 @@ class MercurySmartcraft extends BTSensor{
     initSchema(){
         super.initSchema()
         this.addParameter(
-            "id":{
+            "id",
+            {
                 "title": "Engine ID",
-                "examples"=["port","starboard","p0","p1"]
+                "examples": ["port","starboard","p0","p1"]
             }
         )
         _schema.properties.params.required=["id"]
@@ -93,7 +94,7 @@ class MercurySmartcraft extends BTSensor{
                 resolve(this)
              }) .catch((e)=>{ reject(e.message) }) }) 
     }
-    initGATTNotifications() { 
+    async initGATTNotifications() { 
         await this.sdpCharacteristic.writeDataWithoutResponse(Buffer.from([0x0D,0x01]))
         for (const c in this.dataCharacteristics){
             Promise.resolve(this.dataCharacteristics[c].startNotifications().then(()=>{    

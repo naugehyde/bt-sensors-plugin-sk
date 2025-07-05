@@ -1,6 +1,6 @@
-const BTSensor = require("../BTSensor");
+const GoveeSensor = require("./Govee/GoveeSensor");
 
-class GoveeH5074 extends  BTSensor {
+class GoveeH5074 extends  GoveeSensor {
     static getIDRegex() {
         return /^Govee_H5074_[a-f,A-F,0-9]{4}$/
     }

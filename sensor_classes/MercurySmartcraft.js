@@ -16,7 +16,7 @@ Service UUID	Characteristic UUID	Type	Param	Convertion	Unit	SignalK Path	Comment
 const BTSensor = require("../BTSensor");
 class MercurySmartcraft extends BTSensor{
     static Domain = BTSensor.SensorDomains.propulsion
-		
+	
     static async identify(device){
         
         const name = await this.getDeviceProp(device,"Name")
@@ -26,6 +26,9 @@ class MercurySmartcraft extends BTSensor{
         else
             return null
     }
+
+    
+
     hasGATT(){
         return false
     }
@@ -35,6 +38,8 @@ class MercurySmartcraft extends BTSensor{
     emitGATT(){
     }
     initSchema(){
+        const bo = 0
+
         super.initSchema()
         this.addParameter(
             "id",
@@ -46,31 +51,31 @@ class MercurySmartcraft extends BTSensor{
         _schema.properties.params.required=["id"]
 
         this.addMetadatum("rpm","Hz","engine revolutions per sec", 
-            (buffer)=>{return buffer.readUInt16LE(0)/60}
+            (buffer)=>{return buffer.readUInt16LE(bo)/60}
         ).default='propulsion.{id}.revolutions'
 
         this.addMetadatum("coolant","K","temperature of engine coolant in K", 
-            (buffer)=>{return buffer.readUInt16LE(0)+273.15}
+            (buffer)=>{return buffer.readUInt16LE(bo)+273.15}
         ).default='propulsion.{id}.coolantTemperature'
 
         this.addMetadatum("alternatorVoltage","V","voltage of alternator", 
-            (buffer)=>{return buffer.readUInt16LE(0)/1000}
+            (buffer)=>{return buffer.readUInt16LE(bo)/1000}
         ).default='propulsion.{id}.alternatorVoltage'
 
         this.addMetadatum("runtime","s","Total running time for engine (Engine Hours in seconds)", 
-            (buffer)=>{return buffer.readUInt16LE(0)*60}
+            (buffer)=>{return buffer.readUInt16LE(bo)*60}
         ).default='propulsion.{id}.runTime'
 
         this.addMetadatum("rate","m3/s","Fuel rate  of consumption (cubic meters per second)", 
-            (buffer)=>{return buffer.readUInt16LE(0)/10000}
+            (buffer)=>{return buffer.readUInt16LE(bo)/10000}
         ).default='propulsion.{id}.fuel.rate'
             
         this.addMetadatum("pressure","Pa","Fuel pressure", 
-            (buffer)=>{return buffer.readUInt16LE(0)/100}
+            (buffer)=>{return buffer.readUInt16LE(bo)/100}
         ).default='propulsion.{id}.pressure'
 
         this.addMetadatum("level","ratio","Level of fluid in tank 0-100%", 
-            (buffer)=>{return buffer.readUInt16LE(0)/100}
+            (buffer)=>{return buffer.readUInt16LE(bo)/100}
         ).default='tanks.petrol.currentLevel'
     }
 

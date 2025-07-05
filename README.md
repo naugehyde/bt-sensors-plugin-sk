@@ -1,7 +1,7 @@
 # Bluetooth Sensors for [Signal K](http://www.signalk.org) 
-# Version 1.2.4
+# Version 1.2.4-1
 
-## WHAT'S NEW SINCE VERSION 1.2.3
+## WHAT'S NEW  
 
 - **NEW SENSOR** [Bank Manager](https://marinedcac.com/pages/bankmanager) (tested) 
 - **NEW SENSOR** [Mercury Smartcraft](https://www.mercurymarine.com/us/en/gauges-and-controls/displays/smartcraft-connect) (untested)
@@ -9,21 +9,17 @@
 - Added defaults for Renogy Rover Client
 - Automatic reconnect for GATT connected devices
 
-# Version 1.2.3
-
-## WHAT'S NEW SINCE VERSION 1.2.2
+### Version 1.2.3
 
 Bug fixes Remoran Wave.3, JunctekBMS, and ShenzhenLiOn
 
-# Version 1.2.2
-
-## WHAT'S NEW SINCE VERSION 1.2.1
+### Version 1.2.2
 
 - Junctek BMS and Remoran Wave 3 support (Note: both are not currently field tested)
 
 - Fixes to ShenzhenLiOn BMS, Victron Orion XS, Victron DC DC Converter, Victron Smart Lithium Classes
 
-## WHAT'S NEW SINCE VERSION 1.1.x
+### Version 1.2.1
 
 - Dynamic configuration screen. The Device list automatically updates when new devices are found by the BT scanner. (No more annoying screen refresh necessary!). 
 

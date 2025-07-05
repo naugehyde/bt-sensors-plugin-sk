@@ -37,7 +37,7 @@ class BankManager extends BTSensor{
         return "Bank Manager"
     }
     hasGATT(){
-        return true
+        return false
     }
     usingGATT(){
         return true

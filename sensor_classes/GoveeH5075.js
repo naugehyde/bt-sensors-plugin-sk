@@ -12,7 +12,7 @@ class GoveeH5075 extends  GoveeSensor {
         sensor.on("humidity", (t)=>{console.log(`humidity => ${t}`)})
         sensor.on("battery", (t)=>{console.log(`battery => ${t}`)})
         sensor.emitValuesFrom(Buffer.from([0x00, 0x81, 0xc2 ,0x89 ,0x64 ,0x00]))
-        sensor.emitValuesFrom(Buffer.from([0x00,0x03,0x68,0xd1,0x58,0x00]))
+        sensor.emitValuesFrom(Buffer.from([0x00,0x03,0xbb,0x94,0x64,0x00]))
 
     }
     initSchema(){

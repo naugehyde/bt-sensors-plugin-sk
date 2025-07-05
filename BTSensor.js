@@ -107,6 +107,7 @@ class BTSensor extends EventEmitter {
         unknown: { name: "unknown", description: "Unknown sensor domain "},
         environmental: { name: "environmental", description: "Sensors that measure environmental conditions - air temperature, humidity etc."},
         electrical: { name: "electrical", description: "Electrical sensor - chargers, batteries, inverters etc."},
+        propulsion: { name: "propulsion", description: "Sensors that measure engine state"},
         tanks: { name: "tanks", description: "Sensors that measure level in tanks (gas, propane, water etc.) "}
     }
     static Domain = this.SensorDomains.unknown   

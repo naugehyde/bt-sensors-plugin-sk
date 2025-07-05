@@ -1,4 +1,14 @@
 # Bluetooth Sensors for [Signal K](http://www.signalk.org) 
+# Version 1.2.4
+
+## WHAT'S NEW SINCE VERSION 1.2.3
+
+- **NEW SENSOR** [Bank Manager](https://marinedcac.com/pages/bankmanager) (tested) 
+- **NEW SENSOR** [Mercury Smartcraft](https://www.mercurymarine.com/us/en/gauges-and-controls/displays/smartcraft-connect) (untested)
+- Fixed Govee 5075 parsing
+- Added defaults for Renogy Rover Client
+- Automatic reconnect for GATT connected devices
+
 # Version 1.2.3
 
 ## WHAT'S NEW SINCE VERSION 1.2.2
@@ -59,7 +69,7 @@ It's pretty easy to write and deploy your own sensor class for any currently uns
 |[Lancol](www.Lancol.com)| [Micro 10C 12V Car Battery Monitor](https://www.lancol.com/product/12v-bluetooth-4-0-battery-tester-micro-10-c/)|
 |[Junctek](https://www.junteks.com)|[Junctek BMS](https://www.junteks.com/pages/product/index) |
 |[Remoran](https://remoran.eu)| [Remoran Wave.3](https://remoran.eu/wave.html)|
-
+|[AC DC Systems](https://marinedcac.com) | [Bank Manager] hybrid (Pb and Li) charger(https://marinedcac.com/pages/bankmanager)|
 
 ### Environmental 
 | Manufacturer |  Devices | 
@@ -81,6 +91,13 @@ It's pretty easy to write and deploy your own sensor class for any currently uns
 |--------------|----------|
 | [Gobius](https://gobiusc.com/) | Gobius-C Tank level sensor|
 | [Mopeka](https://www.mopeka.com) | [Mopeka Pro Chek](https://mopeka.com/product-category/recreational-sensors-rv-bbq-etc/) ultrasonic tank level sensor  |
+
+### Propulsion
+| Manufacturer |  Devices | 
+|--------------|----------|
+| [Mercury](https://www.mercurymarine.com)| [Mercury Smartcraft](https://www.mercurymarine.com/us/en/gauges-and-controls/displays/smartcraft-connect) connect engine sensor|
+
+
 
 
 ## WHO IT'S FOR
@@ -138,16 +155,27 @@ Finally, restart SK. Plugin should appear in your server plugins list.<br>
 
 ## KNOWN ISSUES
 
+### Connected Devices on Raspberry Pi platform (4/4b/5/CM400/CM500)
+
+Onboard Raspberry Pi WiFi can cause interference with the onboard Bluetooth resulting in lost connections to GATT connected devices (Renogy, JBD, etc. )
+
+One simple solution is to install a USB BT adapter like the [Tp-link UB500-Plus](https://www.tp-link.com/us/home-networking/usb-adapter/ub500-plus/) 
+
+### USB 3.0 and HDMI interference
+
+Poorly shielded USB 3.0 and HDMI (5ghz) can interfere with BT transmission (2.4ghz).
+
 ### Configuration Panel
 
 - Safari 18.1 on OsX produces errors on load that kill the configuration screen. No known cause. Upgrade to most recent Safari or use Chrome.
 - Unsaved sensor configuration changes are lost after selecting a different sensor. Be sure to Save changes for now.
-- Renogy Rover Client, Victron GX, Victron Smart Battery Protect, and Victron VE Bus sensor classes have no default paths currently. Users will need to manually input.
+- Victron GX, Victron Smart Battery Protect, and Victron VE Bus sensor classes have no default paths currently. Users will need to manually input.
 
 ### Runtime
 
 - IMPORTANT Set `Scan for new devices interval` to `0` after configuration is complete. The plugin will run but in Bluetooth-rich environments, or if you have a long range BT 5.3 device, the system Bluetooth stack may fail after 4 hours or so.
 - There's no way that I know of to remove a SK Path without restarting the server. So if any active paths are changed by the plugin, you'll still see them hanging around in the data browser growing stale until you restart the server.
+- RPi 3/4/5/CM400s when running an Access Point on the on board Wifi can cause a problem connecting to devices through the onboard BT. The only known fix is to disable the onboard Bluetooth and use a USB BT adapter. Alternatively, you can use a USB WiFi adapter. NOTE: This only applies to _connected_ devices like Renogy devices, LiTime batteries etc. 
 
 ## CONFIGURATION
 

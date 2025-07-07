@@ -1,4 +1,6 @@
 # Bluetooth Sensors for [Signal K](http://www.signalk.org) 
+## WHAT'S NEW  
+
 # Version 1.2.4-2
 
 - RenogyRoverClient fix to Battery SOC calculation
@@ -6,9 +8,7 @@
 - SwitchBotTH and Meter Plus ::identify errors fixed
 - MercurySmartcraft::identify method fix
 
-## WHAT'S NEW  
-
-# 1.2.4-1
+# Version 1.2.4-1
 
 - **NEW SENSOR** [Bank Manager](https://marinedcac.com/pages/bankmanager) (tested) 
 - **NEW SENSOR** [Mercury Smartcraft](https://www.mercurymarine.com/us/en/gauges-and-controls/displays/smartcraft-connect) (untested)

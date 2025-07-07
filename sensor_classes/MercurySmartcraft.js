@@ -38,7 +38,7 @@ class MercurySmartcraft extends BTSensor{
     emitGATT(){
     }
     initSchema(){
-        const bo = 0
+        const bo = 2
 
         super.initSchema()
         this.addParameter(
@@ -48,7 +48,7 @@ class MercurySmartcraft extends BTSensor{
                 "examples": ["port","starboard","p0","p1"]
             }
         )
-        _schema.properties.params.required=["id"]
+        this._schema.properties.params.required=["id"]
 
         this.addMetadatum("rpm","Hz","engine revolutions per sec", 
             (buffer)=>{return buffer.readUInt16LE(bo)/60}
@@ -67,15 +67,15 @@ class MercurySmartcraft extends BTSensor{
         ).default='propulsion.{id}.runTime'
 
         this.addMetadatum("rate","m3/s","Fuel rate  of consumption (cubic meters per second)", 
-            (buffer)=>{return buffer.readUInt16LE(bo)/10000}
+            (buffer)=>{return buffer.readUInt16LE(bo)/100000/3600}
         ).default='propulsion.{id}.fuel.rate'
             
         this.addMetadatum("pressure","Pa","Fuel pressure", 
-            (buffer)=>{return buffer.readUInt16LE(bo)/100}
+            (buffer)=>{return buffer.readUInt16LE(bo)*10}
         ).default='propulsion.{id}.pressure'
 
         this.addMetadatum("level","ratio","Level of fluid in tank 0-100%", 
-            (buffer)=>{return buffer.readUInt16LE(bo)/100}
+            (buffer)=>{return buffer.readUInt16LE(bo)/10000}
         ).default='tanks.petrol.currentLevel'
     }
 
@@ -100,7 +100,7 @@ class MercurySmartcraft extends BTSensor{
              }) .catch((e)=>{ reject(e.message) }) }) 
     }
     async initGATTNotifications() { 
-        await this.sdpCharacteristic.writeDataWithoutResponse(Buffer.from([0x0D,0x01]))
+        await this.sdpCharacteristic.writeValue(Buffer.from([0x0D,0x01]))
         for (const c in this.dataCharacteristics){
             Promise.resolve(this.dataCharacteristics[c].startNotifications().then(()=>{    
                 this.dataCharacteristics[c].on('valuechanged', buffer => {
@@ -113,7 +113,7 @@ class MercurySmartcraft extends BTSensor{
     async stopListening(){
         super.stopListening()
         for (const c in this.dataCharacteristics){
-            if (this.dataCharacteristics[c] && await this.dataCharacteristics[char].isNotifying()) {
+            if (this.dataCharacteristics[c] && await this.dataCharacteristics[c].isNotifying()) {
                 await this.dataCharacteristics[c].stopNotifications()
             }
         }

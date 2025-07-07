@@ -1,6 +1,11 @@
 # Bluetooth Sensors for [Signal K](http://www.signalk.org) 
 ## WHAT'S NEW  
 
+# Version 1.2.4-3
+
+- Mercury Smartcraft fixes (working now!)
+- Govee 510x regression errors fixed
+
 # Version 1.2.4-2
 
 - RenogyRoverClient fix to Battery SOC calculation

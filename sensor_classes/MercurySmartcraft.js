@@ -21,7 +21,7 @@ class MercurySmartcraft extends BTSensor{
         
         const name = await this.getDeviceProp(device,"Name")
         const address = await this.getDeviceProp(device,"Address")
-        if (name == `VVM_${address.replace(":","")}`)
+        if (name && address && name == `VVM_${address.replace(":","")}`)
             return this 
         else
             return null

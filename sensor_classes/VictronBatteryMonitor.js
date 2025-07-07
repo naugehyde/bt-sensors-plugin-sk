@@ -22,7 +22,9 @@ class VictronBatteryMonitor extends VictronSensor{
         d.currentProperties = {}
         d.currentProperties.ManufacturerData={}
         d.currentProperties.ManufacturerData[0x02e1]=b
-        d.initMetadata() 
+        d.debug = (m)=>{console.log(m)}
+        d.debug.bind(d)
+        d.initSchema()
         Object.keys(d.getPaths()).forEach((tag)=>{
                 d.on(tag,(v)=>console.log(`${tag}=${v}`))
         })
@@ -72,7 +74,7 @@ class VictronBatteryMonitor extends VictronSensor{
         this.addDefaultPath( 'ttg',"electrical.batteries.capacity.timeRemaining") 
             .read=(buff,offset=0)=>{return this.NaNif(buff.readUInt16LE(offset),0xFFFF)*60}
         this.getPath("ttg").gatt='65970ffe-4bda-4c1e-af4b-551c4cf74769'
-        
+        this.auxMode=VC.AuxMode.STARTER_VOLTAGE
         try {
         if (this.encryptionKey){
             const decData = this.decrypt(this.getManufacturerData(0x02e1))

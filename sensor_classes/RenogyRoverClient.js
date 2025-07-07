@@ -34,7 +34,7 @@ class RenogyRoverClient extends RenogySensor {
         this.addMetadatum('batteryType', '', "battery type")
             .default="electrical.chargers.{id}.battery.type"
         this.addMetadatum('batteryPercentage', 'ratio', "battery percentage",
-             (buffer)=>{return buffer.readUInt16BE(3) })
+             (buffer)=>{return buffer.readUInt16BE(3)/100 })
             .default="electrical.chargers.{id}.battery.soc"
 
         this.addMetadatum('batteryVoltage', 'V', "battery voltage",

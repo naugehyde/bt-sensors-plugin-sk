@@ -1,6 +1,7 @@
 const GoveeSensor = require("./Govee/GoveeSensor");
 
 class GoveeH510x extends GoveeSensor{
+    
     static getIDRegex(){
         return /^GVH510[0-9]_[a-f,A-F,0-9]{4}$/
     }
@@ -15,7 +16,7 @@ class GoveeH510x extends GoveeSensor{
         sensor.emitValuesFrom(Buffer.from([0x01,0x01,0x03,0x6d,0xcc,0x5c]))
 
     }
-
+    static DATA_ID = 0x0001
     initSchema(){
         super.initSchema()
         this.addDefaultParam("zone")

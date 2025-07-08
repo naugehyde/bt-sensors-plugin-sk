@@ -235,7 +235,7 @@ class AbstractBTHomeSensor extends BTSensor {
 	 * Extracts motion detection from the given BTHome data.
 	 *
 	 * @param btHomeData {BTHomeServiceData.BthomeServiceData} The BTHome data provided by the device.
-	 * @returns {Boolean|null} The device's button press state.
+   * @returns {Boolean|null} Wether the device has detected motion.
 	 */
 	parseMotion(btHomeData) {
 		const motion = this.getSensorDataByObjectId(
@@ -304,6 +304,31 @@ class AbstractBTHomeSensor extends BTSensor {
 		return null;
 	}
 
+  /**
+   * Parses the window/door state from BTHome service data.
+   * @param {BTHomeServiceData.BthomeServiceData} btHomeData - The parsed BTHome data object.
+   * @returns {string|null} "open", "closed", or null if not present.
+   */
+  parseWindowState(btHomeData) {
+    const state = this.getSensorDataByObjectId(btHomeData, BTHomeServiceData.BthomeObjectId.BINARY_WINDOW)?.window;
+    if (state.intValue === 1) return "open";
+    if (state.intValue === 0) return "closed";
+    return null;
+  }
+
+  /**
+   * Parses the rotation from BTHome service data.
+   * @param {BTHomeServiceData.BthomeServiceData} btHomeData - The parsed BTHome data object.
+   * @returns {number|null} rotation in degrees from the closed position, or null if not present.
+   */
+  parseRotation(btHomeData) {
+    // Use the correct object ID for window event (0x2D, which is 45 in decimal, which is already specified in BthomeObjectId).
+    const sensorRotation = this.getSensorDataByObjectId(btHomeData, BTHomeServiceData.BthomeObjectId.SENSOR_ROTATION_0_1)?.rotation;
+    if (sensorRotation) {
+      return Number.parseFloat(sensorRotation.toFixed(2));
+    }
+    return null;
+  }
 
 	propertiesChanged(props) {
 		super.propertiesChanged(props);

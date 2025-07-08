@@ -22,7 +22,7 @@ class ShellySBDW002C extends AbstractBTHomeSensor {
 
   initSchema() {
     super.initSchema();
-    this.addDefaultParam("zone")
+    this.addDefaultParam("zone", true)
       .default="cabin"
 
     this.addParameter(

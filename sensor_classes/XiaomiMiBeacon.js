@@ -218,7 +218,8 @@ class XiaomiMiBeacon extends BTSensor{
         this.addParameter(
             "encryptionKey",
             {
-                title: "encryptionKey (AKA bindKey) for decryption"
+                title: "encryptionKey (AKA bindKey) for decryption",
+
             }
         )
         this.addDefaultPath('temp','environment.temperature')

@@ -45,10 +45,10 @@ class MercurySmartcraft extends BTSensor{
             "id",
             {
                 "title": "Engine ID",
-                "examples": ["port","starboard","p0","p1"]
+                "examples": ["port","starboard","p0","p1"],
+                "required": true
             }
         )
-        this._schema.properties.params.required=["id"]
 
         this.addMetadatum("rpm","Hz","engine revolutions per sec", 
             (buffer)=>{return buffer.readUInt16LE(bo)/60}

@@ -305,7 +305,7 @@ class AbstractBTHomeSensor extends BTSensor {
 	}
 
   /**
-   * Parses the window/door state from BTHome service data.
+   * Parses the opening (window/door) state from BTHome service data.
    * @param {BTHomeServiceData.BthomeServiceData} btHomeData - The parsed BTHome data object.
    * @returns {string|null} "open", "closed", or null if not present.
    */

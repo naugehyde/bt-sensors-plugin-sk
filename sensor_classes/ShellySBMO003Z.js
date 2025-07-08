@@ -27,7 +27,7 @@ class ShellySBMO003Z extends AbstractBTHomeSensor {
 
 	initSchema() {
 		super.initSchema()
-		this.addDefaultParam("zone")
+		this.addDefaultParam("zone", true)
 
 		this.addMetadatum(
 			"motion",

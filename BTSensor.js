@@ -74,7 +74,7 @@ function preparePath(obj, str) {
             evalResult= evalResult.call(obj)
         }
 
-        resultString += evalResult !== undefined ? evalResult : `${keyToAccess}_value_undefined`;
+        resultString += evalResult !== undefined ? evalResult.replace(/\s+/g,'_') : `${keyToAccess}_value_undefined`;
       } catch (error) {
         console.error(`Error accessing key '${keyToAccess}':`, error);
         resultString += fullMatch; // Keep the original curly braces on error
@@ -405,6 +405,12 @@ class BTSensor extends EventEmitter {
         if (!param.type)
             param.type="string"
 
+        if (param.isRequired) {
+            if (!Object.hasOwn(this._schema.properties.params, "required"))
+                this._schema.properties.params.required=[tag]
+            else
+                this._schema.properties.params.required.push(tag)
+        }
         this._schema.properties.params.properties[tag]=param
         return this._schema.properties.params.properties[tag]
     }
@@ -412,6 +418,13 @@ class BTSensor extends EventEmitter {
     addPath(tag, path){
         if (!path.type)
             path.type="string"
+
+        if (path.isRequired) {
+            if (!Object.hasOwn(this._schema.properties.paths, "required"))
+                this._schema.properties.paths.required=[tag]
+            else
+                this._schema.properties.paths.required.push(tag)
+        }
 
         if (!path.pattern)
             path.pattern=//"^(?:[^{}\\s]*\\{[a-zA-Z0-9]+\\}[^{}\\s]*|[^{}\\s]*)$"
@@ -424,7 +437,13 @@ class BTSensor extends EventEmitter {
 
         if (!param.type)
             param.type="string"
-        
+
+        if (param.isRequired) {
+            if (!Object.hasOwn(this._schema.properties.gattParams, "required"))
+                this._schema.properties.gattParams.required=[tag]
+            else
+                this._schema.properties.gattParams.required.push(tag)
+        }
         return this._schema.properties.gattParams.properties[tag]=param
     }
 
@@ -433,8 +452,10 @@ class BTSensor extends EventEmitter {
         return this.addPath(tag,Object.assign({}, path))
     }
 
-    addDefaultParam(tag){        
-        return this.addParameter(tag,Object.assign({}, BTSensor.DEFAULTS.params[tag]))
+    addDefaultParam(tag,required=false){        
+        const param = Object.assign({}, BTSensor.DEFAULTS.params[tag])
+        param.isRequired=required
+        return this.addParameter(tag,param)
     }
 
     getJSONSchema(){
@@ -866,12 +887,14 @@ class BTSensor extends EventEmitter {
 		Object.keys(this.getPaths()).forEach((tag)=>{
             const pathMeta=this.getPath(tag)
             const path = config.paths[tag]
-            if (!(path===undefined))
+            if (!(path===undefined)) {
+                const preparedPath  =
                 this.app.handleMessage(id, 
                 {
                 updates: 
-                    [{ meta: [{path: preparePath(this, path), value: { units: pathMeta?.unit }}]}]
+                    [{ meta: [{path:  preparePath(this, path), value: { units: pathMeta?.unit }}]}]
                 })
+            }
         })
 	}
 
@@ -881,11 +904,12 @@ class BTSensor extends EventEmitter {
             const pathMeta=this.getPath(tag)
 			const path = deviceConfig.paths[tag];
 			if (!(path === undefined)) {
+                let preparedPath =  preparePath(this, path)
                 this.on(tag, (val)=>{
 					if (pathMeta.notify){
 						this.app.notify(tag, val, id )
 					} else {
-						this.updatePath(preparePath(this,path),val, id, source)
+						this.updatePath(preparedPath,val, id, source)
 					}
                 })
 			}

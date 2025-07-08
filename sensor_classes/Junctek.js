@@ -41,7 +41,7 @@ class JunctekBMS extends BTSensor{
         this.addDefaultPath("cycles",'electrical.batteries.cycles')
 
         this.addDefaultPath("soc",'electrical.batteries.capacity.stateOfCharge')
-        this.addDefaultPath("remainingAh",'electrical.batteries.capacity.remaining')
+        this.addDefaultPath("remaining",'electrical.batteries.capacity.remaining')
         this.addDefaultPath("timeRemaining",'electrical.batteries.capacity.timeRemaining')
         this.addDefaultPath("discharge",'electrical.batteries.capacity.dischargeSinceFull')
         this.addDefaultPath("charge",'electrical.batteries.capacity.charge')
@@ -53,7 +53,7 @@ class JunctekBMS extends BTSensor{
 
     emitFrom(buffer){
         var value=[], chargeDirection = 1
-
+        this.debug(buffer)
         for (let byte of buffer){
             if (byte==0xBB) {
                 value=[]
@@ -63,49 +63,52 @@ class JunctekBMS extends BTSensor{
                 continue
             }
             
-            value.push[byte]
-
-            if (parseInt(byte.toString(16))==NaN){ //not a base-10 number. seriously. that's how Junctek does this.
+            if (isNaN(parseInt(byte.toString(16)))){ //not a base-10 number. seriously. that's how Junctek does this.
                 const v = parseInt(bytesToBase10String(value))
+                value=[]
                 switch (byte){
-                case 0xC0:{
-                    emit("voltage",v/100)
-                }
-                case 0xC1:{
-                    emit("current",(v/100)*chargeDirection)
-                }
+                case 0xC0:
+                    this.emit("voltage",v/100)
+                    break
+                
+                case 0xC1:
+                    this.emit("current",(v/100)*chargeDirection)
+                    break
 
-                case 0xD1:{
+                case 0xD1:
                     if (byte==0)
                         chargeDirection=-1
-                }
+                    break
 
-                case 0xD2:{
-                    emit("remainingAh",v/1000)
-                }
+                case 0xD2:
+                    this.emit("remaining",v*3.6)
+                    break
 
-                case 0xD3:{
-                    emit("discharge",v/100000)
-                }
-                case 0xD4:{
-                    emit("charge",v/100000)
-                }
-                case 0xD6:{
-                    emit("timeRemaining",v*60)
-                }
-                case 0xD7:{
-                    emit("impedance",v/100)
-                }
-                case 0xD8:{
-                    emit("power",(v/100)*chargeDirection)
-                }
-                case 0xD9:{
-                    emit("temperature",v + 173.15) //assume C not F
-                }
-                case 0xB1:{
-                    emit("capacityActual",v /10 )
-                }
+                case 0xD3:
+                    this.emit("discharge",v/100000)
+                    break
+                case 0xD4:
+                    this.emit("charge",v/100000)
+                    break
+                case 0xD6:
+                    this.emit("timeRemaining",v*60)
+                    break
+                case 0xD7:
+                    this.emit("impedance",v/100)
+                    break
+                case 0xD8:
+                    this.emit("power",(v/100)*chargeDirection)
+                    break
+                case 0xD9:
+                    this.emit("temperature",v + 273.15) //assume C not F
+                    break
+                case 0xB1:
+                    this.emit("capacityActual",v /10 )
+                    break
             }
+            }
+            else{
+                value.push(byte)
             }
         }
     }
@@ -120,8 +123,9 @@ class JunctekBMS extends BTSensor{
             if (!this.gattServer) { 
                 this.gattServer = await this.device.gatt() 
                 this.battService = await this.gattServer.getPrimaryService("0000fff0-0000-1000-8000-00805f9b34fb") 
-                this.battCharacteristic = await this.battService.getCharacteristic("0000ffe1-0000-1000-8000-00805f9b34fb")
-                }
+                this.battCharacteristic = await this.battService.getCharacteristic("0000fff1-0000-1000-8000-00805f9b34fb")
+
+            }
                 resolve(this)
              }) .catch((e)=>{ reject(e.message) }) }) 
     }

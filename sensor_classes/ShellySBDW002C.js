@@ -22,13 +22,23 @@ class ShellySBDW002C extends AbstractBTHomeSensor {
 
   initSchema() {
     super.initSchema();
-    this.addDefaultParam("zone");
+    this.addDefaultParam("zone", true)
+      .default="cabin"
+
+    this.addParameter(
+      "opening",
+      {
+          "title": "Name of opening",
+          "examples": ["companionWay", "porthole", "hatch"],
+          "required": true,
+          "default": "companionWay"
+      })
+
+    this.addMetadatum("opening", "", "state of opening (door/window) as 'open' or 'closed'; null if not present. ", this.parseWindowState.bind(this)).default =
+      "environment.{zone}.{opening}.state";
 
     // The second parameter is not the signalk path, but a JSON object in plugin_defaults.json; that provides the default signalk path
     this.addDefaultPath("battery", "sensors.batteryStrength").read = this.parseBatteryLevel.bind(this);
-
-    this.addMetadatum("window", "enum", "state of door/window as 'open' or 'closed'; null if not present. ", this.parseWindowState.bind(this)).default =
-      "sensors.{macAndName}.window";
 
     this.addMetadatum("illuminance", "lx", "illuminance measured in lux, scaled 0.01", this.parseIlluminance.bind(this)).default =
       "sensors.{macAndName}.illuminance";
@@ -36,7 +46,7 @@ class ShellySBDW002C extends AbstractBTHomeSensor {
     this.addMetadatum("rotation", "deg", "rotation in degrees from the closed position; null if not present", this.parseRotation.bind(this)).default =
       "sensors.{nameAndMac}.rotation";
 
-    this.addMetadatum("button", "enum", "button 'press' or 'hold_press'; null if not present", this.parseShellyButton.bind(this)).default =
+    this.addMetadatum("button", "", "button 'press' or 'hold_press'; null if not present", this.parseShellyButton.bind(this)).default =
       "sensors.{macAndName}.button";
   }
 }

@@ -24,7 +24,7 @@ class SwitchBotMeterPlus extends BTSensor{
         const keys = Object.keys(md)
         if ( (keys && keys.length>0) && (sdKeys && sdKeys.length >0) ){
             const id = keys[keys.length-1]
-            if (parseInt(id)==this.ID && md[id][0]==modelID && sdKeys[0] == this.serviceDataKey)
+            if (parseInt(id)==this.ID && md[id][0]==this.modelID && sdKeys[0] == this.serviceDataKey)
                return this
         }
         return null
@@ -63,7 +63,7 @@ class SwitchBotMeterPlus extends BTSensor{
     }
 
     getName() {
-        return "SwitchBotMeterPlus"
+        return `SwitchBot Meter Plus (${this?.name??"Unnamed"})` 
     }
 
 }

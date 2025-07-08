@@ -280,17 +280,19 @@ class MopekaTankSensor extends BTSensor{
         this.addParameter("medium",
             {
                 title:"type of liquid in tank",
-                enum: Object.keys(Media)
+                enum: Object.keys(Media),
+                required: true
             }
         )
         this.addParameter("tankHeight",
             {
                 title:"height of tank (in mm)",
                 type:"number",
-                unit:"mm"
+                unit:"mm",
+                required: true
             }
         )
-        this.addDefaultParam("id")
+        this.addDefaultParam("id", true)
 
         this.addDefaultPath("battVolt","sensors.batteryVoltage") 
             .read=((buffer)=>{ 

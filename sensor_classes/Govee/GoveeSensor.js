@@ -18,6 +18,7 @@ class GoveeSensor extends  BTSensor {
         
     }
 
+    static DATA_ID=0xec88
     getManufacturer(){
         return "Govee"
     }
@@ -38,7 +39,7 @@ class GoveeSensor extends  BTSensor {
         super.propertiesChanged(props)    
         if (!props.hasOwnProperty("ManufacturerData")) return
 
-        const buffer = this.getManufacturerData(0xec88)
+        const buffer = this.getManufacturerData(this.constructor.DATA_ID)
         if (buffer) {
             this.emitValuesFrom(buffer)
         }      

@@ -32,7 +32,7 @@ class SwitchBotTH extends  BTSensor {
         const keys = Object.keys(md)
         if (keys && keys.length>0){
             const id = keys[keys.length-1]
-            if (parseInt(id)==this.ID && md[id].length==12 && md[id][0]==modelID)
+            if (parseInt(id)==this.ID && md[id].length==12 && md[id][0]==this.modelID)
                 return this
         } 
         return null
@@ -59,7 +59,7 @@ class SwitchBotTH extends  BTSensor {
         return "Wonder Labs"
     }
     getName() {
-        "SwitchBotTH"
+        return `SwitchBotTH (${this?.name??"Unnamed"})` 
     }
     async propertiesChanged(props){
         super.propertiesChanged(props)    

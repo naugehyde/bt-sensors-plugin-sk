@@ -46,7 +46,7 @@ class MercurySmartcraft extends BTSensor{
             {
                 "title": "Engine ID",
                 "examples": ["port","starboard","p0","p1"],
-                "required": true
+                "isRequired": true
             }
         )
 

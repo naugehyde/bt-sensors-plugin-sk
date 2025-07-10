@@ -281,7 +281,7 @@ class MopekaTankSensor extends BTSensor{
             {
                 title:"type of liquid in tank",
                 enum: Object.keys(Media),
-                required: true
+                isRequired: true
             }
         )
         this.addParameter("tankHeight",
@@ -289,7 +289,7 @@ class MopekaTankSensor extends BTSensor{
                 title:"height of tank (in mm)",
                 type:"number",
                 unit:"mm",
-                required: true
+                isRequired: true
             }
         )
         this.addDefaultParam("id", true)

@@ -30,7 +30,7 @@ class ShellySBDW002C extends AbstractBTHomeSensor {
       {
           "title": "Name of opening",
           "examples": ["companionWay", "porthole", "hatch"],
-          "required": true,
+          "isRequired": true,
           "default": "companionWay"
       })
 

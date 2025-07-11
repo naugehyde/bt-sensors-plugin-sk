@@ -1,5 +1,16 @@
 # Bluetooth Sensors for [Signal K](http://www.signalk.org) 
+
+## IMPORTANT NOTE TO NEW USERS
+
+There's a known issue with saving the configuration after initial installation owing to current ServerAPI limitations.
+
+Your device config after you've saved it will appear to be "missing" after restarting. It's in fact saved in the plugin config directory. All you have to do is Submit the main configuration then enable and optionally disable Debug. This, believe it or not, ensures that the config is marked as enabled. You should see your data now and upon restart. 
+
 ## WHAT'S NEW  
+
+# Version 1.2.4-4
+
+Junctek support (tested)
 
 # Version 1.2.4-3
 
@@ -162,6 +173,10 @@ Finally, restart SK. Plugin should appear in your server plugins list.<br>
 > getting permissions errors executing npm link, try executing "npm link" under sudo.
 
 ## KNOWN ISSUES
+
+### Problems saving the configuration after installing plugin for first time  
+
+Your device config after you've saved it will appear to be "missing" after restarting. It's in fact saved in the plugin config directory. All you have to do is Submit the main configuration then enable and optionally disable Debug. This, believe it or not, ensures that the config is marked as enabled. You should see your data now and upon restart. 
 
 ### Connected Devices on Raspberry Pi platform (4/4b/5/CM400/CM500)
 

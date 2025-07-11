@@ -22,17 +22,14 @@ class ShellySBDW002C extends AbstractBTHomeSensor {
 
   initSchema() {
     super.initSchema();
-    this.addDefaultParam("zone", true)
-      .default="cabin"
+    this.addDefaultParam("zone", true).default = "cabin";
 
-    this.addParameter(
-      "opening",
-      {
-          "title": "Name of opening",
-          "examples": ["companionWay", "porthole", "hatch"],
-          "isRequired": true,
-          "default": "companionWay"
-      })
+    this.addParameter("opening", {
+      title: "Name of opening",
+      examples: ["companionWay", "porthole", "hatch"],
+      isRequired: true,
+      default: "companionWay",
+    });
 
     this.addMetadatum("opening", "", "state of opening (door/window) as 'open' or 'closed'; null if not present. ", this.parseWindowState.bind(this)).default =
       "environment.{zone}.{opening}.state";
@@ -44,7 +41,7 @@ class ShellySBDW002C extends AbstractBTHomeSensor {
       "sensors.{macAndName}.illuminance";
 
     this.addMetadatum("rotation", "deg", "rotation in degrees from the closed position; null if not present", this.parseRotation.bind(this)).default =
-      "sensors.{nameAndMac}.rotation";
+      "sensors.{macAndName}.rotation";
 
     this.addMetadatum("button", "", "button 'press' or 'hold_press'; null if not present", this.parseShellyButton.bind(this)).default =
       "sensors.{macAndName}.button";

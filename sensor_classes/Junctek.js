@@ -5,7 +5,7 @@ const BTSensor = require("../BTSensor");
 function bytesToBase10String(bytes){
         let s = ""
         for (let byte of bytes){
-            s+=byte.toString(16)
+            s+=byte.toString(16).padStart(2,'0')
         }
         return s
     }
@@ -21,6 +21,8 @@ class JunctekBMS extends BTSensor{
 
         return null
     }
+
+    chargeDirection = 1 
 
     hasGATT(){
         return true
@@ -47,12 +49,14 @@ class JunctekBMS extends BTSensor{
         this.addDefaultPath("charge",'electrical.batteries.capacity.charge')
         this.addDefaultPath("temperature",'electrical.batteries.temperature')
         this.addDefaultPath("actualCapacity",'electrical.batteries.capacity.actual')
+        this.addMetadatum('timeToCharged','s', 'time in seconds to battery is fully charged')
+            .default='electrical.batteries.{batteryID}.timeToCharged'
         this.addMetadatum('impedance','mOhm', 'measured resistance')
             .default='electrical.batteries.{batteryID}.impedance'
     }
 
     emitFrom(buffer){
-        var value=[], chargeDirection = 1
+        let value=[], emitObject={}
         this.debug(buffer)
         for (let byte of buffer){
             if (byte==0xBB) {
@@ -65,45 +69,62 @@ class JunctekBMS extends BTSensor{
             
             if (isNaN(parseInt(byte.toString(16)))){ //not a base-10 number. seriously. that's how Junctek does this.
                 const v = parseInt(bytesToBase10String(value))
+                //if (byte!==0xd5)
+                //    this.debug(`0x${(byte).toString(16)}: ${(value).map((v)=>'0x'+v.toString(16))} (${v})`)
                 value=[]
                 switch (byte){
                 case 0xC0:
-                    this.emit("voltage",v/100)
+                    emitObject["voltage"]=v/100
                     break
                 
                 case 0xC1:
-                    this.emit("current",(v/100)*chargeDirection)
+                    emitObject["current"]=()=>{return (v/100)*this.chargeDirection}
                     break
 
                 case 0xD1:
-                    if (byte==0)
-                        chargeDirection=-1
+                    this.debug(v)
+                    if (v==0)
+                        this.chargeDirection=-1
+                    else 
+                        this.chargeDirection= 1
+                    this.debug(this.chargeDirection)
                     break
 
                 case 0xD2:
-                    this.emit("remaining",v*3.6)
+
+                    emitObject["remaining"]=v*3.6
                     break
 
                 case 0xD3:
-                    this.emit("discharge",v/100000)
+                    emitObject["discharge"]= v/100000
                     break
                 case 0xD4:
-                    this.emit("charge",v/100000)
+                    emitObject["charge"]=v/100000
                     break
                 case 0xD6:
-                    this.emit("timeRemaining",v*60)
+                    if (chargeDirection==-1){
+                        emitObject["timeToCharged"] = NaN
+                        emitObject["timeRemaining"] = v*60
+                    }
+                    else {
+                        emitObject["timeRemaining"] = NaN
+                        emitObject["timeToCharged"] = v*60
+                    }
                     break
                 case 0xD7:
-                    this.emit("impedance",v/100)
+                    emitObject["impedance"]=v/100
                     break
                 case 0xD8:
-                    this.emit("power",(v/100)*chargeDirection)
+                    emitObject["power"]=()=>{
+                        this.debug(this.chargeDirection)
+                        return (v/100)*this.chargeDirection
+                    }
                     break
                 case 0xD9:
-                    this.emit("temperature",v + 273.15) //assume C not F
+                    emitObject["temperature"]=v + 173.15 //assume C not F -- raw value is c - 100
                     break
                 case 0xB1:
-                    this.emit("capacityActual",v /10 )
+                    emitObject["capacityActual"]=v /10
                     break
             }
             }
@@ -111,12 +132,16 @@ class JunctekBMS extends BTSensor{
                 value.push(byte)
             }
         }
+        for (const [key, value] of Object.entries(emitObject)) {
+                this.emit(key,value instanceof Function?value():value)
+        }
+        emitObject = {}
     }
     emitGATT(){
-        this.battCharacteristic.readValue()
+        /*this.battCharacteristic.readValue()
         .then((buffer)=>{
             this.emitFrom(buffer)
-        })
+        })*/
     }
     initGATTConnection(){ 
         return new Promise((resolve,reject )=>{ this.deviceConnect().then(async ()=>{ 

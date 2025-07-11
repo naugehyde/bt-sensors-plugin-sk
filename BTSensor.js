@@ -899,7 +899,7 @@ class BTSensor extends EventEmitter {
 	}
 
 	 initPaths(deviceConfig, id){
-        const source = this.getName()
+        const source = `${this.getName()} (bt-sensors-plugin-sk)`
 		Object.keys(this.getPaths()).forEach((tag)=>{
             const pathMeta=this.getPath(tag)
 			const path = deviceConfig.paths[tag];

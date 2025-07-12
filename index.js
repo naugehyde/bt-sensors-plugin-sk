@@ -1,5 +1,6 @@
 const packageInfo = require("./package.json")
 
+
 const {createBluetooth} = require('node-ble')
 const {Variant} = require('dbus-next')
 const {bluetooth, destroy} = createBluetooth()
@@ -138,6 +139,21 @@ module.exports =   function (app) {
 		var adapterID=options.adapter
 		var foundConfiguredDevices=0
 
+		if (Object.keys(options).length==0){ //empty config means initial startup. save defaults and enabled=true. 
+			let json = {configuration:{adapter:"hci0", transport:"le", discoveryTimeout:30, discoveryInterval:10}, enabled:true, enableDebug:false}
+			let appDataDirPath = app.getDataDirPath()
+			let jsonFile = appDataDirPath+'.json'
+			const fs = require("node:fs")
+			try {
+				fs.writeFileSync(jsonFile, JSON.stringify(json, null,2))
+				options=json
+			} catch(err){
+				console.log(`Error writing initial config: ${err.message} `)
+				console.log(err)
+			}
+		
+		}
+
 		plugin.registerWithRouter = function(router) {
 
 			router.post('/updateSensorData', async (req, res) => {
@@ -154,6 +170,7 @@ module.exports =   function (app) {
 				} else {
 					options.peripherals[i] = req.body
 				}
+				deviceConfigs=options.peripherals
 				app.savePluginOptions(
 					options, async () => {
 						app.debug('Plugin options saved')
@@ -163,9 +180,8 @@ module.exports =   function (app) {
 							removeSensorFromList(sensor)
 							if (sensor.isActive()) 
 								await sensor.stopListening()
-							initConfiguredDevice(req.body)
 						} 
-						
+						initConfiguredDevice(req.body)
 					}
 				)
 				
@@ -240,9 +256,10 @@ module.exports =   function (app) {
 
 			router.get('/getProgress', (req, res) => {
 				app.debug("Sending progress")
-				const json = {"progress":foundConfiguredDevices/deviceConfigs.length, "maxTimeout": 1, 
+				let deviceCount = deviceConfigs.filter((dc)=>dc.active).length
+				const json = {"progress":foundConfiguredDevices/deviceCount, "maxTimeout": 1, 
 							  "deviceCount":foundConfiguredDevices, 
-							  "totalDevices": deviceConfigs.length}
+							  "totalDevices": deviceCount}
 				res.status(200).json(json)
 				
 			  });
@@ -576,11 +593,13 @@ module.exports =   function (app) {
 		}
 		if (!(deviceConfigs===undefined)){
 			const maxTimeout=Math.max(...deviceConfigs.map((dc)=>dc?.discoveryTimeout??options.discoveryTimeout))
+			const totalDevices = deviceConfigs.filter((dc)=>dc.active).length
+
 			var progress = 0
 			if (progressID==null) 
 			progressID  = setInterval(()=>{
-				channel.broadcast({"progress":++progress, "maxTimeout": maxTimeout, "deviceCount":foundConfiguredDevices, "totalDevices": deviceConfigs.length},"progress")
-				if ( foundConfiguredDevices==deviceConfigs.length){
+				channel.broadcast({"progress":++progress, "maxTimeout": maxTimeout, "deviceCount":foundConfiguredDevices, "totalDevices": totalDevices},"progress")
+				if ( foundConfiguredDevices==totalDevices){
 					progressID,progressTimeoutID = null
 					clearTimeout(progressTimeoutID)
 					clearInterval(progressID)
@@ -593,7 +612,7 @@ module.exports =   function (app) {
 
 					clearInterval(progressID);
 					progressID=null
-					channel.broadcast({"progress":maxTimeout, "maxTimeout": maxTimeout, "deviceCount":foundConfiguredDevices, "totalDevices": deviceConfigs.length},"progress")
+					channel.broadcast({"progress":maxTimeout, "maxTimeout": maxTimeout, "deviceCount":foundConfiguredDevices, "totalDevices": totalDevices},"progress")
 				} 
 			}, (maxTimeout+1)*1000);
 

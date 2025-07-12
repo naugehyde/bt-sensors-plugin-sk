@@ -381,6 +381,9 @@ function configuredDevices(){
 }
 
 function devicesInDomain(domain){
+  if (domain==="_configured")
+    return configuredDevices()
+  else
   return Array.from(sensorMap.entries()).filter((entry)=>entry[1].info.domain===domain)
 }
 
@@ -390,9 +393,11 @@ useEffect(()=>{
 
     _sensorMap = sensorMap
     
-    const _sensorDomains = new Set(sensorMap.entries().map((entry)=>{ return entry[1].info.domain}))
+    const _sensorDomains = [... (new Set(sensorMap.entries().map((entry)=>{ return entry[1].info.domain})))].sort()
     const sl = {
-      _configured: configuredDevices().map((entry) =>  {
+      _configured: configuredDevices().length==0?
+        "Select a device from its domain tab (Electrical etc.) and configure it.":
+        configuredDevices().map((entry) =>  {
          return createListGroupItem(sensorMap.get(entry[0]))
       })
       } 
@@ -425,11 +430,12 @@ useEffect(()=>{
 
   function getTab(key){
     var title = key.slice(key.charAt(0)==="_"?1:0)
+    let sl = getSensorList(key)
     
-    return <Tab eventKey={key} title={title.charAt(0).toUpperCase()+title.slice(1)    }>
+    return <Tab eventKey={key} title={`${title.charAt(0).toUpperCase()}${title.slice(1)}${devicesInDomain(key).length==0?'':' ('+devicesInDomain(key).length+')'}` }  >
         
     <ListGroup style={{  maxHeight: '300px', overflowY: 'auto' }}>
-      {getSensorList(key)}
+      {sl}
     </ListGroup>
     
 

@@ -1,12 +1,18 @@
 # Bluetooth Sensors for [Signal K](http://www.signalk.org) 
 
-## IMPORTANT NOTE TO NEW USERS
+## WHAT'S NEW  
+
+# Version 1.2.5
+
+- On initial startup, plugin saves default configuration. Fixing the "missing" configured devices after restart.
+- Mopeka Tank Sensor configuration fix
+- Added number of found devices in a domain in the configuration screen's domain tab
+
+## IMPORTANT NOTE TO NEW USERS OF VERSIONS OLDER THAN 1.2.5
 
 There's a known issue with saving the configuration after initial installation owing to current ServerAPI limitations.
 
 Your device config after you've saved it will appear to be "missing" after restarting. It's in fact saved in the plugin config directory. All you have to do is Submit the main configuration then enable and optionally disable Debug. This, believe it or not, ensures that the config is marked as enabled. You should see your data now and upon restart. 
-
-## WHAT'S NEW  
 
 # Version 1.2.4-4
 
@@ -174,10 +180,6 @@ Finally, restart SK. Plugin should appear in your server plugins list.<br>
 
 ## KNOWN ISSUES
 
-### Problems saving the configuration after installing plugin for first time  
-
-Your device config after you've saved it will appear to be "missing" after restarting. It's in fact saved in the plugin config directory. All you have to do is Submit the main configuration then enable and optionally disable Debug. This, believe it or not, ensures that the config is marked as enabled. You should see your data now and upon restart. 
-
 ### Connected Devices on Raspberry Pi platform (4/4b/5/CM400/CM500)
 
 Onboard Raspberry Pi WiFi can cause interference with the onboard Bluetooth resulting in lost connections to GATT connected devices (Renogy, JBD, etc. )
@@ -199,6 +201,11 @@ Poorly shielded USB 3.0 and HDMI (5ghz) can interfere with BT transmission (2.4g
 - IMPORTANT Set `Scan for new devices interval` to `0` after configuration is complete. The plugin will run but in Bluetooth-rich environments, or if you have a long range BT 5.3 device, the system Bluetooth stack may fail after 4 hours or so.
 - There's no way that I know of to remove a SK Path without restarting the server. So if any active paths are changed by the plugin, you'll still see them hanging around in the data browser growing stale until you restart the server.
 - RPi 3/4/5/CM400s when running an Access Point on the on board Wifi can cause a problem connecting to devices through the onboard BT. The only known fix is to disable the onboard Bluetooth and use a USB BT adapter. Alternatively, you can use a USB WiFi adapter. NOTE: This only applies to _connected_ devices like Renogy devices, LiTime batteries etc. 
+
+### Problems saving the configuration after installing plugin for first time (fixed as of Version 1.2.5)  
+
+Device config after being saved will appear to be "missing" after restarting. The config is in fact saved in the plugin config directory. All you have to do is Submit the main configuration then enable and optionally disable Debug. This, believe it or not, ensures that the config is marked as enabled. You should see your data now and upon restart. 
+
 
 ## CONFIGURATION
 

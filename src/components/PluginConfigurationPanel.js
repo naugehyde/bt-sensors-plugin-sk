@@ -1,8 +1,7 @@
 import Form from '@rjsf/core' ;
 import validator from '@rjsf/validator-ajv8';
-import React from "react";
 import ReactHtmlParser from 'react-html-parser';
-
+import React from 'react'
 import {useEffect, useState} from 'react'
 
 import {Button, Grid } from '@material-ui/core';
@@ -20,9 +19,7 @@ import { ListGroupItem } from 'react-bootstrap';
 
 import ProgressBar from 'react-bootstrap/ProgressBar';
 
-var _sensorMap, _sensorDomains={}, _sensorList={}
-
-export default function BTConfig (props)  {
+export function BTConfig (props)  {
 
    const _uiSchema= {
     "ui:options": {label: false},
@@ -71,10 +68,9 @@ const useStyles = makeStyles((theme) => ({
 
   const [schema, setSchema] = useState({}) 
   const [ uiSchema, setUISchema] = useState(_uiSchema )
-  const [sensorList, setSensorList] = useState([])
 
   const [sensorData, setSensorData] = useState()
-  const [sensorMap, setSensorMap ] = useState(new Map() )
+  const [sensorMap, setSensorMap ] = useState(new Map())
  
   const [progress, setProgress ] = useState({
     "progress":0, "maxTimeout": 100, 
@@ -89,8 +85,6 @@ const useStyles = makeStyles((theme) => ({
  
   function sendJSONData(cmd, data){
 
-    console.log(`sending ${cmd}`) 
-    console.log(data)
     const headers = new Headers();
     headers.append("Content-Type", "application/json");
     return fetch(`/plugins/bt-sensors-plugin-sk/${cmd}`, {
@@ -102,7 +96,6 @@ const useStyles = makeStyles((theme) => ({
   }
 
   async function fetchJSONData(path){
-    console.log(`fetching ${path}`)
     var result
     try {
       result = fetch(`/plugins/bt-sensors-plugin-sk/${path}`, {
@@ -119,72 +112,50 @@ const useStyles = makeStyles((theme) => ({
   }
 
   async function getSensors(){
-    console.log("getSensors")
     const response = await fetchJSONData("getSensors")
     if (response.status!=200){
       throw new Error(`Unable get sensor data: ${response.statusText} (${response.status}) `)
     }
     const json = await response.json()
-    console.log(json)
-    //for (let i=0;i<json.length;i++){
-    //  json[i].schema.htmlDescription=<div>{ReactHtmlParser(json[i].schema.htmlDescription)}<p></p></div>
-    //}
+
     return json
 
   }
-  async function getDomains(){
-    console.log("getDomains")
-    const response = await fetchJSONData("getDomains")
-    if (response.status!=200){
-      throw new Error(`Unable get domain data: ${response.statusText} (${response.status}) `)
-    }
-    const json = await response.json()
-    console.log(json)
-    return json
 
-  }
   async function getBaseData(){
-    console.log("getBaseData")
     const response = await fetchJSONData("getBaseData")
     if (response.status!=200){
       throw new Error(`Unable to get base data: ${response.statusText} (${response.status}) `)
     }
     const json = await response.json()
-    console.log(json)
     json.schema.htmlDescription=<div>{ReactHtmlParser(json.schema.htmlDescription)}<p></p></div>
     return json
   }
+
   async function getProgress(){
-    console.log("getProgress")
     const response = await fetchJSONData("getProgress")
     if (response.status!=200){
       throw new Error(`Unable to get progress: ${response.statusText} (${response.status}) `)
     }
     const json = await response.json()
-    console.log(json)
     return json
   }
 
   function updateSensorData(data){
-    console.log("updateSensorData")
     sendJSONData("updateSensorData", data).then((response)=>{ 
       if (response.status != 200) {
         throw new Error(response.statusText)
       }
       sensorMap.get(data.mac_address)._changesMade=false
-      sensorMap.get(data.mac_address).config = data
-      
     })
   } 
 
   function undoChanges(mac) {
-    console.log("undoChanges")
     sensorMap.get(mac)._changesMade = false
     setSensorData( sensorMap.get(mac).config )
   }
 
   function removeSensorData(mac){
-    console.log("removeSensorData")
 
     try{ 
     
@@ -193,10 +164,10 @@ const useStyles = makeStyles((theme) => ({
             throw new Error(response.statusText)
         }
         })
-
-        _sensorMap.delete(mac)
+        debugger
+        sensorMap.delete(mac)
         
-        setSensorMap(new Map(_sensorMap))
+        setSensorMap(new Map(sensorMap))
         setSchema( {} )
     } catch {(e)=>
       setError( new Error(`Couldn't remove ${mac}: ${e}`))
@@ -206,88 +177,80 @@ const useStyles = makeStyles((theme) => ({
 
 
   function updateBaseData(data){
-    console.log("updateBaseData")
-
+    setSensorMap(new Map())
+    //setSensorList({})
     sendJSONData("updateBaseData", data).then( (response )=>{
       if (response.status != 200) {
         setError(new Error(`Unable to update base data: ${response.statusText} (${response.status})`))
-      } /*else {
-        getProgress().then((json)=>{
-          setProgress(json)
-        }).catch((e)=>{
-          setError(e)
-        })
-      }*/
+      } 
       })
-  }
-    
 
-  function refreshSensors(){
-    console.log('refreshing sensor map')
-
-    getSensors().then((sensors)=>{
-      setSensorMap (new Map(sensors.map((sensor)=>[sensor.info.mac,sensor])));    
-    })
-    .catch((e)=>{
-      setError(e)
-    })
   }
+  
+  
 
 
   useEffect(()=>{
-    console.log("useEffect([])")
     let eventSource=null
-
     fetchJSONData("getPluginState").then( async (response)=> {
+    
+      function newSensorEvent(event){
+        let json = JSON.parse(event.data)
+        console.log(`New sensor: ${json.info.mac}`)
+        setSensorMap( (_sm)=> {
+          if (!_sm.has(json.info.mac))
+            _sm.set(json.info.mac, json)
+        
+          return new Map(_sm)
+        }
+        )
+      }
+      function sensorChangedEvent(event){
+        console.log("sensorchanged")
+        const json = JSON.parse(event.data)      
+        
+        setSensorMap( (_sm) => {
+          const sensor = _sm.get(json.mac)
+          if (sensor) 
+            Object.assign(sensor.info, json )
+          return new Map(_sm)
+        })
+      }
+      
+
       if (response.status==404) {
         setPluginState("unknown")
         throw new Error("unable to get plugin state")
       }
       const json = await response.json()
-      console.log("Setting up eventsource")
       eventSource = new EventSource("/plugins/bt-sensors-plugin-sk/sse", { withCredentials: true })
 
-      setPluginState(json.state)
-      
-      _sensorDomains = await getDomains()
-
       eventSource.addEventListener("newsensor", (event) => {
-        console.log("newsensor")
-        let json = JSON.parse(event.data)
-        
-        if (!_sensorMap.has(json.info.mac)) {
-          console.log(`New sensor: ${json.info.mac}`)
-          setSensorMap(new Map(_sensorMap.set(json.info.mac, json)))
-        }
+        newSensorEvent(event)
       });
 
       eventSource.addEventListener("sensorchanged", (event) => {
-        let json = JSON.parse(event.data)      
-        console.log("sensorchanged")
-        console.log(json)
-        
-        if (_sensorMap.has(json.mac)) {      
-          let sensor = _sensorMap.get(json.mac)
-
-          Object.assign(sensor.info, json )
-          setSensorMap(new Map ( _sensorMap ))
-        }
+        sensorChangedEvent(event)
       });
+
       eventSource.addEventListener("progress", (event) => {
-        console.log("progress")
         const json = JSON.parse(event.data)  
         setProgress(json)
-        console.log(json)
       });
 
       eventSource.addEventListener("pluginstate", (event) => {
-        console.log("pluginstate")
         const json = JSON.parse(event.data)  
         setPluginState(json.state)
       });
-     
-    })
+      
+    setPluginState(json.state);
 
+    (async ()=>{
+      const sensors = await getSensors()
+      setSensorMap ( new Map(sensors.map((sensor)=>[sensor.info.mac,sensor])) )
+    })()
+
+    })
     .catch( (e) => { 
         setError(e)
       }
@@ -296,13 +259,11 @@ const useStyles = makeStyles((theme) => ({
       console.log("Closing connection to SSE")
       eventSource.close()
     };
+    
  },[])
 
 useEffect(()=>{
-  console.log("useEffect([pluginState])")
-  if (pluginState=="started"){
-    refreshSensors()
-    
+  if (pluginState=="started") {
     getBaseData().then((json) => {
       setBaseSchema(json.schema);    
       setBaseData(json.data);
@@ -317,13 +278,11 @@ useEffect(()=>{
     })
 
   } else{
-    setSensorMap(new Map())
     setBaseSchema({})
     setBaseData({})
   }
 
 },[pluginState])
-
 
 
 function confirmDelete(mac){
@@ -376,66 +335,43 @@ function createListGroupItem(sensor){
         </ListGroupItem>
 }
 
-function configuredDevices(){
-  return Array.from(sensorMap.entries()).filter((entry)=>hasConfig(entry[1]))
-}
 
 function devicesInDomain(domain){
-  if (domain==="_configured")
-    return configuredDevices()
-  else
+
   return Array.from(sensorMap.entries()).filter((entry)=>entry[1].info.domain===domain)
 }
-
-
-useEffect(()=>{
-  console.log("useEffect([sensorMap])")
-
-    _sensorMap = sensorMap
-    
-    const _sensorDomains = [... (new Set(sensorMap.entries().map((entry)=>{ return entry[1].info.domain})))].sort()
-    const sl = {
-      _configured: configuredDevices().length==0?
-        "Select a device from its domain tab (Electrical etc.) and configure it.":
-        configuredDevices().map((entry) =>  {
-         return createListGroupItem(sensorMap.get(entry[0]))
-      })
-      } 
-
-      _sensorDomains.forEach((d)=>{
-        sl[d]=devicesInDomain(d).map((entry) =>  {
-        return createListGroupItem(sensorMap.get(entry[0]))
-       })
-    })
-    _sensorList=sl 
-    
-    
-  },[sensorMap]
-  )
 
   function ifNullNaN(value){
     return value==null? NaN : value
   }
 
-  function getSensorList(domain){
-    return _sensorList[domain]
-  }
-
   function getTabs(){
+    const sensorDomains = [... (new Set(sensorMap.entries().map((entry)=>{ return entry[1].info.domain})))].sort()
+    const cd = Array.from(sensorMap.entries()).filter((entry)=>hasConfig(entry[1]))
+    let sensorList={}
+    sensorList["_configured"]=
+      cd.length==0?
+        "Select a device from its domain tab (Electrical etc.) and configure it.":
+        cd.map((entry) =>  {
+         return createListGroupItem(sensorMap.get(entry[0]))
+      })
+      
+      sensorDomains.forEach((d)=>{
+        sensorList[d]=devicesInDomain(d).map((entry) =>  {
+        return createListGroupItem(sensorMap.get(entry[0]))
+       })
+      })
     
-    return Object.keys(_sensorList).map((domain)=> {return getTab(domain)})
+    return Object.keys(sensorList).map((domain)=> {return getTab(domain, sensorList[domain])})
   }
-    // <div style={{paddingBottom: 20}} class="d-flex flex-wrap justify-content-start align-items-start">
-    //    <div class="d-flex flex-column" >
 
-  function getTab(key){
-    var title = key.slice(key.charAt(0)==="_"?1:0)
-    let sl = getSensorList(key)
+  function getTab(key, sensorList){
+    let  title = key.slice(key.charAt(0)==="_"?1:0)
     
-    return <Tab eventKey={key} title={`${title.charAt(0).toUpperCase()}${title.slice(1)}${devicesInDomain(key).length==0?'':' ('+devicesInDomain(key).length+')'}` }  >
+    return <Tab eventKey={key} title={`${title.charAt(0).toUpperCase()}${title.slice(1)}${typeof sensorList=='string'?'':' ('+sensorList.length+')'}` }  >
         
     <ListGroup style={{  maxHeight: '300px', overflowY: 'auto' }}>
-      {sl}
+      {sensorList}
     </ListGroup>
     
 
@@ -447,22 +383,6 @@ useEffect(()=>{
     window.open(url, "_blank", "noreferrer");
   }
 
-  function CustomFieldTemplate(props) {
-  const { id, classNames, style, label, help, required, description, errors, children } = props;
-  return (
-    <div className={classNames} style={style}>
-      <Grid container xs={12} direction="row" spacing="1">
-        <Grid item xs={1} sm container direction="column">
-        <Grid item ><label htmlFor={id}>{label}{required ? '*' : null}</label></Grid>
-        <Grid item> {description}</Grid>
-        </Grid>
-        <Grid item>{children}</Grid>
-      </Grid>
-      {errors}
-      {help}
-    </div>
-  );
-}
 
   if (pluginState=="stopped" || pluginState=="unknown")
     return (<h3>Enable plugin to see configuration</h3>)
@@ -504,7 +424,7 @@ useEffect(()=>{
       defaultActiveKey="_configured"
       id="domain-tabs"
       className="mb-3"
-      onClick={()=>{setSchema({})}}
+  
       >
       {getTabs()}
       </Tabs>
@@ -521,12 +441,12 @@ useEffect(()=>{
       onChange={(e) => {
           const s = sensorMap.get(e.formData.mac_address)
           s._changesMade=true
+          s.config = e.formData
           setSensorData(e.formData)
         }
       }
       onSubmit={({ formData }, e) => {
         updateSensorData(formData)
-        setSchema({})
         alert("Changes saved")
       }}
       onError={log('errors')}
@@ -545,3 +465,4 @@ useEffect(()=>{
     
 
   }
+  export default BTConfig

@@ -226,12 +226,6 @@ module.exports =   function (app) {
 					}
 				)
 			});
-			router.get('/getDomains', (req, res) => {
-				
-				res.status(200).json(
-					BTSensor.SensorDomains
-				);
-			})
 		
 			router.get('/getBaseData', (req, res) => {
 				

@@ -146,12 +146,15 @@ const useStyles = makeStyles((theme) => ({
       if (response.status != 200) {
         throw new Error(response.statusText)
       }
-      sensorMap.get(data.mac_address)._changesMade=false
+      setSensorMap((sm)=>{sm.delete(data.mac_address); return new Map(sm) })
+      setSchema( {} )
+
     })
   } 
 
   function undoChanges(mac) {
     sensorMap.get(mac)._changesMade = false
+    sensorMap.get(mac).config = JSON.parse(JSON.stringify(sensorMap.get(mac).configCopy))
     setSensorData( sensorMap.get(mac).config )
   }
 
@@ -164,10 +167,7 @@ const useStyles = makeStyles((theme) => ({
             throw new Error(response.statusText)
         }
         })
-        debugger
-        sensorMap.delete(mac)
-        
-        setSensorMap(new Map(sensorMap))
+        setSensorMap((sm)=>{sm.delete(mac); return new Map(sm) })
         setSchema( {} )
     } catch {(e)=>
       setError( new Error(`Couldn't remove ${mac}: ${e}`))
@@ -198,8 +198,8 @@ const useStyles = makeStyles((theme) => ({
         let json = JSON.parse(event.data)
         console.log(`New sensor: ${json.info.mac}`)
         setSensorMap( (_sm)=> {
-          if (!_sm.has(json.info.mac))
-            _sm.set(json.info.mac, json)
+          //if (!_sm.has(json.info.mac))
+          _sm.set(json.info.mac, json)
         
           return new Map(_sm)
         }
@@ -286,7 +286,9 @@ useEffect(()=>{
 
 
 function confirmDelete(mac){
-  const result = window.confirm(`Delete configuration for ${mac}?`)
+  
+  const sensor = sensorMap.get(mac)
+  const result = !hasConfig(sensor) || window.confirm(`Delete configuration for ${sensor.info.name}?`)
   if (result)
     removeSensorData(mac)
 }
@@ -311,7 +313,7 @@ function signalStrengthIcon(sensor){
 
 }
 function hasConfig(sensor){
-  return Object.keys(sensor.config).length>0;
+  return Object.keys(sensor.configCopy).length>0;
 }
 
 function createListGroupItem(sensor){
@@ -440,9 +442,11 @@ function devicesInDomain(domain){
       uiSchema={uiSchema}
       onChange={(e) => {
           const s = sensorMap.get(e.formData.mac_address)
-          s._changesMade=true
-          s.config = e.formData
-          setSensorData(e.formData)
+          if(s) {
+            s._changesMade=true
+            s.config = e.formData
+            setSensorData(e.formData)
+          }
         }
       }
       onSubmit={({ formData }, e) => {

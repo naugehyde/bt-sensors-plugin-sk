@@ -298,10 +298,12 @@ module.exports =   function (app) {
 			const config = getDeviceConfig(sensor.getMacAddress())
 			const schema = sensor.getJSONSchema()
 			schema.htmlDescription = sensor.getDescription()
+			
 			return {
 					info: getSensorInfo(sensor),
 					schema: schema,
-					config: config?config:{}
+					config: config?config:{},
+					configCopy: JSON.parse(JSON.stringify(config?config:{}))
 				}
 		}
 

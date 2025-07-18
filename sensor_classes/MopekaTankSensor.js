@@ -259,8 +259,8 @@ class MopekaTankSensor extends BTSensor{
         
     async init(){
         await super.init()
-        const md = this.valueIfVariant(this.getManufacturerData(this.constructor.manufacturerID))
-        this.modelID = md[0]
+        const md = this.getManufacturerData(this.constructor.manufacturerID)
+        this.modelID = md?md[0]:0
     } 
 
     getMedium(){

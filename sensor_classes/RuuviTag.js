@@ -50,15 +50,15 @@ class RuuviTag extends BTSensor{
         
         this.addMetadatum("accX","Mg","acceleration on X-axis", 
             (buffer)=>{ return buffer.readInt16BE(7)}
-        ).default="sensors.{macAndName}.accX"
+        ).examples=["sensors.{macAndName}.accX"]
         
         this.addMetadatum("accY","Mg","acceleration on Y-axis", 
             (buffer)=>{ return buffer.readInt16BE(9)}
-        )        .default="sensors.{macAndName}.accY"
+        )        .examples=["sensors.{macAndName}.accY"]
         
         this.addMetadatum("accZ","Mg","acceleration on Z-axis", 
             (buffer)=>{ return buffer.readInt16BE(11)}
-        ) .default="sensors.{macAndName}.accZ"
+        ) .examples=["sensors.{macAndName}.accZ"]
         
         this.addDefaultPath("battV","sensors.batteryVoltage")
         .read=(buffer)=>{ return parseFloat((1.6+(buffer.readUInt16BE(13)>>5)/1000).toFixed(2))}
@@ -66,12 +66,12 @@ class RuuviTag extends BTSensor{
         this.addMetadatum("mc","","movement counter", 
             (buffer)=>{ return buffer.readUInt16BE(13) && 0x1F}
         )
-        .default="sensors.{macAndName}.movementCounter"
+        .examples=["sensors.{macAndName}.movementCounter"]
 
         this.addMetadatum("msc","","measurement sequence counter", 
             (buffer)=>{ return buffer.readUInt16BE(15)}
         )
-        .default="sensors.{macAndName}.measurementSequenceCounter"
+        .examples=["sensors.{macAndName}.measurementSequenceCounter"]
         
     }
 

@@ -899,7 +899,7 @@ class BTSensor extends EventEmitter {
 	}
 
 	 initPaths(deviceConfig, id){
-        const source = `${this.getName()} (bt-sensors-plugin-sk)`
+        const source = this.getName()
 		Object.keys(this.getPaths()).forEach((tag)=>{
             const pathMeta=this.getPath(tag)
 			const path = deviceConfig.paths[tag];
@@ -922,6 +922,9 @@ class BTSensor extends EventEmitter {
         return (Date.now()-this?._lastContact??Date.now())/1000
     }
 
+    prepareConfig(config){
+        config.params.sensorClass=this.constructor.name
+    }
 
 }
 

@@ -15,9 +15,15 @@ function sleep(x) {
 
     constructor(device,config,gattConfig){
         super(device,config,gattConfig)
-        this.encryptionKey = config?.encryptionKey
+        
+        if(device.modelID)
+            this.modelID=device.modelID
+        
     }
     
+    static getModelID(md) {
+        return md[0x2e1]?.value.readUInt16LE(2)??-1
+    }
     static async identifyMode(device, mode){
             
         var md = await this.getDeviceProp(device,'ManufacturerData')
@@ -26,8 +32,10 @@ function sleep(x) {
         else {
             
             if (md[0x2e1].value[0]==0x10) {
-                if (md[0x2e1].value[4]==mode)
+                if (md[0x2e1].value[4]==mode) {
+                    device.modelID=this.getModelID(md)
                     return this
+                }
                 else 
                     return null
             }
@@ -45,8 +53,10 @@ function sleep(x) {
                 await sleep(500)
             }
             device.helper.removeListeners()
-            if (md[0x2e1].value[4]==mode)
+            if (md[0x2e1].value[4]==mode) {
+                device.modelID=this.getModelID(md)
                 return this
+            }
             else
                 return null
         } 
@@ -60,14 +70,13 @@ function sleep(x) {
                 title:"Encryption Key"
             }
         )
-        this.model_id=this.getManufacturerData(0x2e1)?.readUInt16LE(2)??"Unknown"
-        this._schema.title = this.getName()
     }
     alarmReason(alarmValue){
         return this.constructor.AlarmReason[alarmValue]
     }
     getModelName(){
-        const m = VC.MODEL_ID_MAP[this.model_id]
+        const mID = this.getModelID()
+        const m = VC.MODEL_ID_MAP[mID]
         if(m) {
             if(typeof m == 'string' || m instanceof String ) {
                 return m
@@ -75,7 +84,7 @@ function sleep(x) {
                 return m.name
             }
         }
-        return this.constructor.name+" (Model ID:"+this.model_id+")"
+        return this.constructor.name+` (Model ID: ${mID==-1?"Unknown":mID})`
     }
 
     decrypt(data){
@@ -98,6 +107,13 @@ function sleep(x) {
         return Buffer.from(decData)
         
     }
+    getModelID(){
+        if (!this.modelID ||this.modelID==-1)
+            this.modelID=this.getManufacturerData(0x2e1)?.readUInt16LE(2)??-1
+
+        return this.modelID
+    }
+
     getName(){
         return `Victron ${this.getModelName()}`
     }
@@ -122,7 +138,7 @@ function sleep(x) {
     }
 
    getImage(){
-        const m = VC.MODEL_ID_MAP[this.model_id]
+        const m = VC.MODEL_ID_MAP[this.getModelID()]
         if (m && m.image)
             return m.image
         else
@@ -137,6 +153,11 @@ function sleep(x) {
   margin: 20px;" ></img> 
     To get the encryption key for your device, follow the instructions <a href=https://communityarchive.victronenergy.com/questions/187303/victron-bluetooth-advertising-protocol.html target="_victron_encrypt">here</a>`
    }
+
+   prepareConfig(config){
+        super.prepareConfig(config)
+        config.params.modelID=this.getModelID()
+    }
 
 }
 module.exports=VictronSensor

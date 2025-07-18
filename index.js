@@ -158,6 +158,8 @@ module.exports =   function (app) {
 
 			router.post('/updateSensorData', async (req, res) => {
 				app.debug(req.body)
+				const sensor = sensorMap.get(req.body.mac_address)
+				sensor.prepareConfig(req.body)
 				const i = deviceConfigs.findIndex((p)=>p.mac_address==req.body.mac_address) 
 				if (i<0){
 					if (!options.peripherals){
@@ -175,7 +177,6 @@ module.exports =   function (app) {
 					options, async () => {
 						app.debug('Plugin options saved')
 						res.status(200).json({message: "Sensor updated"})
-						const sensor = sensorMap.get(req.body.mac_address)
 						if (sensor) {
 							removeSensorFromList(sensor)
 							if (sensor.isActive()) 

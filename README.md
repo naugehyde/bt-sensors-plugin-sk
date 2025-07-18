@@ -2,17 +2,17 @@
 
 ## WHAT'S NEW  
 
+# Version 1.2.5-1
+
+- Reverted change from 1.2.5 to path's source field 
+- Victron Sensor model ID and name improvements to constistency for VE Smart Networking enabled devices
+- Improved initial startup responsiveness 
+
 # Version 1.2.5
 
 - On initial startup, plugin saves default configuration. Fixing the "missing" configured devices after restart.
 - Mopeka Tank Sensor configuration fix
 - Added number of found devices in a domain in the configuration screen's domain tab
-
-## IMPORTANT NOTE TO NEW USERS OF VERSIONS OLDER THAN 1.2.5
-
-There's a known issue with saving the configuration after initial installation owing to current ServerAPI limitations.
-
-Your device config after you've saved it will appear to be "missing" after restarting. It's in fact saved in the plugin config directory. All you have to do is Submit the main configuration then enable and optionally disable Debug. This, believe it or not, ensures that the config is marked as enabled. You should see your data now and upon restart. 
 
 # Version 1.2.4-4
 

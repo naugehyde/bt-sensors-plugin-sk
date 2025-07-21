@@ -923,7 +923,8 @@ class BTSensor extends EventEmitter {
     }
 
     prepareConfig(config){
-        config.params.sensorClass=this.constructor.name
+        if (!config.params.sensorClass)
+            config.params.sensorClass=this.constructor.name
     }
 
 }

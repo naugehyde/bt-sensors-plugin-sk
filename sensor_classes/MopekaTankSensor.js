@@ -323,12 +323,12 @@ class MopekaTankSensor extends BTSensor{
         this.addMetadatum("accX","Mg","acceleration on X-axis", 
             (buffer)=>{ return buffer.readUInt8(8)}
         )
-        .default="sensors.{macAndName}.accelerationXAxis"
+        .examples=["sensors.{macAndName}.accelerationXAxis"]
 
         this.addMetadatum("accY","Mg","acceleration on Y-axis", 
             (buffer)=>{ return buffer.readUInt8(9)}
         )        
-        .default="sensors.{macAndName}.accelerationYAxis"
+        .examples=["sensors.{macAndName}.accelerationYAxis"]
     }
 
     propertiesChanged(props){

@@ -34,6 +34,15 @@ class JunctekBMS extends BTSensor{
         super.initSchema()
         this.addDefaultParam("batteryID")
 
+        this.addParameter("capacityAh",
+            {
+                title:"battery capacity in Ah",
+                type:"integer",
+                isRequired: true,
+                default: 200
+            }
+        )
+
         this.addDefaultPath("voltage","electrical.batteries.voltage")
             
         this.addDefaultPath("current","electrical.batteries.current")
@@ -125,6 +134,7 @@ class JunctekBMS extends BTSensor{
                     break
                 case 0xB1:
                     emitObject["capacityActual"]=v /10
+                    emitObject["soc"]=(this.capacityAh/(emitObject["capacityActual"]))/100
                     break
             }
             }

@@ -7,6 +7,7 @@ const AutoQueue =  require("./Queue.js")
  * @author Andrew Gerngross <oh.that.andy@gmail.com>
 */
 
+
 /**
  * {@link module:node-ble}
  */
@@ -85,6 +86,17 @@ function preparePath(obj, str) {
     resultString += str.substring(lastIndex);
   
     return resultString || str; // Return original string if no replacements were made
+  }
+
+  function hexArrayToInt( array ) {
+    let result = 0;
+    for (let i = 0;i<array.length;i++){
+        result = result | array[i] << (8*(array.length-1-i))
+    }
+    return result;
+  }
+  function byteToSignedInt(byte) {
+    return byte&0x80?byte-0x100:byte
   }
 
 /**
@@ -926,6 +938,100 @@ class BTSensor extends EventEmitter {
         if (!config.params.sensorClass)
             config.params.sensorClass=this.constructor.name
     }
+//beacon methods -- probably should be mixins or something
+
+emitEddystone(props){
+    this.emitData("eddystoneVoltage")
+    this.emitData("eddystoneTemperature")
+}
+
+emitIBeacon(props){
+
+}
+
+addEddystonePaths(){
+
+    this.addMetadatum("eddystoneVoltage","v","sensor voltage as reported by Eddystone protocol",
+        (array)=>{ return hexArrayToInt(array.slice(2,4))/1000}
+    )
+        .default="sensors.{macAndName}.eddystone.voltage"
+
+    this.addMetadatum("eddystoneTemperature","K","sensor temperature as reported by Eddystone protocol",
+        (array)=>{ return 273.15+(Buffer.from(array.slice(5,7)).readInt16BE()/1000)} //MAKE   UNSIGNED INT
+    )
+        .examples=["sensors.{macAndName}.eddystone.temperature"]
+
+    this.addMetadatum("advertCount","","number of advertisements sent by device",
+        (array)=>{ return hexArrayToInt(array.slice(7,10)) }
+    )
+        .examples=["sensors.{macAndName}.advertisements"]
+
+    this.addMetadatum("advertCount","s","times since powered up (in seconds)",
+        (array)=>{ return hexArrayToInt(array.slice(10,14)) }
+    )
+        .examples=["sensors.{macAndName}.timePowered"]
+
+    this.addMetadatum("url","s","Eddystone URL",
+        (array)=>{ return Buffer.from(array.slice(2)).toString('utf8') }
+
+    )
+        .examples=["sensors.{macAndName}.eddystone.url"]
+
+    this.addMetadatum("txPower","db","signal strength at one meter (db)",
+        (array)=>{ return byteToSignedInt(array[2]) }
+    )
+        .default="sensors.{macAndName}.eddystone.txPower"
+
+        
+
+    /*20 00 == Eddystone TLM
+    0c 31 == voltage 
+    80 00 00 == ???
+    07 c5 5c == advert count
+    01 74 02 == time since powered up (seconds)
+    
+    10 == ID
+    0b == transmit power at 0m
+    03 "67 6f 6f 2e 67 6c 2f 50 48 4e 53 64" 6d == URL
+    */
+
+}
+
+
+addIBeaconPaths(){
+    /*
+
+  02 15 == ibeacon identifier
+
+  fd a5 06 93 a4 e2 4f b1 af cf c6 eb 07 64 78 25 == UUID
+  27 51 65 c1 = major/minor (BE)
+  fd == rss at 1m (signed int8)
+    */
+
+    this.addMetadatum("uuid","","sensor UUID",
+        (array)=>{
+            let s = ''
+            array.slice(2,18).forEach((v)=>{s+= v.toString('16').padStart(2,'0')})
+            return s
+        })
+        .default="sensors.{macAndName}.uuid"
+
+    this.addMetadatum("major","","sensor major ID",
+        (array)=>{return hexArrayToInt(array.slice(18,20))}
+    )
+        .examples=["sensors.{macAndName}.major"]
+
+    this.addMetadatum("minor","","sensor minor ID",
+        (array)=>{return hexArrayToInt(array.slice(20,22))}
+    )
+        .examples=["sensors.{macAndName}.minor"]
+
+    this.addMetadatum("txPower","db","signal strength at one meter (db)",
+         (array)=>{return array[22]&0x80?array[22]-0x100:array[22]}
+    )
+        .default="sensors.{macAndName}.ibeacon.txPower"
+
+}
 
 }
 

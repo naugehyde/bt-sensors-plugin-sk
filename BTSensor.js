@@ -940,45 +940,59 @@ class BTSensor extends EventEmitter {
     }
 //beacon methods -- probably should be mixins or something
 
-emitEddystone(props){
-    this.emitData("eddystoneVoltage")
-    this.emitData("eddystoneTemperature")
+emitEddystone20(data){
+    
+    this.emitData("eddystone.voltage", data)
+    this.emitData("eddystone.temperature",data)
+    this.emitData("eddystone.advertCount",data)
+    this.emitData("eddystone.timePowered",data)
+}
+emitEddystone10(data){
+
+    this.emitData("eddystone.url", data)
+    this.emitData("eddystone.txPower", data)
+
 }
 
-emitIBeacon(props){
+emitIBeacon(data){
+
+    this.emitData("iBeacon.uuid", data)
+    this.emitData("iBeacon.major", data)
+    this.emitData("iBeacon.minor", data)
+    this.emitData("iBeacon.txPower", data)
 
 }
 
 addEddystonePaths(){
 
-    this.addMetadatum("eddystoneVoltage","v","sensor voltage as reported by Eddystone protocol",
+    this.addMetadatum("eddystone.voltage","v","sensor voltage as reported by Eddystone protocol",
         (array)=>{ return hexArrayToInt(array.slice(2,4))/1000}
     )
         .default="sensors.{macAndName}.eddystone.voltage"
 
-    this.addMetadatum("eddystoneTemperature","K","sensor temperature as reported by Eddystone protocol",
-        (array)=>{ return 273.15+(Buffer.from(array.slice(5,7)).readInt16BE()/1000)} //MAKE   UNSIGNED INT
+    this.addMetadatum("eddystone.temperature","K","sensor temperature as reported by Eddystone protocol",
+        (array)=>{ return 273.15+(Buffer.from(array.slice(5,7)).readInt16BE()/1000)} 
     )
         .examples=["sensors.{macAndName}.eddystone.temperature"]
 
-    this.addMetadatum("advertCount","","number of advertisements sent by device",
+    this.addMetadatum("eddystone.advertCount","","number of advertisements sent by device",
         (array)=>{ return hexArrayToInt(array.slice(7,10)) }
     )
-        .examples=["sensors.{macAndName}.advertisements"]
+        .examples=["sensors.{macAndName}.eddystone.advertisements"]
 
-    this.addMetadatum("advertCount","s","times since powered up (in seconds)",
-        (array)=>{ return hexArrayToInt(array.slice(10,14)) }
+    this.addMetadatum("eddystone.timePowered","s","times since powered up (in seconds)",
+        (array)=>{ return hexArrayToInt(array.slice(11,14)) }
     )
-        .examples=["sensors.{macAndName}.timePowered"]
+        .examples=["sensors.{macAndName}.eddystone.timePowered"]
 
-    this.addMetadatum("url","s","Eddystone URL",
-        (array)=>{ return Buffer.from(array.slice(2)).toString('utf8') }
+    this.addMetadatum("eddystone.url","s","Eddystone URL",
+        (array)=>{ return Buffer.from(array.slice(3)).toString('utf8') }
 
     )
         .examples=["sensors.{macAndName}.eddystone.url"]
 
-    this.addMetadatum("txPower","db","signal strength at one meter (db)",
-        (array)=>{ return byteToSignedInt(array[2]) }
+    this.addMetadatum("eddystone.txPower","db","signal strength at one meter (db)",
+        (array)=>{ return byteToSignedInt(array[1]) }
     )
         .default="sensors.{macAndName}.eddystone.txPower"
 
@@ -1008,25 +1022,25 @@ addIBeaconPaths(){
   fd == rss at 1m (signed int8)
     */
 
-    this.addMetadatum("uuid","","sensor UUID",
+    this.addMetadatum("iBeacon.uuid","","sensor UUID",
         (array)=>{
             let s = ''
             array.slice(2,18).forEach((v)=>{s+= v.toString('16').padStart(2,'0')})
             return s
         })
-        .default="sensors.{macAndName}.uuid"
+        .default="sensors.{macAndName}.ibeacon.uuid"
 
-    this.addMetadatum("major","","sensor major ID",
+    this.addMetadatum("iBeacon.major","","sensor major ID",
         (array)=>{return hexArrayToInt(array.slice(18,20))}
     )
-        .examples=["sensors.{macAndName}.major"]
+        .examples=["sensors.{macAndName}.ibeacon.major"]
 
-    this.addMetadatum("minor","","sensor minor ID",
+    this.addMetadatum("iBeacon.minor","","sensor minor ID",
         (array)=>{return hexArrayToInt(array.slice(20,22))}
     )
-        .examples=["sensors.{macAndName}.minor"]
+        .examples=["sensors.{macAndName}.ibeacon.minor"]
 
-    this.addMetadatum("txPower","db","signal strength at one meter (db)",
+    this.addMetadatum("iBeacon.txPower","db","signal strength at one meter (db)",
          (array)=>{return array[22]&0x80?array[22]-0x100:array[22]}
     )
         .default="sensors.{macAndName}.ibeacon.txPower"

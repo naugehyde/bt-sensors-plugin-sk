@@ -3,17 +3,19 @@
   "version": "1.2.5-1",
   "description": "Bluetooth Sensors for Signalk - see https://www.npmjs.com/package/bt-sensors-plugin-sk#supported-sensors for a list of supported sensors",
   "main": "index.js",
-  "dependencies": { 
+  "dependencies": {
     "@rjsf/bootstrap-4": "^5.24.11",
     "@rjsf/core": "^5.24.11",
     "@rjsf/utils": "^5.24.11",
     "@rjsf/validator-ajv8": "^5.24.11",
     "better-sse": "^0.14.1",
+    "buffer": "^6.0.3",
     "dbus-next": "^0.10.2",
     "int24": "^0.0.1",
-    "kaitai-struct": "^0.10.0", 
+    "kaitai-struct": "^0.10.0",
     "node-ble": "^1.13.0",
-    "semver": "^7.7.1"
+    "semver": "^7.7.1",
+    "lru-cache": "^11.1.0"
   },
   "devDependencies": {
     "@babel/core": "^7.11.6",
@@ -33,9 +35,9 @@
     "mocha": "^8.0.1",
     "prettier-standard": "^6.0.0",
     "react": "^16.13.1",
-    "react-html-parser":"^2.0.2",
     "react-bootstrap": "^1.6.5",
     "react-dom": "^16.13.1",
+    "react-html-parser": "^2.0.2",
     "react-markdown": "^4.3.1",
     "react-redux": "^5.1.2",
     "react-select": "^3.1.0",

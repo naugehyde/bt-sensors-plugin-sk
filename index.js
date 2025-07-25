@@ -425,6 +425,7 @@ module.exports =   function (app) {
 				c.debug=app.debug
 				
 				const sensor = new c(device, config?.params, config?.gattParams)
+				sensor._paths=config.paths //this might be a good candidate for refactoring
 				sensor.debug=app.debug
 				sensor.setPluginError=app.setPluginError
 				sensor.app=app

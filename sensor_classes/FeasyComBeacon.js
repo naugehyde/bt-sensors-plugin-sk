@@ -46,30 +46,36 @@ class FeasyComBeacon extends BTSensor {
     static async identify (device){
       return null
     }
-     
     initSchema(){
         super.initSchema()
         this.addEddystonePaths()
         this.addIBeaconPaths()
-        
     }
 
     propertiesChanged(props){
         super.propertiesChanged(props);
+        if (Object.hasOwn("RSSI"), props){
+          this.emitBeaconDistance()
+        }
 
-        if (Object.hasOwn(props,"ServiceData")){
+        if (Object.hasOwn(props,"ServiceData")) {
+          const sd = this.valueIfVariant(props.ServiceData)[BTSensor.eddystoneServiceUUID]
 
-        const buff = this.getServiceData("0000feaa-0000-1000-8000-00805f9b34fb");
-        if (buff && buff.length>0 && buff[0]==0x20) 
-            this.emitEddystone20(buff);
-        else
-        if (buff && buff.length>0 && buff[0]==0x10) 
-            this.emitEddystone10(buff);
-        } 
+          if (sd) {
+            const buff=sd.value;
+            if (buff && buff.length>0 && buff[0]==0x20) 
+              this.emitEddystone20(buff);
+            else
+            if (buff && buff.length>0 && buff[0]==0x10) 
+              this.emitEddystone10(buff);
+          }}
         if (Object.hasOwn(props,"ManufacturerData")){
-          const buff=this.getManufacturerData(0x004C)
-          if (buff && buff.length>0 && buff[0]==0x02)
-            this.emitIBeacon(buff);
+          const md = this.valueIfVariant(props.ManufacturerData)[ BTSensor.iBeaconManufacturerID]
+          if (md){
+            const buff=md.value
+            if (buff && buff.length>0 && buff[0]==0x02)
+              this.emitIBeacon(buff);
+          }
       }
     }
 

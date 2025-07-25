@@ -2,6 +2,7 @@ const { Variant } = require('dbus-next');
 const { log } = require('node:console');
 const EventEmitter = require('node:events');
 const AutoQueue =  require("./Queue.js")
+const DistanceManager = require("./BeaconSensor/DistanceManager")
 
 /** 
  * @author Andrew Gerngross <oh.that.andy@gmail.com>
@@ -13,6 +14,8 @@ const AutoQueue =  require("./Queue.js")
  */
 
 const BTCompanies = require('./bt_co.json');
+const DistanceManagerSingleton= new DistanceManager({DISTANCE_FIND_LAST_FEW_SAMPLE_TIME_FRAME_MILLIS:60000}) //should be a singleton
+
 const connectQueue = new AutoQueue()
 
 /**
@@ -88,16 +91,7 @@ function preparePath(obj, str) {
     return resultString || str; // Return original string if no replacements were made
   }
 
-  function hexArrayToInt( array ) {
-    let result = 0;
-    for (let i = 0;i<array.length;i++){
-        result = result | array[i] << (8*(array.length-1-i))
-    }
-    return result;
-  }
-  function byteToSignedInt(byte) {
-    return byte&0x80?byte-0x100:byte
-  }
+ 
 
 /**
  * @classdesc Class that all sensor classes should inherit from. Sensor subclasses 
@@ -940,6 +934,10 @@ class BTSensor extends EventEmitter {
     }
 //beacon methods -- probably should be mixins or something
 
+
+static eddystoneServiceUUID="0000feaa-0000-1000-8000-00805f9b34fb"
+static iBeaconManufacturerID= 0x004c
+
 emitEddystone20(data){
     
     this.emitData("eddystone.voltage", data)
@@ -966,33 +964,32 @@ emitIBeacon(data){
 addEddystonePaths(){
 
     this.addMetadatum("eddystone.voltage","v","sensor voltage as reported by Eddystone protocol",
-        (array)=>{ return hexArrayToInt(array.slice(2,4))/1000}
+        (array)=>{ return array.readUInt16BE(2)/1000}
     )
         .default="sensors.{macAndName}.eddystone.voltage"
 
     this.addMetadatum("eddystone.temperature","K","sensor temperature as reported by Eddystone protocol",
-        (array)=>{ return 273.15+(Buffer.from(array.slice(5,7)).readInt16BE()/1000)} 
+        (array)=>{ return 273.15+(array.readInt16BE(5)/1000)} 
     )
         .examples=["sensors.{macAndName}.eddystone.temperature"]
 
     this.addMetadatum("eddystone.advertCount","","number of advertisements sent by device",
-        (array)=>{ return hexArrayToInt(array.slice(7,10)) }
+        (array)=>{ return array.readUIntBE(7,3) }
     )
         .examples=["sensors.{macAndName}.eddystone.advertisements"]
 
     this.addMetadatum("eddystone.timePowered","s","times since powered up (in seconds)",
-        (array)=>{ return hexArrayToInt(array.slice(11,14)) }
+        (array)=>{ return array.readUIntBE(11,3)/10 }
     )
         .examples=["sensors.{macAndName}.eddystone.timePowered"]
 
     this.addMetadatum("eddystone.url","s","Eddystone URL",
-        (array)=>{ return Buffer.from(array.slice(3)).toString('utf8') }
-
+        (array)=>{ return array.toString('utf8',3) }
     )
         .examples=["sensors.{macAndName}.eddystone.url"]
 
     this.addMetadatum("eddystone.txPower","db","signal strength at one meter (db)",
-        (array)=>{ return byteToSignedInt(array[1]) }
+        (array)=>{ return array.readInt8(1) }
     )
         .default="sensors.{macAndName}.eddystone.txPower"
 
@@ -1008,6 +1005,9 @@ addEddystonePaths(){
     0b == transmit power at 0m
     03 "67 6f 6f 2e 67 6c 2f 50 48 4e 53 64" 6d == URL
     */
+
+    if (this._paths["eddystone.txPower"])
+          this._eddystoneTxPowerPath=preparePath(this, this._paths["eddystone.txPower"])
 
 }
 
@@ -1028,25 +1028,48 @@ addIBeaconPaths(){
             array.slice(2,18).forEach((v)=>{s+= v.toString('16').padStart(2,'0')})
             return s
         })
-        .default="sensors.{macAndName}.ibeacon.uuid"
+        .default="sensors.{macAndName}.iBeacon.uuid"
 
     this.addMetadatum("iBeacon.major","","sensor major ID",
-        (array)=>{return hexArrayToInt(array.slice(18,20))}
+        (array)=>{return array.readUInt16BE(18)}
     )
-        .examples=["sensors.{macAndName}.ibeacon.major"]
+        .examples=["sensors.{macAndName}.iBeacon.major"]
 
     this.addMetadatum("iBeacon.minor","","sensor minor ID",
-        (array)=>{return hexArrayToInt(array.slice(20,22))}
+        (array)=>{return array.readUInt16BE(20)}
     )
-        .examples=["sensors.{macAndName}.ibeacon.minor"]
+        .examples=["sensors.{macAndName}.iBeacon.minor"]
 
     this.addMetadatum("iBeacon.txPower","db","signal strength at one meter (db)",
-         (array)=>{return array[22]&0x80?array[22]-0x100:array[22]}
+         (array)=>{return array.readInt8(22)}
     )
-        .default="sensors.{macAndName}.ibeacon.txPower"
+        .default="sensors.{macAndName}.iBeacon.txPower"
+
+    if (this._paths["iBeacon.txPower"])
+        this._iBeaconTxPowerPath=preparePath(this, this._paths["iBeacon.txPower"])
+
 
 }
-
+emitBeaconDistance() {
+    const mac = this.getMacAddress()
+    DistanceManagerSingleton.addSample(mac, this.getRSSI()) 
+    const isEddystone=(!this._iBeaconTxPowerPath && this._eddystoneTxPowerPath)
+    let txPowerPath =  this?._iBeaconTxPowerPath??this._eddystoneTxPowerPath
+    if (txPowerPath) {
+        const txPower = this.app.getSelfPath(txPowerPath)
+    
+        if (txPower?.value)  {
+            const _txPower = isEddystone? txPower.value-41: txPower.value
+            const distances= {
+                    avgDistance: DistanceManagerSingleton.getDistance(mac, _txPower, DistanceManager.METHOD_AVG, true),
+                    weightedAveDistance: DistanceManagerSingleton.getDistance(mac, _txPower, DistanceManager.METHOD_WEIGHTED_AVG, true),
+                    sampledDistance: DistanceManagerSingleton.getDistance(mac, _txPower, DistanceManager.METHOD_LAST_FEW_SAMPLES, true)
+                }
+        this.debug(distances)
+            
+        }
+    }
+}
 }
 
 module.exports = BTSensor   

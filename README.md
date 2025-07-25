@@ -2,6 +2,12 @@
 
 ## WHAT'S NEW  
 
+# Version 1.2.5-2
+
+- Mopeka examples not defaults in config
+- Fix so no plugin restart required after selecting sensor class for an unidentified device
+- FeasyCom BSC0108B support (iBeacon/Eddystone)
+
 # Version 1.2.5-1
 
 - Reverted change from 1.2.5 to path's source field 

@@ -6,7 +6,7 @@ class FeasyComBeacon extends BTSensor {
     static async identify (device){
       return null
     }
-
+    static IsRoaming = true;
 
     initSchema(){
         super.initSchema()

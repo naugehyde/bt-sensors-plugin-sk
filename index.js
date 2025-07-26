@@ -7,10 +7,10 @@ const {bluetooth, destroy} = createBluetooth()
 
 const BTSensor = require('./BTSensor.js')
 const BLACKLISTED = require('./sensor_classes/BlackListedDevice.js')
+const OutOfRangeDevice = require("./OutOfRangeDevice.js")
 const { createChannel, createSession } = require("better-sse");
 const { clearTimeout } = require('timers')
 const loadClassMap = require('./classLoader.js')
-
 class MissingSensor  {
 
 	constructor(config){
@@ -385,9 +385,17 @@ module.exports =   function (app) {
 					resolve(s)
 				}
 			})
-			.catch((e)=>{
+			.catch(async (e)=>{
 				if (s)
 					s.stopListening()
+				else{
+					const c = await getClassFor(device,config)
+					if (c.isRoaming){
+						s = await instantiateSensor(device,config)
+						addSensorToList(s)
+						resolve(s)
+					}
+				}
 				if (startNumber == starts ) {
 					app.debug(`Unable to communicate with device ${deviceNameAndAddress(config)} Reason: ${e?.message??e}`)
 					app.debug(e)
@@ -453,7 +461,7 @@ module.exports =   function (app) {
 				if (startNumber != starts ) {
 						return
 				}	
-				if (deviceConfig.active) {
+				if (deviceConfig.active && !(sensor.device instanceof OutOfRangeDevice) ) {
 					app.setPluginStatus(`Listening to ${++foundConfiguredDevices} sensors.`);
 					sensor.activate(deviceConfig, plugin)
 				}

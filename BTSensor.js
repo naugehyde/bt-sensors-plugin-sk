@@ -108,6 +108,7 @@ function preparePath(obj, str) {
 class BTSensor extends EventEmitter {
  
     static DEFAULTS = require('./plugin_defaults.json');
+    static IsRoaming = false;
 
     static SensorDomains={
         unknown: { name: "unknown", description: "Unknown sensor domain "},

@@ -7,6 +7,8 @@ class FeasyComBeacon extends BTSensor {
       return null
     }
     static IsRoaming = true;
+    static Domain = BTSensor.SensorDomains.beacons
+
 
     initSchema(){
         super.initSchema()

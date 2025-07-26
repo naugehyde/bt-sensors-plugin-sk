@@ -389,6 +389,7 @@ module.exports =   function (app) {
 				if (s)
 					s.stopListening()
 				else{
+					const device = new OutOfRangeDevice(adapter, config)
 					const c = await getClassFor(device,config)
 					if (c.isRoaming){
 						s = await instantiateSensor(device,config)

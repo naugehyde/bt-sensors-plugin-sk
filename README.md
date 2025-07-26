@@ -6,7 +6,7 @@
 
 - Mopeka examples not defaults in config
 - Fix so no plugin restart required after selecting sensor class for an unidentified device
-- FeasyCom BSC0108B support (iBeacon/Eddystone)
+- FeasyCom BP108B support (iBeacon/Eddystone)
 
 # Version 1.2.5-1
 

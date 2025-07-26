@@ -932,36 +932,51 @@ class BTSensor extends EventEmitter {
         if (!config.params.sensorClass)
             config.params.sensorClass=this.constructor.name
     }
-//beacon methods -- probably should be mixins or something
+//beacon methods and variables -- probably should be mixins or something
 
+static Eddystone_ServiceUUID="0000feaa-0000-1000-8000-00805f9b34fb"
+static IBeacon_ManufacturerID= 0x004c
 
-static eddystoneServiceUUID="0000feaa-0000-1000-8000-00805f9b34fb"
-static iBeaconManufacturerID= 0x004c
+Beacon_initSchema(){
+    this.addDefaultParam("id")
+        .examples=["captain_keyring", "firstMate_keyring"]
+    this.Eddystone_initSchema()
+    this.IBeacon_initSchema()
+    this.addMetadatum("approxDistance","","approximate sensor distance from server")
+        .default="sensors.{macAndName}.distance.approximate"
+}
 
-emitEddystone20(data){
+Beacon_propertiesChanged(props){
+    if(Object.hasOwn(props,"RSSI")){        
+        this.Beacon_emitDistance(props.RSSI.value)
+    }
+    this.EddyStone_propertiesChanged(props)
+    this.IBeacon_propertiesChanged(props)
     
-    this.emitData("eddystone.voltage", data)
-    this.emitData("eddystone.temperature",data)
-    this.emitData("eddystone.advertCount",data)
-    this.emitData("eddystone.timePowered",data)
-}
-emitEddystone10(data){
-
-    this.emitData("eddystone.url", data)
-    this.emitData("eddystone.txPower", data)
-
 }
 
-emitIBeacon(data){
-
-    this.emitData("iBeacon.uuid", data)
-    this.emitData("iBeacon.major", data)
-    this.emitData("iBeacon.minor", data)
-    this.emitData("iBeacon.txPower", data)
-
+Beacon_emitDistance(rssi) {
+    const mac = this.getMacAddress()
+    const isEddystone=(!this._iBeaconTxPowerPath && this._eddystoneTxPowerPath)
+    DistanceManagerSingleton.addSample(mac, rssi) 
+    let txPowerPath =  this?._iBeaconTxPowerPath??this._eddystoneTxPowerPath
+    if (txPowerPath) {
+        const txPower = this.app.getSelfPath(txPowerPath)
+    
+        if (txPower?.value)  {
+            const _txPower = isEddystone? txPower.value-41: txPower.value
+            const distances= {
+                    avgDistance: +DistanceManagerSingleton.getDistance(mac, _txPower, DistanceManager.METHOD_AVG, true).toFixed(2),
+                    weightedAveDistance: +DistanceManagerSingleton.getDistance(mac, _txPower, DistanceManager.METHOD_WEIGHTED_AVG, true).toFixed(2),
+                    sampledDistance: +DistanceManagerSingleton.getDistance(mac, _txPower, DistanceManager.METHOD_LAST_FEW_SAMPLES, true).toFixed(2),
+                    accuracy: +(_txPower/rssi).toFixed(3)
+                }
+            this.emit("approxDistance", distances)
+        }
+    }
 }
 
-addEddystonePaths(){
+Eddystone_initSchema(){
 
     this.addMetadatum("eddystone.voltage","v","sensor voltage as reported by Eddystone protocol",
         (array)=>{ return array.readUInt16BE(2)/1000}
@@ -983,7 +998,7 @@ addEddystonePaths(){
     )
         .examples=["sensors.{macAndName}.eddystone.timePowered"]
 
-    this.addMetadatum("eddystone.url","s","Eddystone URL",
+    this.addMetadatum("eddystone.url","","Eddystone URL",
         (array)=>{ return array.toString('utf8',3) }
     )
         .examples=["sensors.{macAndName}.eddystone.url"]
@@ -993,34 +1008,36 @@ addEddystonePaths(){
     )
         .default="sensors.{macAndName}.eddystone.txPower"
 
-        
-
-    /*20 00 == Eddystone TLM
-    0c 31 == voltage 
-    80 00 00 == ???
-    07 c5 5c == advert count
-    01 74 02 == time since powered up (seconds)
-    
-    10 == ID
-    0b == transmit power at 0m
-    03 "67 6f 6f 2e 67 6c 2f 50 48 4e 53 64" 6d == URL
-    */
-
     if (this._paths["eddystone.txPower"])
           this._eddystoneTxPowerPath=preparePath(this, this._paths["eddystone.txPower"])
 
 }
 
+EddyStone_propertiesChanged(props){
+    if (Object.hasOwn(props,"ServiceData")) {
+        const sd = this.valueIfVariant(props.ServiceData)[BTSensor.Eddystone_ServiceUUID]
 
-addIBeaconPaths(){
-    /*
+        if (sd) {
+            const buff=sd.value;
+            if (buff && buff.length>0 && buff[0]==0x20) {
 
-  02 15 == ibeacon identifier
+                this.emitData("eddystone.voltage", buff)
+                this.emitData("eddystone.temperature",buff)
+                this.emitData("eddystone.advertCount",buff)
+                this.emitData("eddystone.timePowered",buff)
+            } else
+            
+            if (buff && buff.length>0 && buff[0]==0x10) {
+               this.emitData("eddystone.url", buff)
+               this.emitData("eddystone.txPower", buff)
+            }
+        }
+    }
 
-  fd a5 06 93 a4 e2 4f b1 af cf c6 eb 07 64 78 25 == UUID
-  27 51 65 c1 = major/minor (BE)
-  fd == rss at 1m (signed int8)
-    */
+}
+
+
+IBeacon_initSchema(){
 
     this.addMetadatum("iBeacon.uuid","","sensor UUID",
         (array)=>{
@@ -1050,26 +1067,23 @@ addIBeaconPaths(){
 
 
 }
-emitBeaconDistance() {
-    const mac = this.getMacAddress()
-    DistanceManagerSingleton.addSample(mac, this.getRSSI()) 
-    const isEddystone=(!this._iBeaconTxPowerPath && this._eddystoneTxPowerPath)
-    let txPowerPath =  this?._iBeaconTxPowerPath??this._eddystoneTxPowerPath
-    if (txPowerPath) {
-        const txPower = this.app.getSelfPath(txPowerPath)
-    
-        if (txPower?.value)  {
-            const _txPower = isEddystone? txPower.value-41: txPower.value
-            const distances= {
-                    avgDistance: DistanceManagerSingleton.getDistance(mac, _txPower, DistanceManager.METHOD_AVG, true),
-                    weightedAveDistance: DistanceManagerSingleton.getDistance(mac, _txPower, DistanceManager.METHOD_WEIGHTED_AVG, true),
-                    sampledDistance: DistanceManagerSingleton.getDistance(mac, _txPower, DistanceManager.METHOD_LAST_FEW_SAMPLES, true)
-                }
-        this.debug(distances)
-            
+
+IBeacon_propertiesChanged(props){
+    if (Object.hasOwn(props,"ManufacturerData")){
+        const md = this.valueIfVariant(props.ManufacturerData)[ BTSensor.IBeacon_ManufacturerID]
+        if (md){
+            const buff=md.value
+            if (buff && buff.length>0 && buff[0]==0x02) {
+                this.emitData("iBeacon.uuid", buff)
+                this.emitData("iBeacon.major", buff)
+                this.emitData("iBeacon.minor", buff)
+                this.emitData("iBeacon.txPower", buff)
+            }
+                
         }
     }
 }
+
 }
 
 module.exports = BTSensor   

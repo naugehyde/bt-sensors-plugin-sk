@@ -391,8 +391,15 @@ module.exports =   function (app) {
 				else{
 					const device = new OutOfRangeDevice(adapter, config)
 					const c = await getClassFor(device,config)
-					if (c.isRoaming){
+					if (c.domain==BTSensor.SensorDomains.beacons || c.IsRoaming){
 						s = await instantiateSensor(device,config)
+						device.once("deviceFound",async (device)=>{
+								s.device=device
+								s.listen()
+								s.activate(config, plugin)
+								removeSensorFromList(s)
+								addSensorToList(s)
+						})
 						addSensorToList(s)
 						resolve(s)
 					}

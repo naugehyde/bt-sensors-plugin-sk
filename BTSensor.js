@@ -115,7 +115,8 @@ class BTSensor extends EventEmitter {
         environmental: { name: "environmental", description: "Sensors that measure environmental conditions - air temperature, humidity etc."},
         electrical: { name: "electrical", description: "Electrical sensor - chargers, batteries, inverters etc."},
         propulsion: { name: "propulsion", description: "Sensors that measure engine state"},
-        tanks: { name: "tanks", description: "Sensors that measure level in tanks (gas, propane, water etc.) "}
+        tanks: { name: "tanks", description: "Sensors that measure level in tanks (gas, propane, water etc.) "},
+        beacons: { name: "beacons", description: "iBeacon/Eddystone sensor tags"}
     }
     static Domain = this.SensorDomains.unknown   
     /**
@@ -662,6 +663,8 @@ class BTSensor extends EventEmitter {
 
     }
     macAndName(){
+        if (this.getMacAddress()==null) 
+            debugger
         return `${this.getName().replaceAll(':', '-').replaceAll(" ","_")}-${this.getMacAddress().replaceAll(':', '-')}`
     }
     getNameAndAddress(){
@@ -966,11 +969,12 @@ Beacon_emitDistance(rssi) {
     
         if (txPower?.value)  {
             const _txPower = isEddystone? txPower.value-41: txPower.value
+            const accuracy = (Math.min(1,+(_txPower/rssi).toFixed(3)))
             const distances= {
                     avgDistance: +DistanceManagerSingleton.getDistance(mac, _txPower, DistanceManager.METHOD_AVG, true).toFixed(2),
                     weightedAveDistance: +DistanceManagerSingleton.getDistance(mac, _txPower, DistanceManager.METHOD_WEIGHTED_AVG, true).toFixed(2),
                     sampledDistance: +DistanceManagerSingleton.getDistance(mac, _txPower, DistanceManager.METHOD_LAST_FEW_SAMPLES, true).toFixed(2),
-                    accuracy: +(_txPower/rssi).toFixed(3)
+                    accuracy: accuracy
                 }
             this.emit("approxDistance", distances)
         }

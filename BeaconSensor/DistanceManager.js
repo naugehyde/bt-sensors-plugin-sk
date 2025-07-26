@@ -13,7 +13,7 @@ class DistanceManager {
     };
 
 
-    #beaconRssiSampleMap = new LRUCache({ttl:1000*60*5}); // Using LRUCache with a ttl of 5m for beaconRssiSampleMap
+    #beaconRssiSampleMap = new LRUCache({ttl:1000*60*5, ttlAutopurge: true}); // Using LRUCache with a ttl of 5m for beaconRssiSampleMap
 
     #timeFormatter = new Intl.DateTimeFormat('en-US', {
         hour: '2-digit',
@@ -200,7 +200,7 @@ class DistanceManager {
             object.end_time = this.#getTimeString(toTimestamp);
             object.samples = array;
             // In Node.js, 'console.log' is used instead of 'Log.d'
-            console.log("SampleData", JSON.stringify(object, null, 2)); // Prettify output
+            //console.log("SampleData", JSON.stringify(object, null, 2)); // Prettify output
         } catch (error) {
             console.error("Error logging samples:", error); // Use console.error for errors
         }

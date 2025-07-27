@@ -15,7 +15,7 @@ class FeasyComBeacon extends BTSensor {
         this.Beacon_initSchema()
     }
 
-    propertiesChanged(props){
+    propertiesChanged(progps){
       super.propertiesChanged(props);
       this.Beacon_propertiesChanged(props) 
     }

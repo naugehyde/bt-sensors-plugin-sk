@@ -1,0 +1,26 @@
+#!/usr/bin/expect -f
+
+set device [lindex $argv 0];
+set uuid  [lindex $argv 1];
+set notifies  [lindex $argv 2];
+set timeout 60
+spawn bluetoothctl
+send -- "scan on\r"
+expect $device
+send -- "connect $device\r"
+expect "ServicesResolved: yes"
+send -- "scan off\r"
+expect "Discovering: no"
+send -- "menu gatt\r"
+expect "Menu gatt:"
+send -- "select-attribute $uuid\r"
+expect "char0032"
+send -- "acquire-notify\r"
+expect "NotifyAcquired: yes"
+for {set i 0} {$i < $notifies} {incr i} {
+    expect "Notification:"
+}
+send -- "back\r"
+expect "Menu main:"
+send -- "disconnect\r"
+expect "disconnected"

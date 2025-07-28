@@ -164,7 +164,13 @@ class EctiveBMS extends BTSensor {
 
 }
 
+usingGATT(){
+      return true
+}
 
+emitGATT(){
+  //do nothing
+}
 
 async stopListening(){
   super.stopListening()

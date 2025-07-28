@@ -150,6 +150,7 @@ class EctiveBMS extends BTSensor {
 
   async initGATTNotifications(){
          await this.rxChar.startNotifications()
+         this.debug(`Notifications started for ${rxChar}`)
          this.rxChar.on("valueChanged", (data)=>{
             this.updateBuffer(data)
          })

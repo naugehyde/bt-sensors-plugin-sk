@@ -1,4 +1,3 @@
-const { ThreeSixty } = require("@material-ui/icons");
 const BTSensor = require("../BTSensor");
 
 const testData=[

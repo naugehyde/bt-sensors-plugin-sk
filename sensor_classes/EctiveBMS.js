@@ -1,3 +1,4 @@
+const { ThreeSixty } = require("@material-ui/icons");
 const BTSensor = require("../BTSensor");
 
 const testData=[
@@ -120,6 +121,15 @@ class EctiveBMS extends BTSensor {
     return true
   }
 
+
+usingGATT(){
+      return true
+}
+
+emitGATT(){
+  //do nothing
+}
+
   verifyData(d1,d2){
           if (d1.length!==d2.toString("utf8").length/2) {
             this._dataError=true
@@ -132,16 +142,19 @@ class EctiveBMS extends BTSensor {
 
             if (data[0]==0x5E){ //start of stream
                 this._dataBuffer = Buffer.from(data.subarray(1).toString("utf8"),"hex") 
+                this.debug(`this._dataBuffer=${this._dataBuffer}`)
                 this.verifyData(this._dataBuffer,data.subarray(1))
             } 
             else {
               if (!this._dataError) {
                 const zeroIndex = data.indexOf(0x0)
+                this.debug(`zeroIndex=${zeroIndex}`)
                 const d = zeroIndex==-1?data:data.subarray(0,zeroIndex)
                 const _data = Buffer.from(d.toString("utf8"),"hex")
+                this.debug(`_data=${_data}`)
                 if (this.verifyData(_data,d)) {
                   this._dataBuffer=Buffer.concat([this._dataBuffer, _data])
-                  if (zeroIndex>1) //end of stream
+                  if (zeroIndex>=1) //end of stream
                     this.emitValuesFrom(this._dataBuffer)
                 }
               }
@@ -152,6 +165,7 @@ class EctiveBMS extends BTSensor {
          await this.rxChar.startNotifications()
          this.debug(`Notifications started for ${this.rxChar}`)
          this.rxChar.on("valueChanged", (data)=>{
+            this.debug(`valueChanged: ${data}`)
             this.updateBuffer(data)
          })
   }
@@ -165,13 +179,6 @@ class EctiveBMS extends BTSensor {
 
 }
 
-usingGATT(){
-      return true
-}
-
-emitGATT(){
-  //do nothing
-}
 
 async stopListening(){
   super.stopListening()

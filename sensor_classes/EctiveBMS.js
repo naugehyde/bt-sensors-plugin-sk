@@ -163,8 +163,8 @@ emitGATT(){
   async initGATTNotifications(){
          await this.rxChar.startNotifications()
          this.debug(`Notifications started `)
-         this.rxChar.on("valueChanged", (data)=>{
-            this.debug(`valueChanged: ${data}`)
+         this.rxChar.on("valuechanged", (data)=>{
+            this.debug(`valuechanged: ${data}`)
             this.updateBuffer(data)
          })
   }

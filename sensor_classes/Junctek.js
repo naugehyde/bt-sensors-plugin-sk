@@ -22,13 +22,11 @@ class JunctekBMS extends BTSensor{
         return null
     }
 
-    chargeDirection = 1 
+    chargeDirection = 0
 
     hasGATT(){
         return true
     }
-
-
 
     async initSchema(){
         super.initSchema()
@@ -87,16 +85,15 @@ class JunctekBMS extends BTSensor{
                     break
                 
                 case 0xC1:
-                    emitObject["current"]=()=>{return (v/100)*this.chargeDirection}
+                    if (this.chargeDirection)
+                        emitObject["current"]=()=>{return (v/100)*this.chargeDirection}
                     break
 
                 case 0xD1:
-                    this.debug(v)
                     if (v==0)
                         this.chargeDirection=-1
                     else 
                         this.chargeDirection= 1
-                    this.debug(this.chargeDirection)
                     break
 
                 case 0xD2:

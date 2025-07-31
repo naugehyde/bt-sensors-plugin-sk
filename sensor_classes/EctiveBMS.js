@@ -132,7 +132,7 @@ emitGATT(){
   verifyData(d1,d2){
           if (d1.length!==d2.toString("utf8").length/2) {
             this._dataError=true
-            this.debug(`Malformed packet received: ${d2.toString()}`)
+            this.debug(`(${this.getName()}) malformed packet received: ${d2.toString()}`)
           }
           return !this._dataError
   }
@@ -161,7 +161,7 @@ emitGATT(){
 
   async initGATTNotifications(){
          await this.rxChar.startNotifications()
-         this.debug(`${this.getName()}: Notifications started`)
+         this.debug(`(${this.getName()}) Notifications started`)
          this.rxChar.on("valuechanged", (data)=>{
             this.updateBuffer(data)
          })

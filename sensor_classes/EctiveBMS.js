@@ -45,7 +45,7 @@ class EctiveBMS extends BTSensor {
       obj.on(tag, val=>{console.log(`${tag} => ${val} `)})
     }
     data.forEach(d => {
-      const _d=d.replaceAll(" ","").toUpperCase()
+      const _d=d.replaceAll(" ","").toLowerCase()
       const b=Buffer.from(_d,"hex")
 
       obj.updateBuffer(b)
@@ -141,20 +141,19 @@ emitGATT(){
 
             if (data[0]==0x5E){ //start of stream
                 this._dataBuffer = Buffer.from(data.subarray(1).toString("utf8"),"hex") 
-                this.debug(`this._dataBuffer=${this._dataBuffer}`)
                 this.verifyData(this._dataBuffer,data.subarray(1))
             } 
             else {
               if (!this._dataError) {
                 const zeroIndex = data.indexOf(0x0)
-                this.debug(`zeroIndex=${zeroIndex}`)
                 const d = zeroIndex==-1?data:data.subarray(0,zeroIndex)
                 const _data = Buffer.from(d.toString("utf8"),"hex")
-                this.debug(`_data=${_data}`)
                 if (this.verifyData(_data,d)) {
                   this._dataBuffer=Buffer.concat([this._dataBuffer, _data])
-                  if (zeroIndex>=1) //end of stream
-                    this.emitValuesFrom(this._dataBuffer)
+                  if (zeroIndex>=1) {  //end of stream 
+                    this.debug(`(${this.getName()}) emitting data: ${JSON.parse(JSON.stringify(this._dataBuffer)).data} `)
+                    this.emitValuesFrom((this._dataBuffer))
+                  }
                 }
               }
             }
@@ -162,9 +161,8 @@ emitGATT(){
 
   async initGATTNotifications(){
          await this.rxChar.startNotifications()
-         this.debug(`Notifications started `)
+         this.debug(`${this.getName()}: Notifications started`)
          this.rxChar.on("valuechanged", (data)=>{
-            this.debug(`valuechanged: ${data}`)
             this.updateBuffer(data)
          })
   }

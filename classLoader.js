@@ -27,8 +27,13 @@ const semver = require('semver')
             const modules = defaultExport.modulesWithKeyword(app.config, "signalk-bt-sensor-class")
             modules.forEach((module)=>{
                 module.metadata.classFiles.forEach((classFile)=>{
-                    const cls = require(module.location+module.module+"/"+classFile);
-                    classMap.set(cls.name, cls);
+                    try{
+                        const cls = require(module.location+module.module+"/"+classFile);
+                        classMap.set(cls.name, cls);
+                    } catch (e) {
+                        console.log(`Unable to load class (${cls.name}): ${e.message}`)
+                        console.log(e)
+                    }
                 })
             })
             classMap.get('UNKNOWN').classMap=new Map([...classMap].sort().filter(([k, v]) => !v.isSystem )) // share the classMap with Unknown for configuration purposes

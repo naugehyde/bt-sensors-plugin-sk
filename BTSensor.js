@@ -14,7 +14,6 @@ const DistanceManager = require("./BeaconSensor/DistanceManager")
  */
 
 const BTCompanies = require('./bt_co.json');
-const DistanceManagerSingleton= new DistanceManager({DISTANCE_FIND_LAST_FEW_SAMPLE_TIME_FRAME_MILLIS:60000}) //should be a singleton
 
 const connectQueue = new AutoQueue()
 
@@ -58,38 +57,6 @@ function signalQualityPercentQuad(rssi, perfect_rssi=-20, worst_rssi=-85) {
     }
     return Math.ceil(signal_quality);
 }
-function preparePath(obj, str) {
-    const regex = /\{([^}]+)\}/g;
-    let match;
-    let resultString = "";
-    let lastIndex = 0;
-  
-    while ((match = regex.exec(str)) !== null) {
-      const fullMatch = match[0];
-      const keyToAccess = match[1].trim();
-  
-      // Append the text before the current curly braces
-      resultString += str.substring(lastIndex, match.index);
-      lastIndex = regex.lastIndex;
-  
-      try {
-        let evalResult = obj[keyToAccess];
-        if (typeof evalResult === 'function'){
-            evalResult= evalResult.call(obj)
-        }
-
-        resultString += evalResult !== undefined ? evalResult.replace(/\s+/g,'_') : `${keyToAccess}_value_undefined`;
-      } catch (error) {
-        console.error(`Error accessing key '${keyToAccess}':`, error);
-        resultString += fullMatch; // Keep the original curly braces on error
-      }
-    }
-  
-    // Append any remaining text after the last curly braces
-    resultString += str.substring(lastIndex);
-  
-    return resultString || str; // Return original string if no replacements were made
-  }
 
  
 
@@ -108,6 +75,8 @@ function preparePath(obj, str) {
 class BTSensor extends EventEmitter {
  
     static DEFAULTS = require('./plugin_defaults.json');
+    static DistanceManagerSingleton= new DistanceManager({DISTANCE_FIND_LAST_FEW_SAMPLE_TIME_FRAME_MILLIS:60000}) //should be a singleton
+
     static IsRoaming = false;
 
     static SensorDomains={
@@ -902,7 +871,7 @@ class BTSensor extends EventEmitter {
                 this.app.handleMessage(id, 
                 {
                 updates: 
-                    [{ meta: [{path:  preparePath(this, path), value: { units: pathMeta?.unit }}]}]
+                    [{ meta: [{path:  this.preparePath(path), value: { units: pathMeta?.unit }}]}]
                 })
             }
         })
@@ -914,7 +883,7 @@ class BTSensor extends EventEmitter {
             const pathMeta=this.getPath(tag)
 			const path = deviceConfig.paths[tag];
 			if (!(path === undefined)) {
-                let preparedPath =  preparePath(this, path)
+                let preparedPath =  this.preparePath(path)
                 this.on(tag, (val)=>{
 					if (pathMeta.notify){
 						this.app.notify(tag, val, id )
@@ -936,158 +905,40 @@ class BTSensor extends EventEmitter {
         if (!config.params.sensorClass)
             config.params.sensorClass=this.constructor.name
     }
-//beacon methods and variables -- probably should be mixins or something
 
-static Eddystone_ServiceUUID="0000feaa-0000-1000-8000-00805f9b34fb"
-static IBeacon_ManufacturerID= 0x004c
-
-Beacon_initSchema(){
-    this.addDefaultParam("id")
-        .examples=["captain_keyring", "firstMate_keyring"]
-    this.Eddystone_initSchema()
-    this.IBeacon_initSchema()
-    this.addMetadatum("approxDistance","","approximate sensor distance from server")
-        .default="sensors.{macAndName}.distance.approximate"
-}
-
-Beacon_propertiesChanged(props){
-    if(Object.hasOwn(props,"RSSI")){        
-        this.Beacon_emitDistance(props.RSSI.value)
-    }
-    this.EddyStone_propertiesChanged(props)
-    this.IBeacon_propertiesChanged(props)
+    preparePath(str) {
+        const regex = /\{([^}]+)\}/g;
+        let match;
+        let resultString = "";
+        let lastIndex = 0;
     
-}
-
-Beacon_emitDistance(rssi) {
-    const mac = this.getMacAddress()
-    const isEddystone=(!this._iBeaconTxPowerPath && this._eddystoneTxPowerPath)
-    DistanceManagerSingleton.addSample(mac, rssi) 
-    let txPowerPath =  this?._iBeaconTxPowerPath??this._eddystoneTxPowerPath
-    if (txPowerPath) {
-        const txPower = this.app.getSelfPath(txPowerPath)
+        while ((match = regex.exec(str)) !== null) {
+        const fullMatch = match[0];
+        const keyToAccess = match[1].trim();
     
-        if (txPower?.value)  {
-            const _txPower = isEddystone? txPower.value-41: txPower.value
-            const accuracy = (Math.min(1,+(_txPower/rssi).toFixed(3)))
-            const distances= {
-                    avgDistance: +DistanceManagerSingleton.getDistance(mac, _txPower, DistanceManager.METHOD_AVG, true).toFixed(2),
-                    weightedAveDistance: +DistanceManagerSingleton.getDistance(mac, _txPower, DistanceManager.METHOD_WEIGHTED_AVG, true).toFixed(2),
-                    sampledDistance: +DistanceManagerSingleton.getDistance(mac, _txPower, DistanceManager.METHOD_LAST_FEW_SAMPLES, true).toFixed(2),
-                    accuracy: accuracy
-                }
-            this.emit("approxDistance", distances)
-        }
-    }
-}
-
-Eddystone_initSchema(){
-
-    this.addMetadatum("eddystone.voltage","v","sensor voltage as reported by Eddystone protocol",
-        (array)=>{ return array.readUInt16BE(2)/1000}
-    )
-        .default="sensors.{macAndName}.eddystone.voltage"
-
-    this.addMetadatum("eddystone.temperature","K","sensor temperature as reported by Eddystone protocol",
-        (array)=>{ return 273.15+(array.readInt16BE(5)/1000)} 
-    )
-        .examples=["sensors.{macAndName}.eddystone.temperature"]
-
-    this.addMetadatum("eddystone.advertCount","","number of advertisements sent by device",
-        (array)=>{ return array.readUIntBE(7,3) }
-    )
-        .examples=["sensors.{macAndName}.eddystone.advertisements"]
-
-    this.addMetadatum("eddystone.timePowered","s","times since powered up (in seconds)",
-        (array)=>{ return array.readUIntBE(11,3)/10 }
-    )
-        .examples=["sensors.{macAndName}.eddystone.timePowered"]
-
-    this.addMetadatum("eddystone.url","","Eddystone URL",
-        (array)=>{ return array.toString('utf8',3) }
-    )
-        .examples=["sensors.{macAndName}.eddystone.url"]
-
-    this.addMetadatum("eddystone.txPower","db","signal strength at one meter (db)",
-        (array)=>{ return array.readInt8(1) }
-    )
-        .default="sensors.{macAndName}.eddystone.txPower"
-
-    if (this._paths["eddystone.txPower"])
-          this._eddystoneTxPowerPath=preparePath(this, this._paths["eddystone.txPower"])
-
-}
-
-EddyStone_propertiesChanged(props){
-    if (Object.hasOwn(props,"ServiceData")) {
-        const sd = this.valueIfVariant(props.ServiceData)[BTSensor.Eddystone_ServiceUUID]
-
-        if (sd) {
-            const buff=sd.value;
-            if (buff && buff.length>0 && buff[0]==0x20) {
-
-                this.emitData("eddystone.voltage", buff)
-                this.emitData("eddystone.temperature",buff)
-                this.emitData("eddystone.advertCount",buff)
-                this.emitData("eddystone.timePowered",buff)
-            } else
-            
-            if (buff && buff.length>0 && buff[0]==0x10) {
-               this.emitData("eddystone.url", buff)
-               this.emitData("eddystone.txPower", buff)
+        // Append the text before the current curly braces
+        resultString += str.substring(lastIndex, match.index);
+        lastIndex = regex.lastIndex;
+    
+        try {
+            let evalResult = this[keyToAccess];
+            if (typeof evalResult === 'function'){
+                evalResult= evalResult.call(this)
             }
+
+            resultString += evalResult !== undefined ? evalResult.replace(/\s+/g,'_') : `${keyToAccess}_value_undefined`;
+        } catch (error) {
+            console.error(`Error accessing key '${keyToAccess}':`, error);
+            resultString += fullMatch; // Keep the original curly braces on error
         }
     }
+  
+    // Append any remaining text after the last curly braces
+    resultString += str.substring(lastIndex);
+  
+    return resultString || str; // Return original string if no replacements were made
+  }
 
-}
-
-
-IBeacon_initSchema(){
-
-    this.addMetadatum("iBeacon.uuid","","sensor UUID",
-        (array)=>{
-            let s = ''
-            array.slice(2,18).forEach((v)=>{s+= v.toString('16').padStart(2,'0')})
-            return s
-        })
-        .default="sensors.{macAndName}.iBeacon.uuid"
-
-    this.addMetadatum("iBeacon.major","","sensor major ID",
-        (array)=>{return array.readUInt16BE(18)}
-    )
-        .examples=["sensors.{macAndName}.iBeacon.major"]
-
-    this.addMetadatum("iBeacon.minor","","sensor minor ID",
-        (array)=>{return array.readUInt16BE(20)}
-    )
-        .examples=["sensors.{macAndName}.iBeacon.minor"]
-
-    this.addMetadatum("iBeacon.txPower","db","signal strength at one meter (db)",
-         (array)=>{return array.readInt8(22)}
-    )
-        .default="sensors.{macAndName}.iBeacon.txPower"
-
-    if (this._paths["iBeacon.txPower"])
-        this._iBeaconTxPowerPath=preparePath(this, this._paths["iBeacon.txPower"])
-
-
-}
-
-IBeacon_propertiesChanged(props){
-    if (Object.hasOwn(props,"ManufacturerData")){
-        const md = this.valueIfVariant(props.ManufacturerData)[ BTSensor.IBeacon_ManufacturerID]
-        if (md){
-            const buff=md.value
-            if (buff && buff.length>0 && buff[0]==0x02) {
-                this.emitData("iBeacon.uuid", buff)
-                this.emitData("iBeacon.major", buff)
-                this.emitData("iBeacon.minor", buff)
-                this.emitData("iBeacon.txPower", buff)
-            }
-                
-        }
-    }
-}
 
 }
 

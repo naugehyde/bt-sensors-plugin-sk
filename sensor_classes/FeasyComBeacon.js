@@ -1,5 +1,6 @@
 
 const BTSensor = require("../BTSensor");
+const Beacon = require("./Beacon/Beacon")
 
 class FeasyComBeacon extends BTSensor {
 
@@ -9,15 +10,16 @@ class FeasyComBeacon extends BTSensor {
     static IsRoaming = true;
     static Domain = BTSensor.SensorDomains.beacons
 
+    beacon = new Beacon(this)
 
     initSchema(){
         super.initSchema()
-        this.Beacon_initSchema()
+        this.beacon.initSchema()
     }
 
     propertiesChanged(progps){
       super.propertiesChanged(props);
-      this.Beacon_propertiesChanged(props) 
+      this.beacon.propertiesChanged(props) 
     }
 
     getManufacturer(){

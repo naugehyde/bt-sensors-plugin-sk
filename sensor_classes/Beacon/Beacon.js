@@ -1,7 +1,8 @@
-const Mixin = require('../../mixinish')
-const Eddystone = require('./Eddystone.js')
+const Mixin = require('../../Mixin')
+const OutOfRangeDevice = require('../../OutOfRangeDevice')
+const Eddystone = require('./Eddystone')
 
-const iBeacon = require('./iBeacon.js')
+const iBeacon = require('./iBeacon')
 
 class Beacon extends Mixin {
 
@@ -10,7 +11,13 @@ class Beacon extends Mixin {
         obj.eddystone=new Eddystone( obj )
         obj.iBeacon=new iBeacon( obj )
     }
- 
+    initListen() {
+        if (this.device instanceof OutOfRangeDevice){
+            //not working yet
+            this.emit("presence",{message:`Crew Member: ${this.crewMember} evidently not on board.`})    
+        }
+    }
+
     initSchema(){
         this.addDefaultParam("id")
             .examples=["captain_keyring", "firstMate_keyring"]
@@ -68,7 +75,7 @@ class Beacon extends Mixin {
                         accuracy: accuracy
                     }
                 this.emit("approxDistance", distances)
-                this.emit("presence", distances.avgDistance<this?.presenceThreshhold??15)
+                this.emit("presence", distances.avgDistance<this?.presenceThreshhold??20)
             }
         }
     }

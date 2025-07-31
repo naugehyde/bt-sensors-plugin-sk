@@ -1,4 +1,4 @@
-const Mixin = require('../../mixinish')
+const Mixin = require('../../Mixin')
 
 class iBeacon extends Mixin {
 

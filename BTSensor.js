@@ -2,7 +2,7 @@ const { Variant } = require('dbus-next');
 const { log } = require('node:console');
 const EventEmitter = require('node:events');
 const AutoQueue =  require("./Queue.js")
-const DistanceManager = require("./BeaconSensor/DistanceManager")
+const DistanceManager = require("./DistanceManager")
 
 /** 
  * @author Andrew Gerngross <oh.that.andy@gmail.com>

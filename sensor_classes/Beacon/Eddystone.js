@@ -1,4 +1,4 @@
-const Mixin = require('../../mixinish')
+const Mixin = require('../../Mixin')
  class Eddystone extends Mixin  {
     static ServiceUUID= "0000feaa-0000-1000-8000-00805f9b34fb"
 

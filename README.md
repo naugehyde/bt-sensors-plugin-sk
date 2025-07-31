@@ -2,11 +2,13 @@
 
 ## WHAT'S NEW  
 
-# Version 1.2.5-2
+# Version 1.2.6
 
 - Mopeka examples not defaults in config
 - Fix so no plugin restart required after selecting sensor class for an unidentified device
 - FeasyCom BP108B support (iBeacon/Eddystone)
+- Ective BMS (Skanbatt, Topband and others)
+- Fixed Junctek chargeDirection at start (amps will not reported until chargeDirection is known)
 
 # Version 1.2.5-1
 
@@ -101,6 +103,8 @@ It's pretty easy to write and deploy your own sensor class for any currently uns
 |[Junctek](https://www.junteks.com)|[Junctek BMS](https://www.junteks.com/pages/product/index) |
 |[Remoran](https://remoran.eu)| [Remoran Wave.3](https://remoran.eu/wave.html)|
 |[AC DC Systems](https://marinedcac.com) | [Bank Manager] hybrid (Pb and Li) charger(https://marinedcac.com/pages/bankmanager)|
+|[Topband](https://www.topbandbattery.com/)| Also Skanbatt and others (choose EctiveBMS class)|
+
 
 ### Environmental 
 | Manufacturer |  Devices | 
@@ -128,7 +132,11 @@ It's pretty easy to write and deploy your own sensor class for any currently uns
 |--------------|----------|
 | [Mercury](https://www.mercurymarine.com)| [Mercury Smartcraft](https://www.mercurymarine.com/us/en/gauges-and-controls/displays/smartcraft-connect) connect engine sensor|
 
+### Beacons
 
+| Manufacturer |  Devices | 
+|--------------|----------|
+|[FeasyCom](https://www.feasycom.com/)| [BP108B](https://www.feasycom.com/product/fsc-bp108b/) |
 
 
 ## WHO IT'S FOR

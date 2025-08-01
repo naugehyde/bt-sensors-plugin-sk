@@ -163,6 +163,7 @@ emitGATT(){
          await this.rxChar.startNotifications()
          this.debug(`(${this.getName()}) Notifications started`)
          this.rxChar.on("valuechanged", (data)=>{
+            this.debug(`(${this.getName()}) Rec'd data: ${JSON.parse(JSON.stringify(this._dataBuffer)).data}`)
             this.updateBuffer(data)
          })
   }

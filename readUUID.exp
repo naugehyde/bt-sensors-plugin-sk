@@ -15,11 +15,8 @@ send -- "menu gatt\r"
 expect "Menu gatt:"
 send -- "select-attribute $uuid\r"
 expect "service"
-send -- "acquire-notify\r"
-expect "NotifyAcquired: yes"
-for {set i 0} {$i < $notifies} {incr i} {
-    expect "Notification:"
-}
+send -- "read\r"
+expect "Attribute"
 send -- "back\r"
 expect "Menu main:"
 send -- "disconnect\r"

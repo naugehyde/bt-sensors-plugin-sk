@@ -1,14 +1,19 @@
+const { delimiter } = require("node:path");
 const BTSensor = require("../BTSensor");
+const EventEmitter = require('node:events');
+
 
 const testData=[
-  ["5e 45 39 33 36 30 30 30 30 31 44 46 34 46 46 46 46",
-  "34 30 30 44 30 33 30 30 30 46 30 30 36 33 30 30",
-  "43 38 30 42 30 30 38 30 30 37 42 34",
-  "42 46 30 44 41 43 30 44 42 42 30 44 43 33 30 44",
-  "30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30",
-  "30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30",
-  "30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30",
-  "30 41 39 42 00 00 00 00 00 00 00 00"],
+  ['5e 43',
+  '34',                                                        
+  '33 33 30 30 30 30 44 32 46 37 46 46 46 46 34 38',
+  '45 38 30 31 30 30 30 45 30 30 34 41',              
+  '30 30 39 30 30 42 30 30 38 30 30 37 42 34 45 44',  
+  '30 43 46 30 30 43 46 32 30 43 46 35 30 43 30 30', 
+  '30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30',  
+  '30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30',
+  '30 30 30 30 30 30 30 30 30 30 30 30',                  
+  '30 30 30 43 31 31 00 00 00 00 00 00 00 00'],
   ["5e 35 34 33 37 30 30 30 30 30 30 30 30 30 30 30 30",
    "34 38 45 38 30 31 30 30 31 30 30 30 36 33 30 30",
    "43 30 30 42 30 30 38 30 38 37 46 34",
@@ -16,7 +21,7 @@ const testData=[
    "30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30",
    "30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30",
    "30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30",
-   "30 35 37 44 00 00 00 00 00 00"
+   "30 35 37 44 00 00 00 00 00 00 00 00"
   ],
   //bad data (!=0x21)
   ["5e 35 34 33 37 30 30 30 30 30 30 30 30 30 30 30 30", 
@@ -26,10 +31,64 @@ const testData=[
    "30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30",
    "30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30",
    "30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30",
-   "30 35 37 44 00 00 00 00 00 00"
+   "30 35 37 44 00 00 00 00 00 00 00 00"
   ]
 ]
+class EctiveDataManager extends EventEmitter{
+  static expectedLength = 120
+  buffer = Buffer.from([])
+  
+  delimitedAt(data){
+    const delimiters = [0x5e,0xaf] 
+    for (const d of delimiters){
+      if (data.includes(d)) return data.indexOf(d)
+    }
+    return -1
+  }
 
+  add(buff) {
+      
+      const delimiterIndex = this.delimitedAt(buff)
+      if (delimiterIndex == 0)
+        this.buffer= buff.subarray(1)
+      else {
+        if (delimiterIndex==-1)
+          this.buffer=Buffer.concat([this.buffer, buff])
+        else {
+          this.buffer=Buffer.concat([this.buffer,buff.subarray(0, delimiterIndex)])
+        }
+      }
+      if ( this.buffer.length==this.constructor.expectedLength) {
+        const _data = new EctiveData (this.buffer)
+        if (_data.error) {
+          this.buffer=Buffer.from([])
+          throw new Error (`malformed packet: ${JSON.parse(JSON.stringify(_data)).ascii}`)
+        }
+        else {
+          this.emit("valuechanged", _data.hex )
+          this.buffer=Buffer.from([])
+        }
+      } else {
+        if (delimiterIndex>0) {
+          this.buffer=buff.subarray(delimiterIndex+1)
+        }
+      }
+
+  
+    }
+}
+
+class EctiveData{
+  constructor(data){
+    this.ascii = data.toString("utf8").slice(0,data.indexOf(0)) 
+    this.hex = Buffer.from(this.ascii,"hex")
+    this.error = !this.verify()
+  }
+  
+  verify(){
+    return (this.hex.length==this.ascii.toString("utf8").length/2) 
+  }
+}
 class EctiveBMS extends BTSensor {
   static Domain = BTSensor.SensorDomains.electrical
 
@@ -44,20 +103,51 @@ class EctiveBMS extends BTSensor {
     for (const [tag,path] of Object.entries(obj._schema.properties.paths.properties)) {
       obj.on(tag, val=>{console.log(`${tag} => ${val} `)})
     }
-    data.forEach(d => {
+      obj._dataManager.on("valuechanged", (b)=>{
+        obj.emitValuesFrom(b)
+      })
+      data.forEach(d => {
       const _d=d.replaceAll(" ","").toLowerCase()
       const b=Buffer.from(_d,"hex")
-
-      obj.updateBuffer(b)
+      try {
+        obj._dataManager.add(b)
+      } catch (e){
+        obj.debug(`(${obj.getName()}): ${e.message}`)
+      }
     });
   }
+  static testStream(filename, numCells=4){
+    const obj = new EctiveBMS()
+    obj.currentProperties={Name:"Topbrand BMS", Address:"<mac>"}
+    obj.numberOfCells=numCells
+    obj.initSchema()
+    obj.debug=(m)=>{console.log(m)}
+    for (const [tag,path] of Object.entries(obj._schema.properties.paths.properties)) {
+      obj.on(tag, val=>{console.log(`${tag} => ${val} `)})
+    }
+      obj._dataManager.on("valuechanged", (b)=>{
+        obj.emitValuesFrom(b)
+      })
+      const lineReader = require('readline').createInterface({  input: require('fs').createReadStream(filename)});
+    // Each line in input.txt will be successively available here as `line`.
+  
+    (async ()=>{for await (const line of lineReader) {
+      const _d = line.slice(0,50).replaceAll(" ","").toLowerCase()
+      const b=Buffer.from(_d,"hex")
+      try {
+        obj._dataManager.add(b)
+      } catch (e){
+        obj.debug(`(${obj.getName()}): ${e.message}`)
+      }
+    }})()
+  }
+    
+  
   static identify(device){
     return null
   }
 
-  _dataBuffer=null
-  _dataError = false
-
+  _dataManager = new EctiveDataManager()
   initSchema(){
       super.initSchema()
       this.addDefaultParam("batteryID")
@@ -137,35 +227,21 @@ emitGATT(){
           return !this._dataError
   }
 
-  updateBuffer(data){
-
-            if (data[0]==0x5E){ //start of stream
-                this._dataBuffer = Buffer.from(data.subarray(1).toString("utf8"),"hex") 
-                this.verifyData(this._dataBuffer,data.subarray(1))
-            } 
-            else {
-              if (!this._dataError) {
-                const zeroIndex = data.indexOf(0x0)
-                const d = zeroIndex==-1?data:data.subarray(0,zeroIndex)
-                const _data = Buffer.from(d.toString("utf8"),"hex")
-                if (this.verifyData(_data,d)) {
-                  this._dataBuffer=Buffer.concat([this._dataBuffer, _data])
-                  if (zeroIndex>=1) {  //end of stream 
-                    this.debug(`(${this.getName()}) emitting data: ${JSON.parse(JSON.stringify(this._dataBuffer)).data} `)
-                    this.emitValuesFrom((this._dataBuffer))
-                  }
-                }
-              }
-            }
-    }
 
   async initGATTNotifications(){
          await this.rxChar.startNotifications()
          this.debug(`(${this.getName()}) Notifications started`)
-         this.rxChar.on("valuechanged", (data)=>{
-            this.debug(`(${this.getName()}) Rec'd data: ${JSON.parse(JSON.stringify(this._dataBuffer)).data}`)
-            this.updateBuffer(data)
+
+         this.rxChar.on("valuechanged", (buffer)=>{
+            try {
+              this._dataManager.add(buffer)
+            } catch (e){
+              this.debug(`(${this.getName()}): ${e.message}`)
+            }
          })
+        this._dataManager.on("valuechanged", (b)=>{
+          this.emitValuesFrom(b)
+        } )
   }
 
   async initGATTConnection() {

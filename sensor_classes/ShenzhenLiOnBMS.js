@@ -34,6 +34,9 @@ class ShenzhenLiONBMS extends BTSensor{
     static async identify(device){
         return null
     }
+    static DisplayName(){
+        "Shenzhen LiTime BMS Batteries: Redodo, Litime, PowerQueen and others"
+    }
     async sendCommand(cmd){
         await this.txCharacteristic.writeValueWithResponse( Buffer.from(cmd))
     }

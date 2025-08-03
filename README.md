@@ -6,8 +6,8 @@
 
 - Mopeka examples not defaults in config
 - Fix so no plugin restart required after selecting sensor class for an unidentified device
-- FeasyCom BP108B support (iBeacon/Eddystone)
-- Ective BMS (Skanbatt, Topband and others)
+- FeasyCom BP108B support -- iBeacon/Eddystone protocols
+- Topband, Skanbatt etc LiPo BMS support (Ective BMS) 
 - Fixed Junctek chargeDirection at start (amps will not reported until chargeDirection is known)
 
 # Version 1.2.5-1

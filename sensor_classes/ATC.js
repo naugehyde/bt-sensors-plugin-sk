@@ -92,13 +92,16 @@ class ATC extends BTSensor{
         this.emitData("voltage", buff)
         this.emitData("batteryStrength", buff)
         
+    }
+    getImage(){
+        return "atc_xiaomi.jpeg" 
     }                    
     getManufacturer(){
         return "ATC1441 (custom firmware see: https://github.com/atc1441)"
     }
 
     getDescription(){
-        return `<div><p><img src="../bt-sensors-plugin-sk/images/LYWSD03MMC-Device.jpg" alt="ATC/LYWSD03MMC image" style="float: left; margin-right: 10px;" />
+        return `<div><p><img src=${this.getImageSrc()}${this.getImage()} alt="ATC/LYWSD03MMC image" style="float: left; margin-right: 10px;" />
         Xiaomi LYWSD03MMC custom firmware provided by <b>ATC1441</b>. 
         For more information, see: <a href=https://github.com/atc1441/ATC_MiThermometer?tab=readme-ov-file#atc_mithermometer target="_blank">ATC_MiThermometer</a><div>`
     }

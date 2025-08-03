@@ -11,6 +11,9 @@ class UltrasonicWindMeter extends BTSensor{
         else
             return null
     }
+    getImage(){
+        return "UltrasonicPortableSolarWindMeter.jpg"
+    }
     hasGATT(){
         return true
     }

@@ -30,8 +30,10 @@ class FeasyComBeacon extends BTSensor {
     getManufacturer(){
         return "FeasyCom Inc.";
     }
-
-    getDescription(){
+    getImage(){
+      return "BP108B_1.webp"
+    }
+    getTextDescription(){
         return `${this.getName()} iBeacon/Eddystone device`
     }
 }

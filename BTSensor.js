@@ -231,6 +231,8 @@ class BTSensor extends EventEmitter {
         throw new Error("BTSensor is an abstract class. ::identify must be implemented by the subclass")
     }
 
+    static DisplayName() { return `${this.name} (${this.Domain.name}) `}
+
     /**
      * getManufacturerID is used to help ID the manufacturer of a device
      * 
@@ -614,8 +616,13 @@ class BTSensor extends EventEmitter {
     getImage(){
         return "bluetooth-logo.png" 
     }
+
+    getImageSrc(){
+        return "../bt-sensors-plugin-sk/images/"
+    }
+
     getImageHTML(){
-        return `<img src="../bt-sensors-plugin-sk/images/${this.getImage()}" height="150" object-fit="cover" ></img>`
+        return `<img src="${this.getImageSrc()}${this.getImage()}" height="150" object-fit="cover" ></img>`
     }
 
     getTextDescription(){

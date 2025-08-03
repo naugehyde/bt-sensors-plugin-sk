@@ -13,7 +13,8 @@ class UNKNOWN extends BTSensor{
             "sensorClass",
             {
                 title: "Sensor Class",
-                enum:Array.from(this.constructor.classMap.keys())
+                enum: Array.from(this.constructor.classMap.keys()),
+                enumNames: (Array.from(this.constructor.classMap.values()).map((cls)=>{return cls.DisplayName()}))
             }
         )
         this.listen()

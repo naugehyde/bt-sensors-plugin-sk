@@ -20,6 +20,7 @@ class MissingSensor  {
 		this.addDefaultPath=BTSensor.prototype.addDefaultPath.bind(this)
 		this.addDefaultParam=BTSensor.prototype.addDefaultParam.bind(this)
 		this.getPath=BTSensor.prototype.getPath.bind(this)
+		this.getImageSrc=BTSensor.prototype.getImageSrc.bind(this)
 
 		this.getJSONSchema = BTSensor.prototype.getJSONSchema.bind(this)
 		this.initSchema = BTSensor.prototype.initSchema.bind(this)

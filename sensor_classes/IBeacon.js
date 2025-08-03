@@ -81,7 +81,7 @@ class IBeacon extends BTSensor {
         return "Apple Inc. or clone";
     }
 
-    getDescription(){
+    getTextDescription(){
         return `${this.getName()} iBeacon from Apple Inc. or a clone`
     }
 }

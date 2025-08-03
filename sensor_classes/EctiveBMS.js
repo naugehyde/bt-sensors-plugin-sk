@@ -36,6 +36,7 @@ const testData=[
 ]
 class EctiveDataManager extends EventEmitter{
   static expectedLength = 120
+  
   buffer = Buffer.from([])
   
   delimitedAt(data){
@@ -142,7 +143,9 @@ class EctiveBMS extends BTSensor {
     }})()
   }
     
-  
+  static DisplayName(){
+    return "EctiveBMS: Topbrand, Skanbatt and other LiFePo4 batteries"
+  }
   static identify(device){
     return null
   }

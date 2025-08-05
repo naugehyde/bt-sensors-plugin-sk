@@ -15,6 +15,8 @@ class GoveeH5075 extends  GoveeSensor {
         sensor.emitValuesFrom(Buffer.from([0x00,0x03,0xbb,0x94,0x64,0x00]))
 
     }
+    static ImageFile = "GoveeH5075.webp"
+
     initSchema(){
         super.initSchema()
         this.addDefaultParam("zone")

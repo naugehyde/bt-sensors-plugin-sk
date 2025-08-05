@@ -54,7 +54,7 @@ class BankManager extends BTSensor{
     emitGATT(){
     
     }
-
+    ImageFile = "BankManager.webp" 
 
     initGATTConnection(){ 
         return new Promise((resolve,reject )=>{ this.deviceConnect().then(async ()=>{ 

@@ -16,14 +16,13 @@ class ShellySBHT003C extends AbstractBTHomeSensor {
 	static SHORTENED_LOCAL_NAME = "SBHT-003C";
 	static LOCAL_NAME = "TBD"
 
-	
+	static ImageFile="ShellyBLUHT.webp"
+
 	
 	getTextDescription(){
 		return `NOTE: Device must be paired with SignalK server machine to operate properly. For more information about the sensor go here: <a href=https://us.shelly.com/products/shelly-blu-h-t-black target="_blank">Shelly Blu H&T</a>.` 
 	}
-	getImage(){
-		return "Shelly-BLU-H-and-T-Black-main-image_a2ddcf07-4408-445e-b256-b1e0d1e3514d.webp"
-	}
+	
 	initSchema() {
 		super.initSchema()
 		this.addDefaultParam("zone")

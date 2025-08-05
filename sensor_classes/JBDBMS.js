@@ -29,6 +29,7 @@ class JBDBMS extends BTSensor {
   static identify(device){
     return null
   }
+  static ImageFile = "JBDBMS.webp"
 
   jbdCommand(command) {
     return [0xDD, 0xA5, command, 0x00, 0xFF, 0xFF - (command - 1), 0x77]

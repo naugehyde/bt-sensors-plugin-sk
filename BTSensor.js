@@ -613,26 +613,41 @@ class BTSensor extends EventEmitter {
         return this.currentProperties.Address
     }
 
-    getImage(){
-        return "bluetooth-logo.png" 
-    }
+    static ImageFile = "bluetooth-logo.png" 
+    static Description = "Bluetooth device"
+    static Manufacturer = "Unknown"
+    static ImageSrc =  "../bt-sensors-plugin-sk/images/"
 
+    getImageFile(){
+        return this.constructor.ImageFile
+    }
     getImageSrc(){
-        return "../bt-sensors-plugin-sk/images/"
+        return this.constructor.ImageSrc
+    }
+    static getImageHTML() {
+        return `<img src="${this.ImageSrc}${this.ImageFile}" style="float: left; margin-right: 10px;"  height="150" object-fit="cover" ></img>`
     }
 
     getImageHTML(){
-        return `<img src="${this.getImageSrc()}${this.getImage()}" height="150" object-fit="cover" ></img>`
+        return `<img src="${this.getImageSrc()}${this.getImageFile()}" style="float: left; margin-right: 10px;" height="150" object-fit="cover" ></img>`
     }
 
     getTextDescription(){
         return `${this.getName()} from ${this.getManufacturer()}`
     }
 
+    static getTextDescription(){
+        return `${this.name} from ${this.Manufacturer}`
+    }
+
     getDescription(){
         return `<div>${this.getImageHTML()} ${this.getTextDescription()} </div>`
-
     }
+
+    static getDescription(){
+        return `<div>${this.getImageHTML()} ${this.getTextDescription()} </div>`
+    }
+
     getName(){
         const name = this?.name??this.currentProperties.Name
         return name?name:"Unknown"

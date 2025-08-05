@@ -1,7 +1,7 @@
 const BTSensor = require("../BTSensor");
 class SwitchBotMeterPlus extends BTSensor{
     static Domain = BTSensor.SensorDomains.environmental
-		
+    static ImageFile = "SwitchBotMeterPlus.webp"
     constructor(device, config={}){
         super(device,config)
         if (config.parser){

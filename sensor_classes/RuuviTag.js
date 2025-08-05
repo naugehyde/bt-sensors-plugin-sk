@@ -2,6 +2,7 @@ const BTSensor = require("../BTSensor");
 class RuuviTag extends BTSensor{
     static manufacturerID = 0x0499
     static Domain = BTSensor.SensorDomains.environmental
+    static ImageFile = "RuuviTag.jpg"
     static  async identify(device){
         if (await this.getManufacturerID(device)==this.manufacturerID)
             return this

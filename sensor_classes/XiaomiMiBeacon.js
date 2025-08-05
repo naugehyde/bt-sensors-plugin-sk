@@ -72,7 +72,7 @@ const DEVICE_TYPES = new Map([
 
 class XiaomiMiBeacon extends BTSensor{
     static Domain = BTSensor.SensorDomains.environmental
-		
+	static ImageFile = "LYWSD03MMC-Device.jpg"
     constructor(device, config, gattConfig){
         super(device, config, gattConfig)
         this.encryptionKey = config?.encryptionKey
@@ -91,7 +91,8 @@ class XiaomiMiBeacon extends BTSensor{
                 return null
         }
     }
-    
+    static ImageFile="LYWSD03MMC-Device.jpg"
+
     emitValues(buffer){
         this.emitData("temp", buffer, 0)
         this.emit("humidity", buffer.readUInt8(2)/100)
@@ -206,6 +207,8 @@ class XiaomiMiBeacon extends BTSensor{
 
         await super.init()
         const data = this.getServiceData(this.constructor.SERVICE_MIBEACON)
+        if (!data || data.length<4)
+            throw new Error(`Service Data ${this.constructor.SERVICE_MIBEACON} not available for ${this.getName()}`)
         const frameControl = data[0] + (data[1] << 8)
         this.deviceID = data[2] + (data[3] << 8)
         this.isEncrypted = (frameControl >> 3) & 1

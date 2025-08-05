@@ -23,7 +23,10 @@ export function BTConfig (props)  {
 
    const _uiSchema= {
     "ui:options": {label: false},
-    'title': { 'ui:widget': 'hidden' }
+    "paths":{
+      enableMarkdownInDescription:true
+    },
+    'title': { 'ui:widget': 'hidden' },
   }
 
   const baseUISchema = 
@@ -118,6 +121,18 @@ const useStyles = makeStyles((theme) => ({
     }
     const json = await response.json()
 
+    return json
+
+  }
+
+
+  async function getSensorInfo(){
+    const response = await fetchJSONData("getSensorInfo",)
+    if (response.status!=200){
+      console.log(`Unable get info: ${response.statusText} (${response.status}) `)
+      return {}
+    }
+    const json = await response.json()
     return json
 
   }
@@ -261,6 +276,29 @@ const useStyles = makeStyles((theme) => ({
     };
     
  },[])
+
+
+ /*useEffect(()=>{
+  
+  if (!(sensorData && sensorMap) )  return
+  
+  const _sensor = sensorMap.get(sensorData.mac_address)
+  if (_sensor && schema && sensorData  &&
+    Object.hasOwn(sensorData,"params" )){
+    
+    debugger
+    if (_sensor.info.class == "UNKNOWN" && _sensor.config.params?.sensorClass != "UNKNOWN") {
+      getSensorInfo()
+      const _schema = {}
+      Object.assign(_schema, schema)
+      _schema.htmlDescription="Hello World" 
+      setSchema(_schema)
+    }
+  
+  }
+  
+ },[sensorData])*/
+
 
 useEffect(()=>{
   if (pluginState=="started") {

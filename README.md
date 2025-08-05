@@ -7,7 +7,7 @@
 - Mopeka examples not defaults in config
 - Fix so no plugin restart required after selecting sensor class for an unidentified device
 - FeasyCom BP108B support -- iBeacon/Eddystone protocols
-- Topband, Skanbatt etc LiPo BMS support (Ective BMS) 
+- Ective, Topband, Skanbatt etc LiFePo4 BMS support (ective.de)
 - Fixed Junctek chargeDirection at start (amps will not reported until chargeDirection is known)
 
 # Version 1.2.5-1
@@ -103,7 +103,7 @@ It's pretty easy to write and deploy your own sensor class for any currently uns
 |[Junctek](https://www.junteks.com)|[Junctek BMS](https://www.junteks.com/pages/product/index) |
 |[Remoran](https://remoran.eu)| [Remoran Wave.3](https://remoran.eu/wave.html)|
 |[AC DC Systems](https://marinedcac.com) | [Bank Manager] hybrid (Pb and Li) charger(https://marinedcac.com/pages/bankmanager)|
-|[Topband](https://www.topbandbattery.com/)| Also Skanbatt and others (choose EctiveBMS class)|
+|[Ective](https://ective.de/)| Also Topband(?), Skanbatt and others |
 
 
 ### Environmental 

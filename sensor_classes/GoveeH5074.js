@@ -4,6 +4,8 @@ class GoveeH5074 extends  GoveeSensor {
     static getIDRegex() {
         return /^Govee_H5074_[a-f,A-F,0-9]{4}$/
     }
+    static ImageFile = "GoveeH5074.jpg"
+
     initSchema(){
         super.initSchema()
         this.addDefaultParam("zone")

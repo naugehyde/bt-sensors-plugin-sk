@@ -11,9 +11,9 @@ class UltrasonicWindMeter extends BTSensor{
         else
             return null
     }
-    getImage(){
-        return "UltrasonicPortableSolarWindMeter.jpg"
-    }
+    static ImageFile="Ultrasonic.jpg"
+    static Manufacturer="Calypso Instruments EMEA, S.L."
+    
     hasGATT(){
         return true
     }

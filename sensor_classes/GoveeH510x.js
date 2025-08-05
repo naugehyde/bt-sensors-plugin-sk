@@ -17,6 +17,7 @@ class GoveeH510x extends GoveeSensor{
 
     }
     static DATA_ID = 0x0001
+    static ImageFile = "GoveeH510x.jpg"
     initSchema(){
         super.initSchema()
         this.addDefaultParam("zone")

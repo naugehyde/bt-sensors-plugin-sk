@@ -36,7 +36,7 @@ const testData=[
 ]
 class EctiveDataManager extends EventEmitter{
   static expectedLength = 120
-  
+  static ImageFile = "TopbandBattery.webp"
   buffer = Buffer.from([])
   
   delimitedAt(data){

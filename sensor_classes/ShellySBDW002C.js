@@ -16,6 +16,8 @@ class ShellySBDW002C extends AbstractBTHomeSensor {
   static SHORTENED_LOCAL_NAME = "SBDW-002C";
   static LOCAL_NAME = "Shelly BLU Door/Window";
 
+  static ImageFile="ShellyBluDoorWindow.webp"
+
   getTextDescription() {
     return `For more information about the sensor go here: <a href=https://us.shelly.com/products/shelly-blu-door-window-white target="_blank">Shelly Blu Door/Window</a>.`;
   }

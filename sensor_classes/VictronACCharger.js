@@ -28,7 +28,7 @@ class VictronACCharger extends VictronSensor{
         return await this.identifyMode(device, 0x08)
     }   
 
-
+    static Manufacturer = "Victron Energy B.V."
     initSchema(){
         super.initSchema()
         this.addDefaultParam("id")

@@ -21,6 +21,7 @@ class JunctekBMS extends BTSensor{
 
         return null
     }
+    static ImageFile = "Junctek.webp"
 
     chargeDirection = 0
 

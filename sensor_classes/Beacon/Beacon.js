@@ -3,11 +3,12 @@ const OutOfRangeDevice = require('../../OutOfRangeDevice')
 const Eddystone = require('./Eddystone')
 
 const iBeacon = require('./iBeacon')
-
+const DistanceManager = require('../../DistanceManager')
 class Beacon extends Mixin {
 
     constructor( obj ){
         super(obj)
+        obj.beacon = this
         obj.eddystone=new Eddystone( obj )
         obj.iBeacon=new iBeacon( obj )
     }
@@ -41,7 +42,7 @@ class Beacon extends Mixin {
 
         this.addMetadatum("presence","","boolean indicating crew member likely presence on board")
             .default="manifest.crew.{crewMember}.presence"
-        this.getPath("presence").notify=true
+        //this.getPath("presence").notify=true
 
         this.eddystone.initSchema()
         this.iBeacon.initSchema()
@@ -50,14 +51,14 @@ class Beacon extends Mixin {
 
     propertiesChanged(props){
         if(Object.hasOwn(props,"RSSI")){        
-            this.emitDistance(props.RSSI.value)
+            this.beacon.emitDistance(props.RSSI.value)
         }
         this.eddystone.propertiesChanged(props)
         this.iBeacon.propertiesChanged(props)
         
     }
 
-    emitDistance(rssi) {
+    emitDistance(rssi) { 
         const mac = this.getMacAddress()
         const isEddystone=(!this._iBeaconTxPowerPath && this._eddystoneTxPowerPath)
         this.constructor.DistanceManagerSingleton.addSample(mac, rssi) 

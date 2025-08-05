@@ -12,7 +12,7 @@ function getInstanceMethodNames (obj) {
 
 class Mixin{
     constructor(obj){
-        bindThisToThat(this,obj)
+        bindThisToThat(this, obj)
     }
 }
 

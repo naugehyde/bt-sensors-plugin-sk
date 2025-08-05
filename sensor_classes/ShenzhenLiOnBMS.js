@@ -20,6 +20,7 @@ const ProtectionStatus = {
 
 class ShenzhenLiONBMS extends BTSensor{
     static Domain = BTSensor.SensorDomains.electrical
+    static ImageFile = "LiTimeLiFePo4Battery.avif"
     static Commands = {
         product_registration: new Uint8Array([0x00, 0x00, 0x04, 0x01, 0x01, 0x55, 0xAA, 0x05]),
         disconnect_registration: new Uint8Array([0x00, 0x00, 0x04, 0x01, 0x02, 0x55, 0xAA, 0x06]),

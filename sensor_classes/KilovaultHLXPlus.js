@@ -41,6 +41,7 @@ class KilovaultHLXPlus extends BTSensor{
         super(device, config, gattConfig)
         this.accumulated_buffer = Buffer.alloc(0)
     }
+    static ImageFile = "KilovaultHLXPlus.jpg"
 
     static async identify(device){
         const regex = /^\d\d\-(12|24|36)00HLX\+\d{4}/

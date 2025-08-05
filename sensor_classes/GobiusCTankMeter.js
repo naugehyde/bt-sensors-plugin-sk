@@ -261,6 +261,8 @@ class GobiusCTankMeter extends BTSensor{
         else
             return null
     }
+    static ImageFile = "GobiusCTankMeter.jpg"
+    
     hasGATT(){
         return true
     }
@@ -274,6 +276,7 @@ class GobiusCTankMeter extends BTSensor{
         )
 
     }
+
      initSchema(){
         super.initSchema()
         this.getGATTParams()["useGATT"].default=true
@@ -351,9 +354,11 @@ class GobiusCTankMeter extends BTSensor{
             })
         }))
     }
+
     getDescription(){
         return '<a href="https://gobiusc.com/"><img src="../bt-sensors-plugin-sk/images/Gobius_C.png" alt="Gobius C Tank Measure" "></a>'
     }
+
     async stopListening(){
         super.stopListening()
         if (this.characteristic  && await this.characteristic.isNotifying()) {

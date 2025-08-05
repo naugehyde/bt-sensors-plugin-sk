@@ -13,6 +13,7 @@ class RenogySensor extends BTSensor{
     static WRITE_CHAR_UUID  = "0000ffd1-0000-1000-8000-00805f9b34fb"
     static READ_FUNC = 3
     static WRITE_FUNC = 6
+    static Manufacturer = "Renogy USA"
     constructor(device,config,gattConfig){
         super(device,config,gattConfig)
     }

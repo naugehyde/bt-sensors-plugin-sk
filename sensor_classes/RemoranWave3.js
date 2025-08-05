@@ -33,10 +33,12 @@ const states= ["Charging Needed", "Charging", "Floating", "Idle"]
 const BTSensor = require("../BTSensor");
  class RemoranWave3 extends BTSensor{
     static Domain = BTSensor.SensorDomains.electrical
+    static ImageFile = "RemoranWave3.jpeg"
     serviceUUID = "81d08df0-c0f8-422a-9d9d-e4379bb1ea3b"
     info1CharUUID = "62c91222-fafe-4f6e-95f0-afc02bd19f2e"
     info2CharUUID = "f5d12d34-4390-486c-b906-24ea8906af71"
     eventUUID =  "f12a8e25-59f7-42f2-b7ae-ba96fb25c13c"
+
 
      static async identify(device){
          

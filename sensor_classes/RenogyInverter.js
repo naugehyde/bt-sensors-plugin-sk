@@ -6,13 +6,10 @@ const RenogySensor = require("./Renogy/RenogySensor.js");
 const RC=require("./Renogy/RenogyConstants.js")
 class RenogyInverter extends RenogySensor {
 
-    
-    async init(){
-        await super.init()
-        this.initMetadata()
-    }
+    static ImageFile = "RenogyInverter.jpg"
 
-    initMetadata(){
+    initSchema(){
+        super.initSchema()
         this.addMetadatum('batteryType', '', "battery type")
     
         this.addMetadatum('ueiVoltage','V','UEI Voltage',

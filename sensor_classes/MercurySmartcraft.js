@@ -26,6 +26,7 @@ class MercurySmartcraft extends BTSensor{
         else
             return null
     }
+    static ImageFile = "MercurySmartcraft.jpg"
 
     
 

@@ -6,6 +6,9 @@ const RenogySensor = require("./Renogy/RenogySensor.js");
 const RC=require("./Renogy/RenogyConstants.js")
 
 class RenogyRoverClient extends RenogySensor {
+
+    static ImageFile = "RenogyRoverClient.jpg"
+
 /*
           "batteryType": "electrical.charger.battery.type",
           "batteryPercentage": "electrical.charger.battery.charge",

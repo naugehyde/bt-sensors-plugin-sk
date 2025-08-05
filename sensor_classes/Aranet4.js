@@ -14,8 +14,7 @@ class Aranet4 extends AranetSensor{
         }
         return null
     }
-    
-
+    static ImageFile= "Aranet2.webp" 
     initSchema(){
 
 

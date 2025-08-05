@@ -9,8 +9,10 @@ class FeasyComBeacon extends BTSensor {
     }
     static IsRoaming = true;
     static Domain = BTSensor.SensorDomains.beacons
+    static ImageFile = "BP108B.webp"
+    
 
-    beacon = new Beacon(this)
+    beacon=new Beacon(this)
 
     initSchema(){
         super.initSchema()
@@ -22,16 +24,13 @@ class FeasyComBeacon extends BTSensor {
       this.beacon.initListen()
 
     }
-    propertiesChanged(progps){
+    propertiesChanged(props){
       super.propertiesChanged(props);
       this.beacon.propertiesChanged(props) 
     }
 
     getManufacturer(){
         return "FeasyCom Inc.";
-    }
-    getImage(){
-      return "BP108B_1.webp"
     }
     getTextDescription(){
         return `${this.getName()} iBeacon/Eddystone device`

@@ -1,6 +1,7 @@
 const Mixin = require('../../Mixin')
 
 class iBeacon extends Mixin {
+    static ManufacturerID= 0x004c
 
     initSchema(){
 
@@ -35,7 +36,7 @@ class iBeacon extends Mixin {
 
     propertiesChanged(props){
         if (Object.hasOwn(props,"ManufacturerData")){
-            const md = this.valueIfVariant(props.ManufacturerData)[ BTSensor.IBeacon_ManufacturerID]
+            const md = this.valueIfVariant(props.ManufacturerData)[ iBeacon.ManufacturerID]
             if (md){
                 const buff=md.value
                 if (buff && buff.length>0 && buff[0]==0x02) {

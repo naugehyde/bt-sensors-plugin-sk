@@ -156,6 +156,20 @@ module.exports =   function (app) {
 		}
 
 		plugin.registerWithRouter = function(router) {
+			router.get('/getSensorInfo', async (req, res) => {
+				const _sensor = sensorMap.get(req.body.mac_address)
+				const _class = sensorMap.get(req.body.class)
+				if (_className && _sensor instanceof classMap.get("UNKNOWN")){
+					try {
+						const _tempSensor = new _class ( _sensor.device )
+						_tempSensor.init()
+						const _json = sensorToJSON(_tempSensor)
+						res.status(200).json(_json)
+					} catch (e){
+						res.status(400).json({message: `Invalid request: ${e.message}}`})
+					}
+				}
+			})
 
 			router.post('/updateSensorData', async (req, res) => {
 				app.debug(req.body)
@@ -244,6 +258,8 @@ module.exports =   function (app) {
 					}
 				);
 			})
+
+
 			router.get('/getSensors', (req, res) => {
 				app.debug("Sending sensors")
 				const t = sensorsToJSON()
@@ -289,6 +305,7 @@ module.exports =   function (app) {
 
 			return { mac: sensor.getMacAddress(),
 				     name: sensor.getName(),
+					 class: sensor.constructor.name,
 					 domain: sensor.getDomain().name,
 					 RSSI: sensor.getRSSI(),
 					 signalStrength: sensor.getSignalStrength(),

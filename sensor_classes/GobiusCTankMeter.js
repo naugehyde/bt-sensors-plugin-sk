@@ -355,10 +355,6 @@ class GobiusCTankMeter extends BTSensor{
         }))
     }
 
-    getDescription(){
-        return '<a href="https://gobiusc.com/"><img src="../bt-sensors-plugin-sk/images/Gobius_C.png" alt="Gobius C Tank Measure" "></a>'
-    }
-
     async stopListening(){
         super.stopListening()
         if (this.characteristic  && await this.characteristic.isNotifying()) {

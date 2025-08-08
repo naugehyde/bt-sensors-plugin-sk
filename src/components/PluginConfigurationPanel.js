@@ -97,23 +97,25 @@ const useStyles = makeStyles((theme) => ({
       headers:headers
     })
   }
-
-  async function fetchJSONData(path){
-    var result
-    try {
-      result = fetch(`/plugins/bt-sensors-plugin-sk/${path}`, {
-        credentials: 'include'
-      })
-    } catch (e) {
-      result=
-        {
-          status: 500,
-          statusText: e.toString()
-        }
-    }
-    return result
+async function fetchJSONData(path, data = {}) {
+  let result;
+  try {
+    // Convert data object to query string
+    const query = Object.keys(data).length
+      ? '?' + new URLSearchParams(data).toString()
+      : '';
+    result = await fetch(`/plugins/bt-sensors-plugin-sk/${path}${query}`, {
+      credentials: 'include',
+      method: 'GET'
+    });
+  } catch (e) {
+    result = {
+      status: 500,
+      statusText: e.toString()
+    };
   }
-
+  return result;
+}
   async function getSensors(){
     const response = await fetchJSONData("getSensors")
     if (response.status!=200){
@@ -126,15 +128,13 @@ const useStyles = makeStyles((theme) => ({
   }
 
 
-  async function getSensorInfo(){
-    const response = await fetchJSONData("getSensorInfo",)
+  async function getSensorInfo(mac, sensorClass){
+    const response = await fetchJSONData("getSensorInfo",{mac_address: mac, class: sensorClass})
     if (response.status!=200){
-      console.log(`Unable get info: ${response.statusText} (${response.status}) `)
-      return {}
+      throw new Error(`Unable get sensor info: ${response.statusText} (${response.status}) `)
     }
     const json = await response.json()
     return json
-
   }
 
   async function getBaseData(){
@@ -278,7 +278,7 @@ const useStyles = makeStyles((theme) => ({
  },[])
 
 
- /*useEffect(()=>{
+ useEffect(()=>{
   
   if (!(sensorData && sensorMap) )  return
   
@@ -286,18 +286,16 @@ const useStyles = makeStyles((theme) => ({
   if (_sensor && schema && sensorData  &&
     Object.hasOwn(sensorData,"params" )){
     
-    debugger
-    if (_sensor.info.class == "UNKNOWN" && _sensor.config.params?.sensorClass != "UNKNOWN") {
-      getSensorInfo()
-      const _schema = {}
-      Object.assign(_schema, schema)
-      _schema.htmlDescription="Hello World" 
-      setSchema(_schema)
+      if (_sensor.info.class == "UNKNOWN" && sensorData.params.sensorClass && sensorData.params.sensorClass != "UNKNOWN") {
+      getSensorInfo(sensorData.mac_address, sensorData.params.sensorClass).then((json)=>{
+        debugger
+        setSchema(json.schema)
+      })
     }
   
   }
   
- },[sensorData])*/
+ },[sensorData])
 
 
 useEffect(()=>{

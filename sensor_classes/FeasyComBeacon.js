@@ -1,6 +1,7 @@
 
 const BTSensor = require("../BTSensor");
-const Beacon = require("./Beacon/Beacon")
+const Eddystone = require("./Beacon/Eddystone")
+const iBeacon = require("./Beacon/iBeacon")
 
 class FeasyComBeacon extends BTSensor {
 
@@ -11,12 +12,34 @@ class FeasyComBeacon extends BTSensor {
     static Domain = BTSensor.SensorDomains.beacons
     static ImageFile = "BP108B.webp"
     
-
-    beacon=new Beacon(this)
-
     initSchema(){
         super.initSchema()
+        this.addParameter("beaconType",
+            {
+                title:"type of beacon",
+                enum: ["Eddystone", "iBeacon"],
+                isRequired: true,
+                default:"EddyStone"
+            }
+        )
         this.beacon.initSchema()
+    }
+
+    async init(){
+      const bt = this?.beaconType??"Eddystone"
+      if (bt=="Eddystone") {
+        
+        this.beacon=new Eddystone(this)
+
+      }
+      else 
+        if (bt=="iBeacon")
+          this.beacon=new iBeacon(this)
+        else
+          throw new Error (`(${this.getName()}) Unknown Beacon Type: ${bt}`)
+
+      await super.init()
+
     }
 
     initListen(){
@@ -24,6 +47,11 @@ class FeasyComBeacon extends BTSensor {
       this.beacon.initListen()
 
     }
+    elapsedTimeSinceLastContact(){
+      
+      return this.beacon.elapsedTimeSinceLastContact(super.elapsedTimeSinceLastContact())
+    }
+
     propertiesChanged(props){
       super.propertiesChanged(props);
       this.beacon.propertiesChanged(props) 

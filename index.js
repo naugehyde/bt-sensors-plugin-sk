@@ -157,17 +157,26 @@ module.exports =   function (app) {
 
 		plugin.registerWithRouter = function(router) {
 			router.get('/getSensorInfo', async (req, res) => {
-				const _sensor = sensorMap.get(req.body.mac_address)
-				const _class = sensorMap.get(req.body.class)
-				if (_className && _sensor instanceof classMap.get("UNKNOWN")){
+				const _sensor = sensorMap.get(req.query?.mac_address)
+				const _class = classMap.get(req.query?.class)
+				let _tempSensor = null
+				if (_sensor &&_class && _sensor instanceof classMap.get("UNKNOWN")){
 					try {
-						const _tempSensor = new _class ( _sensor.device )
-						_tempSensor.init()
+						_tempSensor = new _class ( _sensor.device )
+						_tempSensor.currentProperties=_sensor.currentProperties
+						await _tempSensor.init()
 						const _json = sensorToJSON(_tempSensor)
 						res.status(200).json(_json)
 					} catch (e){
 						res.status(400).json({message: `Invalid request: ${e.message}}`})
 					}
+					finally{
+						if (_tempSensor)
+							_tempSensor.stopListening()						
+					}
+				} else{
+					res.status(404).json({message: `Invalid request`})
+	
 				}
 			})
 

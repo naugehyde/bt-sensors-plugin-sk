@@ -1,9 +1,19 @@
-const Mixin = require('../../Mixin')
- class Eddystone extends Mixin  {
+const AbstractBeaconMixin = require("./AbstractBeaconMixin")
+
+function getTxPower(){
+    return (this.app.getSelfPath(this._txPowerPath)?.value??0)-41
+}
+
+
+class Eddystone extends AbstractBeaconMixin {
     static ServiceUUID= "0000feaa-0000-1000-8000-00805f9b34fb"
 
+    constructor( obj ){
+        super(obj)
+        obj.getTxPower=getTxPower.bind(obj)
+    }
     initSchema(){
-
+        super.initSchema()
         this.addMetadatum("eddystone.voltage","v","sensor voltage as reported by Eddystone protocol",
             (array)=>{ return array.readUInt16BE(2)/1000}
         )
@@ -29,19 +39,20 @@ const Mixin = require('../../Mixin')
         )
             .examples=["sensors.{macAndName}.eddystone.url"]
 
-        this.addMetadatum("eddystone.txPower","db","signal strength at one meter (db)",
+        this.addMetadatum("eddystone.txPower","db","signal strength at zero meters (db)",
             (array)=>{ return array.readInt8(1) }
         )
-            .default="sensors.{macAndName}.eddystone.txPower"
-
+        .default="sensors.{macAndName}.eddystone.txPower"
+        
         if (this._paths["eddystone.txPower"])
-            this._eddystoneTxPowerPath=this.preparePath(this._paths["eddystone.txPower"])
+            this._txPowerPath=this.preparePath(this._paths["eddystone.txPower"])
 
     }
 
     propertiesChanged(props){
+        super.propertiesChanged(props)
         if (Object.hasOwn(props,"ServiceData")) {
-            const sd = this.valueIfVariant(props.ServiceData)[Eddystone.Eddystone_ServiceUUID]
+            const sd = this.valueIfVariant(props.ServiceData)[Eddystone.ServiceUUID]
 
             if (sd) {
                 const buff=sd.value;
@@ -62,4 +73,5 @@ const Mixin = require('../../Mixin')
 
     }
 }
+
 module.exports=Eddystone

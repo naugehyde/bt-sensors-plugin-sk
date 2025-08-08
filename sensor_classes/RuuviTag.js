@@ -15,9 +15,11 @@ class RuuviTag extends BTSensor{
         this.addDefaultParam("zone")
 
         const md = this.valueIfVariant(this.getManufacturerData(this.constructor.manufacturerID))
-        this.mode = md[0]
-        if (this['_initModeV'+this.mode])
-            this['_initModeV'+this.mode]()
+        if (md) {
+            this.mode = md[0]
+            if (this['_initModeV'+this.mode])
+                this['_initModeV'+this.mode]()
+        }
         else    
             throw new Error("Unrecognized Ruuvitag data mode "+md[0])
 

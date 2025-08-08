@@ -1,10 +1,17 @@
-const Mixin = require('../../Mixin')
+const AbstractBeaconMixin = require('./AbstractBeaconMixin')
+function getTxPower(){
+    return (this.app.getSelfPath(this._txPowerPath)?.value??0)
+}
 
-class iBeacon extends Mixin {
+class iBeacon extends AbstractBeaconMixin {
     static ManufacturerID= 0x004c
+    constructor( obj ){
+        super(obj)
+        obj.getTxPower=getTxPower.bind(obj)
 
+    }
     initSchema(){
-
+        super.initSchema()
         this.addMetadatum("iBeacon.uuid","","sensor UUID",
             (array)=>{
                 let s = ''
@@ -29,12 +36,11 @@ class iBeacon extends Mixin {
             .default="sensors.{macAndName}.iBeacon.txPower"
 
         if (this._paths["iBeacon.txPower"])
-            this._iBeaconTxPowerPath=this.preparePath(this._paths["iBeacon.txPower"])
-
-
+            this._txPowerPath=this.preparePath(this._paths["iBeacon.txPower"])
     }
 
     propertiesChanged(props){
+        super.propertiesChanged(props)
         if (Object.hasOwn(props,"ManufacturerData")){
             const md = this.valueIfVariant(props.ManufacturerData)[ iBeacon.ManufacturerID]
             if (md){
@@ -45,7 +51,6 @@ class iBeacon extends Mixin {
                     this.emitData("iBeacon.minor", buff)
                     this.emitData("iBeacon.txPower", buff)
                 }
-                    
             }
         }
     }

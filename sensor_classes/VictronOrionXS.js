@@ -5,9 +5,6 @@ const VictronSensor = require ("./Victron/VictronSensor.js")
 const VC = require("./Victron/VictronConstants.js")
 class VictronOrionXS extends VictronSensor{
 
-    static async identify(device){
-        return await this.identifyMode(device, 0x0F)
-    }   
      initSchema() {
         super.initSchema()
         this.addDefaultParam("id")

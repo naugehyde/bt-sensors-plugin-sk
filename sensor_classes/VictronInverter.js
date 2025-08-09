@@ -3,9 +3,7 @@ const VC=require("./Victron/VictronConstants.js")
 const BitReader = require('./_BitReader')
 
 class VictronInverter extends VictronSensor{
-    static async identify(device){
-        return await this.identifyMode(device, 0x03)
-    }
+  
 
     initSchema(){
         super.initSchema()

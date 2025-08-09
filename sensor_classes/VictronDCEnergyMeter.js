@@ -5,10 +5,7 @@ const int24 = require("int24");
 const _BitReader = require("./_BitReader.js");
 class VictronDCEnergyMeter extends VictronSensor{
     
-    static async identify(device){
-        return await this.identifyMode(device, 0x0D)
-    }
-    async init(){
+     async init(){
         await super.init()
         try {
         if (this.encryptionKey){

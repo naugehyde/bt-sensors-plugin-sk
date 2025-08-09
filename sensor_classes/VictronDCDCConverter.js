@@ -3,10 +3,6 @@ const VC=require("./Victron/VictronConstants.js")
 
 class VictronDCDCConverter extends VictronSensor{
     
-    static async identify(device){
-        return await this.identifyMode(device,0x04)
-    }
-   
    
     initSchema(){
         super.initSchema()

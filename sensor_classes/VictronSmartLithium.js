@@ -34,10 +34,7 @@ function _toCellVoltage(val){
 }
 class VictronSmartLithium extends VictronSensor{
 
-    static async identify(device){
-        return await this.identifyMode(device, 0x05)
-    }   
-
+  
     initSchema(){
         super.initSchema()
         this.addDefaultParam("batteryID")

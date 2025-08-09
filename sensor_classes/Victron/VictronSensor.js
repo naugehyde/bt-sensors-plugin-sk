@@ -3,71 +3,62 @@ const Images = require('./VictronImages.js')
 
 const BTSensor = require("../../BTSensor.js");
 const crypto = require('node:crypto');
-function sleep(x) {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve(x);
-      }, x);
-    });
-  }
+const VictronIdentifier = require('./VictronIdentifier.js');
+
   class VictronSensor extends BTSensor{
     static Domain = BTSensor.SensorDomains.electrical
-
+    static ManufacturerID = 0x2e1
     constructor(device,config,gattConfig){
         super(device,config,gattConfig)
         
-        if(device.modelID)
-            this.modelID=device.modelID
-        
+        if (device.modelID)
+            this.modelID=device.modelID        
+    }
+
+    
+    static async getDataPacket(device, md){
+        if (md && md[this.ManufacturerID]?.value[0]==0x10)
+            return md[this.ManufacturerID].value
+
+        device.helper._prepare()
+
+        return new Promise((resolve, reject) => {
+            device.helper.on("PropertiesChanged",
+            (props)=> {
+                if (Object.hasOwn(props,'ManufacturerData')){
+                    const md = props['ManufacturerData'].value
+                    if(md[this.ManufacturerID].value[0]==0x10) {
+                        device.helper.removeListeners()
+                        resolve(md[this.ManufacturerID].value)
+                    }
+                }
+            })        
+        })
     }
     
     static getModelID(md) {
-        return md[0x2e1]?.value.readUInt16LE(2)??-1
+        return md[this.ManufacturerID]?.value.readUInt16LE(2)??-1
     }
-    static async identifyMode(device, mode){
-            
+
+    static async identify(device){
+
         var md = await this.getDeviceProp(device,'ManufacturerData')
-        if (md==undefined || !Object.hasOwn(md,0x2e1)) 
+        if (md==undefined || !Object.hasOwn(md,this.ManufacturerID)) 
             return null
-        else {
-            
-            if (md[0x2e1].value[0]==0x10) {
-                if (md[0x2e1].value[4]==mode) {
-                    device.modelID=this.getModelID(md)
-                    return this
-                }
-                else 
-                    return null
-            }
-
-            var hasDataPacket=false
-            device.helper._prepare()
-            device.helper.on("PropertiesChanged",
-                 (props)=> {
-                    if (Object.hasOwn(props,'ManufacturerData')){
-                        md = props['ManufacturerData'].value
-                        hasDataPacket=md[0x2e1].value[0]==0x10
-                    }
-            })        
-            while (!hasDataPacket) {
-                await sleep(500)
-            }
-            device.helper.removeListeners()
-            if (md[0x2e1].value[4]==mode) {
-                device.modelID=this.getModelID(md)
-                return this
-            }
-            else
-                return null
+        const data=await this.getDataPacket(device,md)
+        if (data) {
+            device.modelID=this.getModelID(md)
+            return VictronIdentifier.identify(data)
         } 
+        return null
     }
-
-    async init(){
+   async init(){
         await super.init()
         this.addParameter(
             "encryptionKey",
             {
-                title:"Encryption Key"
+                title:"Encryption Key",
+                isRequired: true
             }
         )
     }
@@ -109,7 +100,7 @@ function sleep(x) {
     }
     getModelID(){
         if (!this.modelID ||this.modelID==-1)
-            this.modelID=this.getManufacturerData(0x2e1)?.readUInt16LE(2)??-1
+            this.modelID=this.getManufacturerData(this.constructor.ManufacturerID)?.readUInt16LE(2)??-1
 
         return this.modelID
     }
@@ -122,7 +113,7 @@ function sleep(x) {
         if (this.usingGATT()) return
         if (!props.hasOwnProperty("ManufacturerData")) return
         try{
-            const md = this.getManufacturerData(0x2e1)
+            const md = this.getManufacturerData(this.constructor.ManufacturerID)
             if (md && md.length && md[0]==0x10){
                 const decData=this.decrypt(md)
                 this.emitValuesFrom(decData)
@@ -137,7 +128,7 @@ function sleep(x) {
         throw new Error( "GATT Connection unimplemented for "+this.getDisplayName())
     }
 
-   getImageFile(){
+   getImage(){
         const m = VC.MODEL_ID_MAP[this.getModelID()]
         if (m && m.image)
             return m.image
@@ -149,7 +140,7 @@ function sleep(x) {
     //return `<img src="https://www.victronenergy.com/_next/image?url=https%3A%2F%2Fwww.victronenergy.com%2Fupload%2Fproducts%2FSmartShunt%2520500_nw.png&w=1080&q=70"" height="150" align=”top” ></img>`
 
 
-    return `<img src="../bt-sensors-plugin-sk/images/${this.getImageFile()}" width="200" style="float: left; 
+    return `<img src="../bt-sensors-plugin-sk/images/${this.getImage()}" width="200" style="float: left; 
   margin: 20px;" ></img> 
     To get the encryption key for your device, follow the instructions <a href=https://communityarchive.victronenergy.com/questions/187303/victron-bluetooth-advertising-protocol.html target="_victron_encrypt">here</a>`
    }

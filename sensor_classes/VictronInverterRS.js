@@ -5,9 +5,7 @@ function toBinaryString(buff){
     return [...buff].map((b) => b.toString(2).padStart(8, "0")).join("");
     }
 class VictronInverterRS extends VictronSensor{
-    static async identify(device){
-        return await this.identifyMode(device, 0x06)
-    }
+
     
 
      initSchema() {

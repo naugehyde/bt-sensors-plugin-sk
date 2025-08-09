@@ -22,10 +22,7 @@ Alarms
 TBD
 117 43 Unuse
 */
-    static async identify(device){
-        return await this.identifyMode(device, 0x07)
-    }   
-
+ 
     initSchema(){
         super.initSchema()
         this.addMetadatum('voltage','V', 'channel #1 voltage', 

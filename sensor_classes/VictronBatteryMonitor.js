@@ -7,18 +7,18 @@ const VC=require("./Victron/VictronConstants.js")
 const int24 = require('int24')
 class VictronBatteryMonitor extends VictronSensor{
 
-
-    static async identify(device){
-        return await this.identifyMode(device, 0x02)
-    }
-    static _test(data, key){
-        var b = Buffer.from(data.replaceAll(" ",""),"hex")
+        static _test(data, key){
+        var b
+        if (data instanceof String)
+            b = Buffer.from(data.replaceAll(" ",""),"hex")
+        else
+            b = data
         const d = new this()
 
         if (key) {
-            d.encryptionKey = key
-        
-        }
+            d.encryptionKey = key       
+        } else
+            d.auxMode=b.readInt8(8)&0x3
         d.currentProperties = {}
         d.currentProperties.ManufacturerData={}
         d.currentProperties.ManufacturerData[0x02e1]=b
@@ -28,7 +28,10 @@ class VictronBatteryMonitor extends VictronSensor{
         Object.keys(d.getPaths()).forEach((tag)=>{
                 d.on(tag,(v)=>console.log(`${tag}=${v}`))
         })
-        b = d.decrypt(b)
+        if (key)
+            b = d.decrypt(b)
+        else
+
         console.log(b)
         d.emitValuesFrom(b)
         d.removeAllListeners()
@@ -37,9 +40,8 @@ class VictronBatteryMonitor extends VictronSensor{
 
     characteristics=[]
 
-
-    initSchema(){
-        super.initSchema()
+    async initSchema(){
+        await super.initSchema()
         this.addDefaultParam("batteryID").default="house"
         //"default": "electrical.batteries.{batteryID}.voltage"
 
@@ -73,26 +75,31 @@ class VictronBatteryMonitor extends VictronSensor{
         
         this.addDefaultPath( 'ttg',"electrical.batteries.capacity.timeRemaining") 
             .read=(buff,offset=0)=>{return this.NaNif(buff.readUInt16LE(offset),0xFFFF)*60}
-        this.getPath("ttg").gatt='65970ffe-4bda-4c1e-af4b-551c4cf74769'
-        this.auxMode=VC.AuxMode.STARTER_VOLTAGE
-        try {
-        if (this.encryptionKey){
-            const decData = this.decrypt(this.getManufacturerData(0x02e1))
-            if (decData)
-                this.auxMode=decData.readInt8(8)&0x3   
-        }
-        } catch(e){ 
-            this.debug(`Unable to determine device AuxMode. ${e.message}`)
-            this.debug(e)
-            this.auxMode=VC.AuxMode.DISABLED
-        }   
+        this.getPath("ttg").gatt='65970ffe-4bda-4c1e-af4b-551c4cf74769';
 
+        this.auxMode=VC.AuxMode.STARTER_VOLTAGE
+
+        if (!this.auxMode){
+            const md=await this.constructor.getDataPacket(this.device, this.getManufacturerData(this.constructor.ManufacturerID))
+            try {
+                if (this.encryptionKey){
+                    const decData = this.decrypt(md)
+                    if (decData)
+                        this.auxMode=decData.readInt8(8)&0x3   
+            }
+            } catch(e){ 
+                this.debug(`Unable to determine device AuxMode. ${e.message}`)
+                this.debug(e)
+                this.auxMode=VC.AuxMode.DISABLED
+            }
+        }
+    
         switch(this.auxMode){
             case VC.AuxMode.STARTER_VOLTAGE:
                 this.addMetadatum('starterVoltage','V', 'starter battery voltage', 
                     (buff,offset=0)=>{return buff.readInt16LE(offset)/100},
                     '6597ed7d-4bda-4c1e-af4b-551c4cf74769')
-                    .default="electrical.batteries.secondary.voltage"
+                    .default="electrical.batteries.starter.voltage"
                     break;
             case VC.AuxMode.MIDPOINT_VOLTAGE:
                 this.addMetadatum('midpointVoltage','V', 'midpoint battery voltage', 
@@ -110,9 +117,11 @@ class VictronBatteryMonitor extends VictronSensor{
             default:
                 break
         }
+                
     }
     
     emitValuesFrom(decData){
+        
         this.emitData("ttg",decData,0)
         this.emitData("voltage",decData,2);
         const alarm = this.getPath("alarm").read(decData,4)
@@ -211,5 +220,6 @@ class VictronBatteryMonitor extends VictronSensor{
             this.debug(`Disconnected from ${ this.getName()}`)
         }
     }
+    
 }
 module.exports=VictronBatteryMonitor

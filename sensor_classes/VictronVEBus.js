@@ -5,9 +5,6 @@ AC_IN_STATE=["AC in 1","AC in 2","NOT CONNECTED", "NA"]
 ALARM_STATE=["None","warning", "alarm","NA"]
 class VictronVEBus extends VictronSensor{
 
-    static async identify(device){
-        return await this.identifyMode(device, 0x0C)
-    }   
 
     initSchema(){
         super.initSchema()

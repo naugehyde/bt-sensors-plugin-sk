@@ -23,12 +23,6 @@ const VC = require("./Victron/VictronConstants.js")
 const BitReader = require("./_BitReader")
 
 class VictronACCharger extends VictronSensor{
-
-    static async identify(device){
-        return await this.identifyMode(device, 0x08)
-    }   
-
-    static Manufacturer = "Victron Energy B.V."
     initSchema(){
         super.initSchema()
         this.addDefaultParam("id")

@@ -110,6 +110,8 @@ const Images = require('./VictronImages.js')
     0xA06F: "BlueSolar MPPT 150|45 rev2",
     0xA070: "BlueSolar MPPT 150|60 rev2",
     0xA071: "BlueSolar MPPT 150|70 rev2",
+    0xA0EB: "Smart Lithium Battery 12.8v 200AH",
+    0xA0EA: "Smart Lithium Battery 25.6v 200AH",
     0xA0F0: "Smart Lithium Battery 4 cells 12v 330AH",
     0xA0EE: "Smart Lithium Battery",
     0xA102: "SmartSolar MPPT VE.Can 150/70",

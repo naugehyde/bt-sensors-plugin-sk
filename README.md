@@ -2,7 +2,7 @@
 
 ## WHAT'S NEW  
 
-# Version 1.2.6
+# Version 1.2.6-beta
 
 - Mopeka examples not defaults in config
 - Fix so no plugin restart required after selecting sensor class for an unidentified device

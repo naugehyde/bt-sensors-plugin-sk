@@ -22,7 +22,7 @@ Alarms
 TBD
 117 43 Unuse
 */
- 
+    static ImageFile = "VictronCerboGX.webp"
     initSchema(){
         super.initSchema()
         this.addMetadatum('voltage','V', 'channel #1 voltage', 

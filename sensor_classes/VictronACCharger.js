@@ -23,6 +23,7 @@ const VC = require("./Victron/VictronConstants.js")
 const BitReader = require("./_BitReader")
 
 class VictronACCharger extends VictronSensor{
+    static ImageFile = "VictronBlueSmartACCharger.jpg"
     initSchema(){
         super.initSchema()
         this.addDefaultParam("id")

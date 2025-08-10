@@ -37,6 +37,7 @@ class VictronBatteryMonitor extends VictronSensor{
         d.removeAllListeners()
     
     }
+    static ImageFile = "VictronSmartShunt.jpg"
 
     characteristics=[]
 

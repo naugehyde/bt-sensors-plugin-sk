@@ -44,7 +44,7 @@ class Eddystone extends AbstractBeaconMixin {
         )
         .default="sensors.{macAndName}.eddystone.txPower"
         
-        if (this._paths["eddystone.txPower"])
+        if (this._paths && this._paths["eddystone.txPower"])
             this._txPowerPath=this.preparePath(this._paths["eddystone.txPower"])
 
     }

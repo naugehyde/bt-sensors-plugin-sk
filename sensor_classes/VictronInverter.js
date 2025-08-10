@@ -4,6 +4,7 @@ const BitReader = require('./_BitReader')
 
 class VictronInverter extends VictronSensor{
   
+    static ImageFile="VictronPhoenixSmart1600.webp"
 
     initSchema(){
         super.initSchema()

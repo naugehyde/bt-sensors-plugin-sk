@@ -5,6 +5,7 @@ const VictronSensor = require ("./Victron/VictronSensor.js")
 const VC = require("./Victron/VictronConstants.js")
 class VictronOrionXS extends VictronSensor{
 
+    static ImageFile="VictronOrionTrIsolated.webp"
      initSchema() {
         super.initSchema()
         this.addDefaultParam("id")

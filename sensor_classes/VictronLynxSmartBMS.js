@@ -18,7 +18,7 @@ const VC = require("./Victron/VictronConstants.js")
 const BitReader = require("./_BitReader")
 class VictronLynxSmartBMS extends VictronSensor{
 
-
+    static ImageFile="VictronLynxSmartBMS"
     initSchema(){
         super.initSchema()
         this.addDefaultParam("batteryID")

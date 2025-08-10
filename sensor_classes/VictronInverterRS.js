@@ -6,7 +6,7 @@ function toBinaryString(buff){
     }
 class VictronInverterRS extends VictronSensor{
 
-    
+    static ImageFile = "VictronInverterRS.webp"
 
      initSchema() {
         super.initSchema()

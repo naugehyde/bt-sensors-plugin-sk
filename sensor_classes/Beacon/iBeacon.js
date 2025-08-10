@@ -35,7 +35,7 @@ class iBeacon extends AbstractBeaconMixin {
         )
             .default="sensors.{macAndName}.iBeacon.txPower"
 
-        if (this._paths["iBeacon.txPower"])
+        if (this._paths && this._paths["iBeacon.txPower"])
             this._txPowerPath=this.preparePath(this._paths["iBeacon.txPower"])
     }
 

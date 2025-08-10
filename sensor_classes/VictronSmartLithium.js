@@ -34,7 +34,7 @@ function _toCellVoltage(val){
 }
 class VictronSmartLithium extends VictronSensor{
 
-  
+    static ImageFile="VictronSmartLithiumBattery.jpg"
     initSchema(){
         super.initSchema()
         this.addDefaultParam("batteryID")

@@ -3,6 +3,7 @@ const VC=require("./Victron/VictronConstants.js")
 
 class VictronDCDCConverter extends VictronSensor{
     
+    static ImageFile="VictronOrionTrIsolated.webp"
    
     initSchema(){
         super.initSchema()

@@ -5,7 +5,7 @@ AC_IN_STATE=["AC in 1","AC in 2","NOT CONNECTED", "NA"]
 ALARM_STATE=["None","warning", "alarm","NA"]
 class VictronVEBus extends VictronSensor{
 
-
+    static ImageFile="VictronVEBus.webp"
     initSchema(){
         super.initSchema()
         this.addMetadatum('chargeState','', 'charge state', 

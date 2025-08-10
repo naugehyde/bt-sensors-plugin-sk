@@ -19,7 +19,7 @@ const VictronSensor = require ("./Victron/VictronSensor.js")
 const VC = require("./Victron/VictronConstants.js")
 class VictronSmartBatteryProtect extends VictronSensor{
 
-
+    static ImageFile="VictronSmartBatteryProte.jpg"
 
     initSchema(){
         super.initSchema()

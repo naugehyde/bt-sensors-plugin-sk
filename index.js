@@ -162,8 +162,10 @@ module.exports =   function (app) {
 				let _tempSensor = null
 				if (_sensor &&_class && _sensor instanceof classMap.get("UNKNOWN")){
 					try {
+
 						_tempSensor = new _class ( _sensor.device )
 						_tempSensor.currentProperties=_sensor.currentProperties
+						_tempSensor.debug = app.debug
 						await _tempSensor.init()
 						const _json = sensorToJSON(_tempSensor)
 						res.status(200).json(_json)

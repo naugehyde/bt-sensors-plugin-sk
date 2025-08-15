@@ -261,7 +261,7 @@ class GobiusCTankMeter extends BTSensor{
         else
             return null
     }
-    static ImageFile = "GobiusCTankMeter.jpg"
+    static ImageFile = "GobiusCTankMeter.png"
     
     hasGATT(){
         return true

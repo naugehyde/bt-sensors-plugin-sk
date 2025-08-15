@@ -185,8 +185,8 @@ class VictronBatteryMonitor extends VictronSensor{
             const datum = this.getPaths()[tag]
             if (datum.gatt) {
                 this.gattService.getCharacteristic(datum.gatt).then(async (gattCharacteristic)=>{
-                const buffer = await gattCharacteristic.readValue()
-                this.emitData(tag, buffer)
+                //const buffer = await gattCharacteristic.readValue()
+                //this.emitData(tag, buffer)
                 
                 gattCharacteristic.startNotifications().then(()=>{
                     gattCharacteristic.on('valuechanged', buffer => {

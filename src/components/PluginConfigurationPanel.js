@@ -131,6 +131,7 @@ async function fetchJSONData(path, data = {}) {
   async function getSensorInfo(mac, sensorClass){
     const response = await fetchJSONData("getSensorInfo",{mac_address: mac, class: sensorClass})
     if (response.status!=200){
+      debugger
       throw new Error(`Unable get sensor info: ${response.statusText} (${response.status}) `)
     }
     const json = await response.json()
@@ -185,7 +186,7 @@ async function fetchJSONData(path, data = {}) {
         setSensorMap((sm)=>{sm.delete(mac); return new Map(sm) })
         setSchema( {} )
     } catch {(e)=>
-      setError( new Error(`Couldn't remove ${mac}: ${e}`))
+      setError( `Couldn't remove ${mac}: ${e}`)
     }
      
   }
@@ -196,7 +197,7 @@ async function fetchJSONData(path, data = {}) {
     //setSensorList({})
     sendJSONData("updateBaseData", data).then( (response )=>{
       if (response.status != 200) {
-        setError(new Error(`Unable to update base data: ${response.statusText} (${response.status})`))
+        setError(`Unable to update base data: ${response.statusText} (${response.status})`)
       } 
       })
 
@@ -267,7 +268,7 @@ async function fetchJSONData(path, data = {}) {
 
     })
     .catch( (e) => { 
-        setError(e)
+        setError(e.message)
       }
     )
     return () => { 
@@ -287,9 +288,11 @@ async function fetchJSONData(path, data = {}) {
     Object.hasOwn(sensorData,"params" )){
     
       if (_sensor.info.class == "UNKNOWN" && sensorData.params.sensorClass && sensorData.params.sensorClass != "UNKNOWN") {
-      getSensorInfo(sensorData.mac_address, sensorData.params.sensorClass).then((json)=>{
         debugger
+      getSensorInfo(sensorData.mac_address, sensorData.params.sensorClass).then((json)=>{
         setSchema(json.schema)
+      }).catch((e)=>{
+        setError(e.message)
       })
     }
   
@@ -304,13 +307,13 @@ useEffect(()=>{
       setBaseSchema(json.schema);    
       setBaseData(json.data);
     }).catch((e)=>{
-      setError(e)
+      setError(e.message)
     })
 
     getProgress().then((json)=>{
       setProgress(json)
     }).catch((e)=>{
-      setError(e)
+      setError(e.message)
     })
 
   } else{
@@ -438,7 +441,7 @@ function devicesInDomain(domain){
       </div>
       <hr style={{"width":"100%","height":"1px","color":"gray","background-color":"gray","text-align":"left","margin-left":0}}></hr>
 
-      {error?<h2 style="color: red;">{error}</h2>:""}
+      {error?<h2 style={{color: 'red'}}>{error}</h2>:""}
       <Form 
         schema={baseSchema}
         validator={validator}

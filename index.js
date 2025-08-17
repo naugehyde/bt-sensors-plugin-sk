@@ -132,10 +132,11 @@ module.exports =   function (app) {
 	var adapter 
 	const channel = createChannel()
 
-	const classMap = loadClassMap(app)
 	const sensorMap=new Map()
 
 	plugin.start = async function (options, restartPlugin) {
+	const classMap = loadClassMap(app)
+
 		plugin.started=true
 		var adapterID=options.adapter
 		var foundConfiguredDevices=0
@@ -166,11 +167,12 @@ module.exports =   function (app) {
 						_tempSensor = new _class ( _sensor.device )
 						_tempSensor.currentProperties=_sensor.currentProperties
 						_tempSensor.debug = app.debug
+						_tempSensor._adapter=adapter
 						await _tempSensor.init()
 						const _json = sensorToJSON(_tempSensor)
 						res.status(200).json(_json)
 					} catch (e){
-						res.status(400).json({message: `Invalid request: ${e.message}}`})
+						res.status(400).send(`Invalid request: ${e.message}`)
 					}
 					finally{
 						if (_tempSensor)
@@ -474,6 +476,7 @@ module.exports =   function (app) {
 				sensor.debug=app.debug
 				sensor.setPluginError=app.setPluginError
 				sensor.app=app
+				if (!adapter) debugger
 				sensor._adapter=adapter //HACK!
 				await sensor.init()				
 				return sensor

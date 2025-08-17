@@ -87,6 +87,9 @@ class MissingSensor  {
 	getSignalStrength(){
 		return NaN
 	}
+	prepareConfig(){
+		
+	}
 
 }
 module.exports =   function (app) {

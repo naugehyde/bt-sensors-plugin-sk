@@ -2,7 +2,7 @@
 
 ## WHAT'S NEW  
 
-# Version 1.2.6-beta-2
+# Version 1.2.6-beta-3
 
 - UI improvements for selecting Sensor Class (if available, paths appear immediately upon selection)
 - EcoWorthy Batteries/BMS (need testers)

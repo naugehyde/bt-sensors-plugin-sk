@@ -1,7 +1,5 @@
-const { ThemeProvider } = require("react-bootstrap");
 const BTSensor = require("../BTSensor");
-const EventEmitter = require('node:events');
-
+({FakeDevice,FakeGATTService,FakeGATTCharacteristic }=require( "../development/FakeBTDevice.js"))
 //a1000000650000000000180103440018004800640531ff8000002710000100010000000000000000000100020000ffff00000000000000000000000000000000000000000000000000000000000000000000418b
 //a20000006500000000001801035600040cfb0cfd0cfb0cfaffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff000300cd00c000befc18fc18fc18fc18fc18fc18976a
 
@@ -15,63 +13,6 @@ const EventEmitter = require('node:events');
         BMSdp("temp_sensors", _TEMP_POS, 2, False, lambda x: x, 0xA2),
         # ("cycles", 0xA1, 8, 2, False, lambda x: x),
 */
-
-class FakeGATTServer{
-  constructor(services){
-    this.services=services
-  }
-  getPrimaryService (uuid){
-    return this.services.find((service)=>{return service.uuid==uuid})
-  }
-}
-
-class FakeGATTService{
-  constructor(uuid, characteristics=[]){
-    this.uuid=uuid
-    this.characteristics=characteristics
-  }
-  getCharacteristic (uuid){
-    return this.characteristics.find((characteristic)=>{return characteristic.uuid==uuid})
-  }
-}
-
-class FakeGATTCharacteristic extends EventEmitter{
-  constructor(uuid, values=[], interval=1000){
-    super()
-    this.uuid=uuid
-    this.valueIndex=0
-    this.values=values
-    this.interval = interval
-  }
-  startNotifications(){
-      this.intervalID=setInterval(()=>{
-      if (this.values.length>0){
-        this.emit("valuechanged",Buffer.from(this.values[this.valueIndex++],"hex") )
-        if (this.valueIndex>=this.values.length)
-          this.valueIndex=0
-      }
-    },this.interval)
-
-  }
-  stopNotifications(){
-    this.clearInterval(this.intervalID)
-  }
-}
-
-class FakeDevice{
-  constructor(services=[]){
-    this.gattServer=new FakeGATTServer(services)
-  }
-  connect(){
-    return this
-  }
-  gatt(){
-    return this.gattServer
-  }
-  disconnect(){
-
-  }
-}
 
 function waitForVariable(obj, variableName, interval = 100) {
   return new Promise((resolve) => {
@@ -201,6 +142,11 @@ async _initGATTConnection() {
   return this  
 }
 
+async init(){
+  
+  return await super.init()
+
+}
 
 async stopListening(){
   super.stopListening()
@@ -211,5 +157,4 @@ async stopListening(){
 }
   
 }
-
 module.exports = EcoWorthy;

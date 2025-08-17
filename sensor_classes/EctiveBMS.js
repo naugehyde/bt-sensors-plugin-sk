@@ -1,4 +1,3 @@
-const { delimiter } = require("node:path");
 const BTSensor = require("../BTSensor");
 const EventEmitter = require('node:events');
 

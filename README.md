@@ -2,9 +2,15 @@
 
 ## WHAT'S NEW  
 
+# Version 1.2.6-beta-1
+
+- UI improvements for selecting Sensor Class (if available, paths appear immediately upon selection)
+- EcoWorthy Batteries/BMS (need testers)
+
 # Version 1.2.6-beta
 
-- Mopeka examples not defaults in config
+
+- Mopeka examples not defaults in config for underused paths
 - Fix so no plugin restart required after selecting sensor class for an unidentified device
 - FeasyCom BP108B support -- iBeacon/Eddystone protocols
 - Ective, Topband, Skanbatt etc LiFePo4 BMS support (ective.de)

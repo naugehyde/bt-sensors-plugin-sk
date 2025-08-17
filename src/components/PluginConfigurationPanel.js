@@ -4,7 +4,7 @@ import ReactHtmlParser from 'react-html-parser';
 import React from 'react'
 import {useEffect, useState} from 'react'
 
-import {Button, Grid } from '@material-ui/core';
+import {Button, Grid, Snackbar } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 
 import { SignalCellular0Bar, SignalCellular1Bar, SignalCellular2Bar, SignalCellular3Bar, SignalCellular4Bar, SignalCellularConnectedNoInternet0Bar    } from '@material-ui/icons';
@@ -73,6 +73,9 @@ const useStyles = makeStyles((theme) => ({
   const [ uiSchema, setUISchema] = useState(_uiSchema )
 
   const [sensorData, setSensorData] = useState()
+  const [sensorClassChanged, setSensorClassChanged] = useState(false)
+
+  const [enableSchema, setEnableSchema] = useState(true)
   const [sensorMap, setSensorMap ] = useState(new Map())
  
   const [progress, setProgress ] = useState({
@@ -83,8 +86,11 @@ const useStyles = makeStyles((theme) => ({
  
   const [pluginState, setPluginState ] = useState("unknown")
   const [error, setError ] = useState()
+  const [snackbarOpen, setSnackbarOpen] = useState(false)
+  const [snackbarMessage, setSnackbarMessage] = useState("")
   const classes = useStyles();
 
+  
  
   function sendJSONData(cmd, data){
 
@@ -129,6 +135,7 @@ async function fetchJSONData(path, data = {}) {
 
 
   async function getSensorInfo(mac, sensorClass){
+    
     const response = await fetchJSONData("getSensorInfo",{mac_address: mac, class: sensorClass})
     if (response.status!=200){
       debugger
@@ -202,9 +209,6 @@ async function fetchJSONData(path, data = {}) {
       })
 
   }
-  
-  
-
 
   useEffect(()=>{
     let eventSource=null
@@ -281,25 +285,39 @@ async function fetchJSONData(path, data = {}) {
 
  useEffect(()=>{
   
+  if (!sensorClassChanged) return
   if (!(sensorData && sensorMap) )  return
   
   const _sensor = sensorMap.get(sensorData.mac_address)
   if (_sensor && schema && sensorData  &&
     Object.hasOwn(sensorData,"params" )){
-    
       if (_sensor.info.class == "UNKNOWN" && sensorData.params.sensorClass && sensorData.params.sensorClass != "UNKNOWN") {
-        debugger
+      setEnableSchema(false)
+      setSnackbarMessage(`Please wait. Fetching schema for ${sensorData.params.sensorClass}...`)
       getSensorInfo(sensorData.mac_address, sensorData.params.sensorClass).then((json)=>{
         setSchema(json.schema)
       }).catch((e)=>{
-        setError(e.message)
+        alert(e.message)
+      })
+      .finally(()=>{
+        setSnackbarMessage("")
+        setEnableSchema(true)
+        setSensorClassChanged(false)
       })
     }
   
   }
   
- },[sensorData])
+ },[sensorClassChanged])
 
+useEffect(()=>{
+  if (snackbarMessage=="")
+    setSnackbarOpen(false)
+  else {
+    setSnackbarOpen(true)
+  }     
+
+},[snackbarMessage])
 
 useEffect(()=>{
   if (pluginState=="started") {
@@ -431,6 +449,14 @@ function devicesInDomain(domain){
   return(
 
     <div>
+
+      <Snackbar
+        anchorOrigin={{ horizontal: 'center', vertical: 'bottom' }}
+        onClose={() => setSnackbarOpen(false)}
+        open={snackbarOpen}
+        message={snackbarMessage}
+        key={"snackbar"}
+      />  
        <div className={classes.root}>
           
           <Button  variant="contained" onClick={()=>{openInNewTab("https://github.com/naugehyde/bt-sensors-plugin-sk/tree/1.2.0-beta#configuration")}}>Documentation</Button>
@@ -474,18 +500,23 @@ function devicesInDomain(domain){
       <Grid item><h2>{schema?.title}</h2><p></p></Grid>
       <Grid item>{ReactHtmlParser(schema?.htmlDescription)}</Grid>
       </Grid>
-    
+     <fieldset disabled={!enableSchema}>
     <Form
       schema={schema}
       validator={validator}
       uiSchema={uiSchema}
-      onChange={(e) => {
+      onChange={(e,id) => {
           const s = sensorMap.get(e.formData.mac_address)
           if(s) {
             s._changesMade=true
             s.config = e.formData
             setSensorData(e.formData)
           }
+          
+            if (id=="root_params_sensorClass") {
+              setSensorClassChanged(true)
+            }
+
         }
       }
       onSubmit={({ formData }, e) => {
@@ -500,7 +531,7 @@ function devicesInDomain(domain){
         <Button variant="contained" color="secondary" onClick={(e)=>confirmDelete(sensorData.mac_address)}>Delete</Button>
       </div>  
     </Form>
-
+      </fieldset>
    
     </div>
     </div>

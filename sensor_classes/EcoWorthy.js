@@ -1,5 +1,18 @@
 const BTSensor = require("../BTSensor");
-({FakeDevice,FakeGATTService,FakeGATTCharacteristic }=require( "../development/FakeBTDevice.js"))
+let FakeDevice,FakeGATTService,FakeGATTCharacteristic;
+
+// Dynamically import FakeBTDevice.js for node<= 20 
+import('../development/FakeBTDevice.js')    
+  .then(module => {
+        FakeDevice = module.FakeDevice; 
+        FakeGATTService= module.FakeGATTService
+        FakeGATTCharacteristic=module.FakeGATTCharacteristic
+
+    })
+    .catch(error => {
+        console.error('Error loading FakeBTDevice:', error);
+    });
+//({FakeDevice,FakeGATTService,FakeGATTCharacteristic }=require( "../development/FakeBTDevice.js"))
 //a1000000650000000000180103440018004800640531ff8000002710000100010000000000000000000100020000ffff00000000000000000000000000000000000000000000000000000000000000000000418b
 //a20000006500000000001801035600040cfb0cfd0cfb0cfaffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff000300cd00c000befc18fc18fc18fc18fc18fc18976a
 

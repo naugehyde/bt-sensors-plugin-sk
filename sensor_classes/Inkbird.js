@@ -12,7 +12,7 @@ class Inkbird extends BTSensor{
             return null
         
     }
-    static ImageFile = "InkbirdTH3.jpg"
+    static ImageFile = "InkbirdTH3.webp"
 
     initSchema() {
         super.initSchema()

@@ -10,8 +10,15 @@ const semver = require('semver')
         
             classFiles.forEach( (file) => {
                 const filePath = path.join(dir, file);
-                const cls = require (filePath)
-                classMap.set(cls.name, cls);
+                try{
+                    const cls = require (filePath)
+                    classMap.set(cls.name, cls);
+                } 
+                catch (e) {
+                    console.log(`Unable to load class (${cls?.name}): ${e.message}`)
+                    console.log(e)
+                }
+
             })
             return classMap
         }

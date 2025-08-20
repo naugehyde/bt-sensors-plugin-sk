@@ -466,6 +466,9 @@ class BTSensor extends EventEmitter {
         throw new Error("::initGATTNotifications() should be implemented by the BTSensor subclass")
     }
 
+    isConnected(){
+        return this?._connected??false
+    }
     deviceConnect(reconnect=false) {
 
      
@@ -479,13 +482,16 @@ class BTSensor extends EventEmitter {
                     if ('Connected' in propertiesChanged) {
                         const { value } = propertiesChanged.Connected
                         if (value) {
+                            this._connected=true
                             this.device.emit('connect', { connected: true })
                         } else {
+                            this._connected=false
                             this.device.emit('disconnect', { connected: false })
                         }
                     }
                 })
                 this.device.on("disconnect", ()=>{
+                        this._connected=false
                         if (this.isActive()) {
                         this.debug(`Device disconnected. Attempting to reconnect to ${this.getName()}`)  
                             try {        
@@ -641,7 +647,16 @@ class BTSensor extends EventEmitter {
     }
 
     getDescription(){
-        return `<div>${this.getImageHTML()} ${this.getTextDescription()} </div>`
+        return `<div>${this.getImageHTML()} ${this.getTextDescription()} </div> <div>Status: ${JSON.stringify(this.getStatus())}</div>`
+    }
+
+    getStatus(){
+        return {
+            active: this.isActive(),
+            connected: this.isConnected(),
+            secondsSinceLastContact: this.elapsedTimeSinceLastContact(),
+            error: this?._error??"no error"
+        }
     }
 
     static getDescription(){
@@ -961,6 +976,12 @@ class BTSensor extends EventEmitter {
     return resultString || str; // Return original string if no replacements were made
   }
 
+    setError(errorText){
+        this._error = errorText
+    }
+    unsetError(){
+        this._error = null
+    }
 
 }
 

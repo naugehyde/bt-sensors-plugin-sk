@@ -439,8 +439,14 @@ module.exports =   function (app) {
 					}
 				}
 				if (startNumber == starts ) {
-					app.debug(`Unable to communicate with device ${deviceNameAndAddress(config)} Reason: ${e?.message??e}`)
+					const errorTxt = `Unable to communicate with device ${deviceNameAndAddress(config)} Reason: ${e?.message??e}`
+					if(s)
+					{
+						s.setError(errorTxt)
+					}
+					app.debug(errorTxt)
 					app.debug(e)
+
 					reject( e?.message??e )
 				}	
 			})})

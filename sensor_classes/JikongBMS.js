@@ -39,14 +39,15 @@ class JikongBMS extends BTSensor {
      const device = new FakeDevice(
       [new FakeGATTService(this.RX_SERVICE,
         [new FakeGATTCharacteristic(this.RX_CHAR_UUID,
-          data.data["0x96"]
+          data.data["0x96"],data.delay
         )]
       )]
      )
-     const obj = new JikongBMS(device)
+     const obj = new JikongBMS(device,{offset:16})
      obj.currentProperties={Name:"Fake JKBMS", Address:"<mac>"}
      obj.debug=(m)=>{console.log(m)}
      obj.deviceConnect=()=>{}
+     
     await obj.initSchema()
     await obj.initGATTInterval()
     for (const [tag,path] of Object.entries(obj._schema.properties.paths.properties)) {
@@ -73,51 +74,101 @@ class JikongBMS extends BTSensor {
   async initSchema(){
       super.initSchema()
       this.addDefaultParam("batteryID")
+      this.addParameter(
+        "offset", {
+          description: "Data offset",
+          isRequired:true,
+          default:16
+        })
+        await this.deviceConnect();
+        const gattServer = await this.device.gatt();
+        const rxService = await gattServer.getPrimaryService(
+          this.constructor.RX_SERVICE
+        );
+        this.rxChar = await rxService.getCharacteristic(
+          this.constructor.RX_CHAR_UUID
+        );
+        await this.rxChar.startNotifications();
+
+        this.numberOfCells = await this.getNumberOfCells();
+
+        for (let i = 0; i < this.numberOfCells; i++) {
+          this.addMetadatum(
+            `cell${i}Voltage`,
+            "V",
+            `Cell ${i + 1} voltage`,
+            (buffer) => {
+              return buffer.readUInt16LE(6 + i * 2) / 1000;
+            }
+          ).default = `electrical.batteries.{batteryID}.cell${i}.voltage`;
+          this.addMetadatum(
+            `cell${i}Resistance`,
+            "ohm",
+            `Cell ${i + 1} resistance in ohms`,
+            (buffer) => {
+              return buffer.readUInt16LE((i * 2) + 64+this.offset) / 1000;
+            }
+          ).default = `electrical.batteries.{batteryID}.cell${i}.resistance`;
+        }
      
       this.addDefaultPath('voltage','electrical.batteries.voltage')
         .read=
-        (buffer)=>{return buffer.readUInt16BE(4) / 100}
+        (buffer)=>{return buffer.readUInt16LE(118+this.offset*2) / 1000}
+
+      this.addMetadatum(
+        "power",
+        "W",
+        "Current battery power in Watts",
+        (buffer) => {
+          return buffer.readInt16LE(122 + this.offset*2) / 1000;
+        }
+      ).default = "electrical.batteries.{batteryID}.power";
+ 
 
       this.addDefaultPath('current','electrical.batteries.current')
         .read=
-        (buffer)=>{return buffer.readInt16BE(6) / 100} 
+        (buffer)=>{return buffer.readInt16LE(126+this.offset*2) / 1000} 
       
       this.addDefaultPath('remainingCapacity','electrical.batteries.capacity.remaining')
-        .read=(buffer)=>{return (buffer.readUInt16BE(8) / 100)*3600} 
+        .read=(buffer)=>{return (buffer.readUInt32LE(142+this.offset*2) / 1000)*3600} 
       
       this.addDefaultPath('capacity','electrical.batteries.capacity.actual')
-        .read=(buffer)=>{return (buffer.readUInt16BE(10) / 100)*3600} 
+        .read=(buffer)=>{return (buffer.readUInt32LE(146+this.offset*2) / 1000)*3600} 
      
       this.addDefaultPath('cycles','electrical.batteries.cycles' )
-        .read=(buffer)=>{return buffer.readUInt16BE(12)} 
+        .read=(buffer)=>{return buffer.readUInt32LE(150+this.offset*2)} 
 
-      this.addMetadatum('protectionStatus', '', 'Protection Status',
-        (buffer)=>{return buffer.readUInt16BE(20)} )
-        .default="electrical.batteries.{batteryID}.protectionStatus"
-         
+           
       this.addDefaultPath('SOC','electrical.batteries.capacity.stateOfCharge')
-        .read=(buffer)=>{return buffer.readUInt8(23)/100} 
+        .read=(buffer)=>{return buffer[158+this.offset*2]} 
       
-      this.addMetadatum('FET', '', 'FET Control',
-          (buffer)=>{return buffer.readUInt8(24)} )
-          .default="electrical.batteries.{batteryID}.FETControl"
-  
-        await this.deviceConnect() 
-        const gattServer = await this.device.gatt()
-        const rxService= await gattServer.getPrimaryService(this.constructor.RX_SERVICE)
-        this.rxChar = await rxService.getCharacteristic(this.constructor.RX_CHAR_UUID)
-        await this.rxChar.startNotifications()
- 
-        this.numberOfCells= await this.getNumberOfCells()
+      this.addMetadatum('runtime', 's', 'Total runtime in seconds',
+          (buffer)=>{return buffer.readUInt32LE(162+this.offset*2)} )
+          .default="electrical.batteries.{batteryID}.runtime"
+      
+      this.addMetadatum('charging', 'bool', 'MOSFET Charging enable',
+          (buffer)=>{return buffer[166+this.offset*2]==1} )
+          .default="electrical.batteries.{batteryID}.runtime"
+       
 
-      for (let i=0; i<this.numberOfCells; i++){
-        this.addMetadatum(`cell${i}Voltage`, 'V', `Cell ${i+1} voltage`,
-          (buffer)=>{return buffer.readUInt16BE((4+(i*2)))/1000} )
-          .default=`electrical.batteries.{batteryID}.cell${i}.voltage`
-        this.addMetadatum(`cell${i}Resistance`, 'ohm', `Cell ${i+1} resistance in ohms` )
-          .default=`electrical.batteries.{batteryID}.cell${i}.resistance`
-        
-      }
+        this.addMetadatum(
+          "discharging", "bool", "MOSFET Disharging enable",
+          (buffer) => {
+            return buffer[167 + this.offset * 2]==1;
+          }
+        ).default = "electrical.batteries.{batteryID}.discharging";
+
+        this.addMetadatum(
+          "temp1", "K", "Temperature 1 in K",
+          (buffer) => {
+            return 273.15 + buffer.readInt16LE(130 + this.offset * 2) / 10;
+          }
+        ).default = "electrical.batteries.{batteryID}.temperature1";
+
+        this.addMetadatum("temp2", "K", "Temperature 2 in K", (buffer) => {
+          return 273.15+buffer.readInt16LE(132 + this.offset * 2) / 10;
+        }).default = "electrical.batteries.{batteryID}.temperature2";
+  
   }
 
   hasGATT(){
@@ -188,7 +239,7 @@ async initGATTConnection() {
 
 async getAndEmitBatteryInfo(){
     this.getBuffer(0x96).then( (buffer )=>{
-    (["current", "voltage", "remainingCapacity", "capacity","cycles", "protectionStatus", "SOC","FET",]).forEach((tag) =>
+    (["current", "voltage", "remainingCapacity", "capacity","cycles", "charging", "discharging", "SOC","runtime", "temp1", "temp2"]).forEach((tag) =>
       this.emitData( tag, buffer )
     )
     for (let i = 0; i<this.numberOfCells; i++){

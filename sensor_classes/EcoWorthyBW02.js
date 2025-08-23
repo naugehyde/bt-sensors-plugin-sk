@@ -58,7 +58,7 @@ class EcoWorthyBW02 extends BTSensor {
         )]
       )]
      )
-     const obj = new EcoWorthy(device)
+     const obj = new EcoWorthyBW02(device)
      obj.currentProperties={Name:"Fake EcoWorthy", Address:"<mac>"}
      obj.debug=(m)=>{console.log(m)}
      obj.deviceConnect=()=>{}

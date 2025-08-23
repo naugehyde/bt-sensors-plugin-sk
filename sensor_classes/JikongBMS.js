@@ -1,4 +1,18 @@
 const BTSensor = require("../BTSensor");
+let FakeDevice,FakeGATTService,FakeGATTCharacteristic;
+
+// Dynamically import FakeBTDevice.js for node<= 20 
+import('../development/FakeBTDevice.js')    
+  .then(module => {
+        FakeDevice = module.FakeDevice; 
+        FakeGATTService= module.FakeGATTService
+        FakeGATTCharacteristic=module.FakeGATTCharacteristic
+
+    })
+    .catch(error => {
+        console.error('Error loading FakeBTDevice:', error);
+    });
+
 function sumByteArray(byteArray) {
  let sum = 0;
     for (let i = 0; i < byteArray.length; i++) {
@@ -8,18 +22,38 @@ function sumByteArray(byteArray) {
  }
 
 const countSetBits=(n)=> {return (n == 0)?0:(n & 1) + countSetBits(n >> 1)};
-const validResponseHeader = 0x55aaeb90
 class JikongBMS extends BTSensor {
       static Domain = BTSensor.SensorDomains.electrical
 
   static RX_SERVICE = "0000ffe0-0000-1000-8000-00805f9b34fb"  
   static RX_CHAR_UUID = "0000ffe1-0000-1000-8000-00805f9b34fb"
+  static validResponseHeader = 0x55aaeb90
 
   static commandResponse = {
-    0x97: 0x02,
-    0x96: 0x03
+    0x96: 0x02,
+    0x97: 0x03
   }
 
+     static async test(datafile){
+     const data = require(datafile)
+     const device = new FakeDevice(
+      [new FakeGATTService(this.RX_SERVICE,
+        [new FakeGATTCharacteristic(this.RX_CHAR_UUID,
+          data.data["0x96"]
+        )]
+      )]
+     )
+     const obj = new JikongBMS(device)
+     obj.currentProperties={Name:"Fake JKBMS", Address:"<mac>"}
+     obj.debug=(m)=>{console.log(m)}
+     obj.deviceConnect=()=>{}
+    await obj.initSchema()
+    await obj.initGATTInterval()
+    for (const [tag,path] of Object.entries(obj._schema.properties.paths.properties)) {
+      obj.on(tag, val=>{console.log(`${tag} => ${val} `)})
+    }
+
+  }
   static identify(device){
     return null
   }
@@ -105,7 +139,7 @@ class JikongBMS extends BTSensor {
 }
 
   async getNumberOfCells(){
-    const b = await this.getBuffer(0x97)
+    const b = await this.getBuffer(0x96)
     return countSetBits(b.readUInt32BE(70))
   }  
 
@@ -120,24 +154,29 @@ class JikongBMS extends BTSensor {
         
         const timer = setTimeout(() => {
           clearTimeout(timer)
-          reject(new Error(`Response timed out (+30s) from JBDBMS device ${this.getName()}. `));
-        }, 30000);
+          reject(new Error(`Response timed out (+30s) getting results for command ${command} from JBDBMS device ${this.getName()}.`));
+        }, 300000);
 
         const valChanged = async (buffer) => {
-          if (offset==0){ //first packet
-            if (buffer.length < 5 || 
-                buffer.subArray(0,4)!==this.constructor.validResponseHeader || 
-                buffer[4] !== this.constructor.commandResponse[command])
-                reject(`Invalid buffer from ${this.getName()}, not processing.`)
+          if (offset==0 && //first packet
+             (buffer.length < 5 ||  buffer.readUInt32BE(0)!==this.constructor.validResponseHeader))
+                this.debug(`Invalid buffer ${JSON.stringify(buffer)}from ${this.getName()}, not processing.`)
+          else {
+            buffer.copy(result,offset)
+            if (offset+buffer.length==datasize){
+              if (result[4] == this.constructor.commandResponse[command]) {
+                this.rxChar.removeAllListeners()
+                clearTimeout(timer)
+                resolve(result)
+              } else{
+                this.debug(`Invalid command response in buffer ${JSON.stringify(result)} from ${this.getName()}, not processing.`)
+                offset=0
+                result = Buffer.alloc(datasize)
+              }
+            } else{ 
+              offset+=buffer.length
+            }
           }
-          buffer.copy(result,offset)
-          if (result.length==datasize){
-            
-            this.rxChar.removeAllListeners()
-            clearTimeout(timer)
-            resolve(result)
-          }
-          offset+=buffer.length
         }
         this.rxChar.on('valuechanged', valChanged )
     })
@@ -148,7 +187,7 @@ async initGATTConnection() {
 }
 
 async getAndEmitBatteryInfo(){
-    return this.getBuffer(0x97).then((buffer)=>{
+    this.getBuffer(0x96).then( (buffer )=>{
     (["current", "voltage", "remainingCapacity", "capacity","cycles", "protectionStatus", "SOC","FET",]).forEach((tag) =>
       this.emitData( tag, buffer )
     )
@@ -156,15 +195,16 @@ async getAndEmitBatteryInfo(){
       this.emitData(`cell${i}Voltage`,buffer)    
       this.emitData(`cell${i}Resistance`,buffer)    
     }
-    
   })
+    
+  
 }
 
 
-initGATTInterval(){
+async initGATTInterval(){
    
-  this.emitGATT()
-  this.initGATTNotifications()
+  await this.emitGATT()
+   this.initGATTNotifications()
 }
 
 async stopListening(){

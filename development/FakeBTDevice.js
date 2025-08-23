@@ -26,10 +26,13 @@ export class FakeGATTCharacteristic extends EventEmitter{
     this.values=values
     this.interval = interval
   }
+  writeValueWithoutResponse(buffer){
+    //do nothing for now
+  }
   startNotifications(){
       this.intervalID=setInterval(()=>{
       if (this.values.length>0){
-        this.emit("valuechanged",Buffer.from(this.values[this.valueIndex++],"hex") )
+        this.emit("valuechanged",Buffer.from((this.values[this.valueIndex++]).replaceAll(" ",""),"hex") )
         if (this.valueIndex>=this.values.length)
           this.valueIndex=0
       }

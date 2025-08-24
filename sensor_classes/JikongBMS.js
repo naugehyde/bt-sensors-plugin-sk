@@ -43,7 +43,7 @@ class JikongBMS extends BTSensor {
         )]
       )]
      )
-     const obj = new JikongBMS(device,{offset:16})
+     const obj = new JikongBMS(device,{offset:16, dischargeFloor:.1})
      obj.currentProperties={Name:"Fake JKBMS", Address:"<mac>"}
      obj.debug=(m)=>{console.log(m)}
      obj.deviceConnect=()=>{}
@@ -74,12 +74,21 @@ class JikongBMS extends BTSensor {
   async initSchema(){
       super.initSchema()
       this.addDefaultParam("batteryID")
-      this.addParameter(
-        "offset", {
-          description: "Data offset",
-          isRequired:true,
-          default:16
-        })
+      this.addParameter("offset", {
+        description: "Data offset",
+        type: "number",
+        isRequired: true,
+        default: 16,
+      });
+
+        this.addParameter("dischargeFloor", {
+          description: "Discharge floor ratio ",
+          isRequired: true,
+          type: "number",
+          default: .1,
+          minimum:0, max: .99
+        });
+
         await this.deviceConnect();
         const gattServer = await this.device.gatt();
         const rxService = await gattServer.getPrimaryService(
@@ -98,9 +107,24 @@ class JikongBMS extends BTSensor {
             "V",
             `Cell ${i + 1} voltage`,
             (buffer) => {
-              return buffer.readUInt16LE(6 + i * 2) / 1000;
+              if (i==0) { 
+                this.currentProperties._totalCellVoltage = 0
+                this.currentProperties._maxCellVoltage = 0;
+                this.currentProperties._minCellVoltage = 0;
+              }
+              const v= buffer.readUInt16LE(6 + i * 2) / 1000;
+              this.currentProperties._totalCellVoltage+=v
+              if (v > this.currentProperties._maxCellVoltage) 
+                this.currentProperties._maxCellVoltage = v
+              if (
+                this.currentProperties._minCellVoltage==0 || v <
+                this.currentProperties._minCellVoltage
+              )
+                this.currentProperties._minCellVoltage = v;
+                return v;
             }
           ).default = `electrical.batteries.{batteryID}.cell${i}.voltage`;
+        
           this.addMetadatum(
             `cell${i}Resistance`,
             "ohm",
@@ -110,45 +134,118 @@ class JikongBMS extends BTSensor {
             }
           ).default = `electrical.batteries.{batteryID}.cell${i}.resistance`;
         }
+
+        this.addMetadatum(
+          "avgCellVoltage",
+          "number",
+          "Average Cell Voltage",
+          () => {
+            return (
+              this.currentProperties._totalCellVoltage / this.numberOfCells
+            );
+          }
+        ).default = "electrical.batteries.{batteryID}.avgCellVoltage";
+
      
+        this.addMetadatum(
+          "deltaCellVoltage",
+          "number",
+          "Delta Cell Voltage",
+          () => {
+            return (
+              this.currentProperties._maxCellVoltage -
+              this.currentProperties._minCellVoltage
+            );
+          }
+        ).default = "electrical.batteries.{batteryID}.deltaCellVoltage";
+
       this.addDefaultPath('voltage','electrical.batteries.voltage')
         .read=
         (buffer)=>{return buffer.readUInt16LE(118+this.offset*2) / 1000}
 
-      this.addMetadatum(
+      this.addDefaultPath(
         "power",
-        "W",
-        "Current battery power in Watts",
+        "electrical.batteries.power",
         (buffer) => {
           return buffer.readInt16LE(122 + this.offset*2) / 1000;
         }
-      ).default = "electrical.batteries.{batteryID}.power";
+       );
  
 
       this.addDefaultPath('current','electrical.batteries.current')
         .read=
-        (buffer)=>{return buffer.readInt16LE(126+this.offset*2) / 1000} 
+        (buffer)=>{
+          this.currentProperties._current=buffer.readInt16LE(126+this.offset*2) / 1000 
+          return this.currentProperties._current} 
       
       this.addDefaultPath('remainingCapacity','electrical.batteries.capacity.remaining')
-        .read=(buffer)=>{return (buffer.readUInt32LE(142+this.offset*2) / 1000)*3600} 
+        .read=(buffer)=>{
+          this.currentProperties._capacityRemaining =
+            (buffer.readUInt32LE(142 + this.offset * 2) / 1000) * 3600;
+          return this.currentProperties._capacityRemaining;} 
       
       this.addDefaultPath('capacity','electrical.batteries.capacity.actual')
-        .read=(buffer)=>{return (buffer.readUInt32LE(146+this.offset*2) / 1000)*3600} 
+        .read=(buffer)=>{
+          this.currentProperties._capacityActual = (buffer.readUInt32LE(146+this.offset*2) / 1000)*3600
+          return this.currentProperties._capacityActual} 
+   
+        this.addDefaultPath("timeRemaining", "electrical.batteries.capacity.timeRemaining")
+        .read=(buffer)=>{
+          return Math.abs((this.currentProperties._capacityActual*this.dischargeFloor)/this.currentProperties._current)
+        }
+
      
       this.addDefaultPath('cycles','electrical.batteries.cycles' )
         .read=(buffer)=>{return buffer.readUInt32LE(150+this.offset*2)} 
 
-           
+      this.addMetadatum(
+        "cycleCapacity",
+        "number",
+        "Cycle capacity",
+        (buffer) => {
+          return buffer.readUInt32LE(154+this.offset*2)/1000;
+        }
+      ).default = "electrical.batteries.{batteryID}.discharging";
+
+            
+      this.addMetadatum( "balanceAction", "", "Balancing action (0=off 1=Charging Balance, 2=Discharging Balance",
+        (buffer) => {
+          return buffer[140+this.offset * 2];
+        }
+      ).default = "electrical.batteries.{batteryID}.balanceAction";
+
+      this.addMetadatum(
+        "balancingCurrent",
+        "",
+        "Balancing current",
+        (buffer) => {
+          return buffer.readUInt16LE(138+ this.offset * 2)/1000;
+        }
+      ).default = "electrical.batteries.{batteryID}.balance";
+    
       this.addDefaultPath('SOC','electrical.batteries.capacity.stateOfCharge')
-        .read=(buffer)=>{return buffer[158+this.offset*2]} 
+        .read=(buffer)=>{return buffer[141+this.offset*2]/100} 
+
+      this.addDefaultPath(
+            "SOH",
+            "electrical.batteries.capacity.stateOfHealth"
+          ).read = (buffer) => {
+            return buffer[158 + this.offset * 2] / 100;
+          }; 
+      
       
       this.addMetadatum('runtime', 's', 'Total runtime in seconds',
           (buffer)=>{return buffer.readUInt32LE(162+this.offset*2)} )
           .default="electrical.batteries.{batteryID}.runtime"
+
+      this.addMetadatum('timeEmergency', 's', 'Time emergency in seconds',
+          (buffer)=>{return buffer.readUInt16LE(186+this.offset*2)} )
+          .default="electrical.batteries.{batteryID}.timeEmergency"
+
       
       this.addMetadatum('charging', 'bool', 'MOSFET Charging enable',
           (buffer)=>{return buffer[166+this.offset*2]==1} )
-          .default="electrical.batteries.{batteryID}.runtime"
+          .default="electrical.batteries.{batteryID}.charging"
        
 
         this.addMetadatum(
@@ -168,6 +265,12 @@ class JikongBMS extends BTSensor {
         this.addMetadatum("temp2", "K", "Temperature 2 in K", (buffer) => {
           return 273.15+buffer.readInt16LE(132 + this.offset * 2) / 10;
         }).default = "electrical.batteries.{batteryID}.temperature2";
+
+
+        this.addMetadatum("mosTemp", "K", "MOS Temperature in K", (buffer) => {
+          return 273.15 + buffer.readInt16LE(112 + this.offset * 2) / 10;
+        }).default = "electrical.batteries.{batteryID}.mosTemperature";
+  
   
   }
 
@@ -239,13 +342,17 @@ async initGATTConnection() {
 
 async getAndEmitBatteryInfo(){
     this.getBuffer(0x96).then( (buffer )=>{
-    (["current", "voltage", "remainingCapacity", "capacity","cycles", "charging", "discharging", "SOC","runtime", "temp1", "temp2"]).forEach((tag) =>
+    (["current", "voltage", "remainingCapacity", "capacity", "cycles", "charging", "discharging", "balanceAction", "timeRemaining", "balancingCurrent", "cycleCapacity", "timeEmergency", "SOC","SOH","runtime", "temp1", "temp2", "mosTemp"]).forEach((tag) =>
       this.emitData( tag, buffer )
     )
     for (let i = 0; i<this.numberOfCells; i++){
       this.emitData(`cell${i}Voltage`,buffer)    
       this.emitData(`cell${i}Resistance`,buffer)    
     }
+
+    ["deltaCellVoltage", "avgCellVoltage"].forEach((tag) =>
+      this.emitData( tag )
+    )
   })
     
   

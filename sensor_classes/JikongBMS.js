@@ -293,8 +293,9 @@ class JikongBMS extends BTSensor {
 }
 
   async getNumberOfCells(){
-    const b = await this.getBuffer(0x96)
-    return countSetBits(b.readUInt32BE(70))
+
+      const b = await this.getBuffer(0x96)
+      return countSetBits(b.readUInt32BE(70))
   }  
 
 
@@ -309,7 +310,7 @@ class JikongBMS extends BTSensor {
         const timer = setTimeout(() => {
           clearTimeout(timer)
           reject(new Error(`Response timed out (+30s) getting results for command ${command} from JBDBMS device ${this.getName()}.`));
-        }, 300000);
+        }, 30000);
 
         const valChanged = async (buffer) => {
           if (offset==0 && //first packet

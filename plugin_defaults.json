@@ -134,10 +134,19 @@
                     "default": "electrical.batteries.{batteryID}.capacity.totalCharge"
                 },
                 "stateOfCharge":{
+                    "description": "Battery's state of charge as ratio",
                     "unit":"ratio",
                     "default": "electrical.batteries.{batteryID}.capacity.stateOfCharge" 
                 },
+                "stateOfHealth":{
+                    "description": "Battery's state of health as ratio",
+                    "unit":"ratio",
+                    "default": "electrical.batteries.{batteryID}.capacity.stateOfHealth" 
+                },
+                
                 "timeRemaining":{
+                    "description": "Time in seconds until battery reaches its discharge floor at current usage",
+
                     "unit":"s",
                     "default": "electrical.batteries.{batteryID}.capacity.timeRemaining" 
      

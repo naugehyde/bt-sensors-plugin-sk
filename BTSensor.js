@@ -347,16 +347,23 @@ class BTSensor extends EventEmitter {
 
     }
 
-    activateGATT(){
-        this.initGATTConnection().then(async ()=>{
+    async activateGATT(isReconnecting=false){
+        try{
+            await this.initGATTConnection(isReconnecting)
             await this.emitGATT()
             if (this.pollFreq)
                 this.initGATTInterval()
             else 
                 await this.initGATTNotifications()
-        }).catch((e)=>{
+        }
+        catch(e) {
             this.app.debug(`Unable to activate GATT connection for ${this.getName()} (${this.getMacAddress()}): ${e}`)
-        })
+        }
+    }
+
+    async deactivateGATT(){
+        if (this.device) 
+          await this.device.disconnect()  
     }
 
     /**
@@ -451,8 +458,9 @@ class BTSensor extends EventEmitter {
     * see: VictronBatteryMonitor for an example
     */ 
 
-    initGATTConnection(){
-        throw new Error("::initGATTConnection() should be implemented by the BTSensor subclass")
+    async initGATTConnection(isReconnecting=false){
+        await this.connectDevice(isReconnecting);
+        //throw new Error("::initGATTConnection() should be implemented by the BTSensor subclass")
     }
     /**
     * Subclasses providing GATT support should override this method  
@@ -462,14 +470,32 @@ class BTSensor extends EventEmitter {
     * 
     * see: VictronBatteryMonitor for an example
     */ 
-    initGATTNotifications(){
+    async initGATTNotifications(){
         throw new Error("::initGATTNotifications() should be implemented by the BTSensor subclass")
     }
 
     isConnected(){
         return this?._connected??false
     }
-    deviceConnect(reconnect=false) {
+    async connectDevice( isReconnecting, retries=5, retryInterval=3){
+        for (let attempts = 0; attempts<retries; attempts++) {
+            try 
+            { 
+                this.debug( `(${this.getName()}) Trying to connect (attempt # ${attempts +1}) to Bluetooth device.` );
+                await this.deviceConnect(isReconnecting);
+                return this.device
+            }
+
+            catch (e){
+                if (attempts==retries)
+                    throw new Error (`(${this.getName}) Unable to connect to Bluetooth device after ${attempts} attempts`)
+                this.debug(`(${this.getName()}) Error connecting to device. Retrying... `);
+                await new Promise((r) => setTimeout(r, retryInterval*1000));
+
+            }
+        }
+    }
+    deviceConnect(isReconnecting=false, autoReconnect=false) {
 
      
         return connectQueue.enqueue( async ()=>{
@@ -477,36 +503,50 @@ class BTSensor extends EventEmitter {
             await this.device.helper.callMethod('Connect')
 
             this.debug(`Connected to ${this.getName()}`)
-            if (!reconnect) {
-                this.device.helper.on('PropertiesChanged',  (propertiesChanged) => {
-                    if ('Connected' in propertiesChanged) {
-                        const { value } = propertiesChanged.Connected
-                        if (value) {
-                            this._connected=true
-                            this.device.emit('connect', { connected: true })
-                        } else {
-                            this._connected=false
-                            this.device.emit('disconnect', { connected: false })
-                        }
+            if (!isReconnecting) {
+              this.device.helper.on(
+                "PropertiesChanged",
+                (propertiesChanged) => {
+                  if ("Connected" in propertiesChanged) {
+                    const { value } = propertiesChanged.Connected;
+                    if (value) {
+                      this._connected = true;
+                      this.device.emit("connect", { connected: true });
+                    } else {
+                      this._connected = false;
+                      this.device.emit("disconnect", { connected: false });
                     }
-                })
-                this.device.on("disconnect", ()=>{
-                        this._connected=false
-                        if (this.isActive()) {
-                        this.debug(`Device disconnected. Attempting to reconnect to ${this.getName()}`)  
-                            try {        
-                            this.deviceConnect(true).then(()=>{
-                                this.debug(`Device reconnected -- ${this.getName()}`)  
-                            })
-                            }
-                            catch (e) {
-                                this.setPluginError( `Error while reconnecting to ${this.getName()}: ${e.message}`)
-                                this.debug( `Error while reconnecting to ${this.getName()}: ${e.message}`)
-                                this.debug(e)
-                            }
-                        }
-                    })     
+                  }
                 }
+              );
+              if (autoReconnect){
+                this.device.on("disconnect", async () => {
+                    this._connected = false;
+                    if (this.isActive()) {
+                    this.debug(
+                        `Device disconnected. Attempting to reconnect to ${this.getName()}`
+                    );
+                    try {
+                        await this.deactivateGATT();
+                        await this.activateGATT(true);
+                        this.debug(`(${this.getName()}) Device reconnected.`);
+                    } catch (e) {
+                        this.setPluginError(
+                        `Error while reconnecting to ${this.getName()}: ${
+                            e.message
+                        }`
+                        );
+                        this.debug(
+                        `Error while reconnecting to ${this.getName()}: ${
+                            e.message
+                        }`
+                        );
+                        this.debug(e);
+                    }
+                    }
+                });
+                }
+            }
 
             try {
 
@@ -523,9 +563,10 @@ class BTSensor extends EventEmitter {
                     You know, the little things.
                 */
                 await this._adapter.helper.callMethod('StopDiscovery')
-                await this._adapter.helper.callMethod('SetDiscoveryFilter', {
-                    Transport: new Variant('s', this._adapter?._transport??"le")
-                })
+
+                //await this._adapter.helper.callMethod('SetDiscoveryFilter', {
+                //    Transport: new Variant('s', this._adapter?._transport??"le")
+                //})
                 await this._adapter.helper.callMethod('StartDiscovery')   
                 
             } catch (e){
@@ -551,14 +592,14 @@ class BTSensor extends EventEmitter {
             this.initPropertiesChanged()
             this.intervalID = setInterval( () => {
                 this.initGATTConnection().then(async ()=>{
-                    await this.emitGATT()
-                    this.device.disconnect()
-                        .then(()=>
+                    this.emitGATT().then(()=>{ 
+                        this.deactivateGATT().then(()=>
                             this.initPropertiesChanged()
                         )
                         .catch((e)=>{
                             this.debug(`Error disconnecting from ${this.getName()}: ${e.message}`)
                         })
+                    })
                 })
                 .catch((error)=>{
                     this.debug(error)
@@ -839,7 +880,7 @@ class BTSensor extends EventEmitter {
         this.currentProperties = await this.constructor.getDeviceProps(this.device)
         if (this.usingGATT()){
             try {
-                this.activateGATT()
+                await this.activateGATT(true)
             } catch (e) {
                 this.debug(`GATT services unavailable for ${this.getName()}. Reason: ${e}`)
                 this._state="ERROR"
@@ -878,8 +919,11 @@ class BTSensor extends EventEmitter {
         this.device.helper.removeListeners()
  
         if (this.intervalID){
+            this.debug(`${this.getName()}::stopListening called clearInterval()`)
             clearInterval(this.intervalID)
         }
+        if( this.usingGATT() )
+            await this.deactivateGATT()
         this._state="ASLEEP"
     }
     //END Sensor listen-to-changes functions

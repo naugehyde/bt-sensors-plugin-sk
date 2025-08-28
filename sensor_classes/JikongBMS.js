@@ -28,6 +28,7 @@ class JikongBMS extends BTSensor {
   static RX_SERVICE = "0000ffe0-0000-1000-8000-00805f9b34fb"  
   static RX_CHAR_UUID = "0000ffe1-0000-1000-8000-00805f9b34fb"
   static validResponseHeader = 0x55aaeb90
+  static validAcknowledgeHeader = 0xaa5590eb
 
   static commandResponse = {
     0x96: 0x02,
@@ -59,6 +60,7 @@ class JikongBMS extends BTSensor {
     return null
   }
   static ImageFile = "JikongBMS.jpg"
+  connections = 0
 
   jikongCommand(command) {
     var result = [0xaa, 0x55, 0x90, 0xeb, command, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 ];
@@ -67,8 +69,14 @@ class JikongBMS extends BTSensor {
   }
 
   async sendReadFunctionRequest( command ){    
-    this.debug( `sending ${command}`)
-    return await this.rxChar.writeValueWithoutResponse(Buffer.from(this.jikongCommand(command)))
+    this.debug( `sending ${command} for ${this.getName()}` )
+    try {
+      return await this.rxChar.writeValueWithoutResponse(Buffer.from(this.jikongCommand(command)))
+    } catch (e){
+      this.debug(`Error rec'd writing data: ${e.message} for ${this.getName()}`)
+      //await this.deactivateGATT();
+      //await this.activateGATT(true);
+    }
   }
 
   async initSchema(){
@@ -88,20 +96,27 @@ class JikongBMS extends BTSensor {
           default: .1,
           minimum:0, max: .99
         });
+        
+        if (this.numberOfCells==undefined) {
+          /*try {
+            await this.initGATTConnection();
+            await this.initGATTNotifications()
+            this.numberOfCells = await this.getNumberOfCells()
+          }
+          catch(e){*/
+            this.numberOfCells = 4
+          //}
+        }
 
-        await this.deviceConnect();
-        const gattServer = await this.device.gatt();
-        const rxService = await gattServer.getPrimaryService(
-          this.constructor.RX_SERVICE
-        );
-        this.rxChar = await rxService.getCharacteristic(
-          this.constructor.RX_CHAR_UUID
-        );
-        await this.rxChar.startNotifications();
+        this.addParameter("numberOfCells", {
+          description: "Number of cells",
+          type: "number",
+          isRequired: true,
+          default: this.numberOfCells
+        });
 
-        this.numberOfCells = await this.getNumberOfCells();
 
-        for (let i = 0; i < this.numberOfCells; i++) {
+        for (let i = 0; i < this?.numberOfCells??4; i++) {
           this.addMetadatum(
             `cell${i}Voltage`,
             "V",
@@ -270,32 +285,24 @@ class JikongBMS extends BTSensor {
         this.addMetadatum("mosTemp", "K", "MOS Temperature in K", (buffer) => {
           return 273.15 + buffer.readInt16LE(112 + this.offset * 2) / 10;
         }).default = "electrical.batteries.{batteryID}.mosTemperature";
-  
-  
   }
 
   hasGATT(){
     return true
   }
-  initGATTNotifications(){
-    this.intervalID = setInterval( async ()=>{
-        await this.emitGATT()
-    }, 1000*(this?.pollFreq??10) )
+  async initGATTNotifications(){
+        this.debug(`${this.getName()}::initGATTNotifications`);    
   }
 
-  async emitGATT(){
-    try {
-      await this.getAndEmitBatteryInfo()
-    }
-    catch (e) {
-      this.debug(`Failed to emit battery info for ${this.getName()}: ${e}`)
-    }
-}
+  async emitGATT(){ 
+    await this.getAndEmitBatteryInfo();
+  }
 
   async getNumberOfCells(){
-
-      const b = await this.getBuffer(0x96)
-      return countSetBits(b.readUInt32BE(70))
+    this.debug(`${this.getName()}::getNumberOfCells`);
+  
+    const b = await this.getBuffer(0x96)
+    return countSetBits(b.readUInt32BE(70))
   }  
 
 
@@ -308,23 +315,32 @@ class JikongBMS extends BTSensor {
         let offset = 0
         
         const timer = setTimeout(() => {
+          this.rxChar.removeAllListeners();
           clearTimeout(timer)
-          reject(new Error(`Response timed out (+30s) getting results for command ${command} from JBDBMS device ${this.getName()}.`));
+          reject(new Error(`Response timed out (+30s) getting results for command ${command} from JikongBMS device ${this.getName()}.`));
+
         }, 30000);
 
         const valChanged = async (buffer) => {
           if (offset==0 && //first packet
-             (buffer.length < 5 ||  buffer.readUInt32BE(0)!==this.constructor.validResponseHeader))
-                this.debug(`Invalid buffer ${JSON.stringify(buffer)}from ${this.getName()}, not processing.`)
+             (buffer.length < 5 ||  buffer.readUInt32BE(0)!==this.constructor.validResponseHeader)) {
+                if (buffer.readUInt32BE(0)!==this.constructor.validAcknowledgeHeader)
+                  this.debug(`Invalid buffer ${JSON.stringify(buffer)}from ${this.getName()}, not processing.`)
+          }
           else {
+            
             buffer.copy(result,offset)
             if (offset+buffer.length==datasize){
               if (result[4] == this.constructor.commandResponse[command]) {
                 this.rxChar.removeAllListeners()
                 clearTimeout(timer)
+                this.debug(
+                  `Rec'd command in buffer ${JSON.stringify(
+                    result
+                  )} for ${this.getName()}`
+                );
                 resolve(result)
               } else{
-                this.debug(`Invalid command response in buffer ${JSON.stringify(result)} from ${this.getName()}, not processing.`)
                 offset=0
                 result = Buffer.alloc(datasize)
               }
@@ -337,12 +353,11 @@ class JikongBMS extends BTSensor {
     })
 } 
 
-async initGATTConnection() {
-  return this  
-}
+
+usingGATT() { return false }
 
 async getAndEmitBatteryInfo(){
-    this.getBuffer(0x96).then( (buffer )=>{
+    const buffer = await this.getBuffer(0x96);
     (["current", "voltage", "remainingCapacity", "capacity", "cycles", "charging", "discharging", "balanceAction", "timeRemaining", "balancingCurrent", "cycleCapacity", "timeEmergency", "SOC","SOH","runtime", "temp1", "temp2", "mosTemp"]).forEach((tag) =>
       this.emitData( tag, buffer )
     )
@@ -354,26 +369,73 @@ async getAndEmitBatteryInfo(){
     ["deltaCellVoltage", "avgCellVoltage"].forEach((tag) =>
       this.emitData( tag )
     )
-  })
-    
-  
+}
+
+/*async _initGATTInterval(){
+    this.debug(`${this.getName()}::initGATTInterval`)
+    await this.initGATTNotifications()
+    await this.getAndEmitBatteryInfo();
+    this.intervalID = setInterval(async () => {
+      await this.getAndEmitBatteryInfo();
+    }, 1000 * (this?.pollFreq ?? 10));
+}*/
+
+async deactivateGATT(){
+  this.debug(`${this.getName()}::deactivateGATT`)
+  if (this.rxChar) {
+    try {
+      await this.rxChar.stopNotifications();
+    } catch (e){
+      this.debug(`(${this.getName()}) Error stopping notifications for rxChar`);
+    }
+  }
+  await super.deactivateGATT();
 }
 
 
-async initGATTInterval(){
+async initGATTConnection(isReconnecting=false){
+    this.debug(`${this.getName()}::initGATTConnection`);
+
+  await super.initGATTConnection(isReconnecting)
+   /*if (this.gattServer){
+    (await this.gattServer.services()).forEach( async (uuid)=>{
+      await this.gattServer.getPrimaryService(uuid).then(async (service)=>{
+      (await service.characteristics()).forEach( async (uuid)=>{
+        (await service.getCharacteristic(uuid)).helper.removeListeners()
+      })
+      service.helper.removeListeners()
+    })
+    })
+   }*/
    
-  await this.emitGATT()
-   this.initGATTNotifications()
+     this.gattServer = await this.device.gatt();
+   
+     this.rxService = await this.gattServer.getPrimaryService(
+       this.constructor.RX_SERVICE
+     );
+     this.rxChar = await this.rxService.getCharacteristic(
+       this.constructor.RX_CHAR_UUID
+     );
+   
+   await this.rxChar.startNotifications();
+   await this.getBuffer(0x97);
+   //this.debug(`(${this.getName()}) Connections: ${this.connections++}`)
 }
 
-async stopListening(){
-  super.stopListening()
-  if (this.rxChar) 
-    this.rxChar.stopNotifications()
-  if (this.device)
-    await this.device.disconnect()
-}
-  
+ activate(config, plugin){
+    super.activate(config, plugin)
+    this.initGATTConnection().then( async() => {
+      await this.getAndEmitBatteryInfo()
+      this.intervalID=setInterval(
+        async ()=>{
+          if (!(await this.device.isConnected()))
+              await this.initGATTConnection(true);
+          await this.getAndEmitBatteryInfo()
+        },
+        this.pollFreq*1000
+      )
+    })
+  }
 }
 
 module.exports = JikongBMS;

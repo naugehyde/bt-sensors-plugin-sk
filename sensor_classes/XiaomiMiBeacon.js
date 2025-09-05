@@ -113,11 +113,9 @@ class XiaomiMiBeacon extends BTSensor{
     initGATTConnection(){
         return new Promise((resolve,reject )=>{
             this.deviceConnect().then(async ()=>{
-                if (!this.gattServer) {
-                    this.gattServer = await this.device.gatt()
-                    this.gattService = await this.gattServer.getPrimaryService("ebe0ccb0-7a0a-4b0c-8a1a-6ff2997da3a6")
-                    this.gattCharacteristic = await this.gattService.getCharacteristic("ebe0ccc1-7a0a-4b0c-8a1a-6ff2997da3a6")
-                }
+                const gatt = await this.getGATTServer()
+                this.gattService = await gatt.getPrimaryService("ebe0ccb0-7a0a-4b0c-8a1a-6ff2997da3a6")
+                this.gattCharacteristic = await this.gattService.getCharacteristic("ebe0ccc1-7a0a-4b0c-8a1a-6ff2997da3a6")                
                 resolve(this)
             })
             .catch((e)=>{
@@ -128,7 +126,9 @@ class XiaomiMiBeacon extends BTSensor{
 
     emitGATT(){
         this.gattCharacteristic.readValue()
-            .then((buffer)=>this.emitValues(buffer))
+            .then(
+                (buffer)=>this.emitValues(buffer)
+        )
     }
 
     async initGATTNotifications() { 
@@ -247,18 +247,16 @@ class XiaomiMiBeacon extends BTSensor{
 
     }
 
+    async deactivateGATT(){
+        await this.disconnectGATTCharacteristic()
+        await super.deactivateGATT()
+    }
+
     async disconnectGATTCharacteristic(){
         if (this.gattCharacteristic  && await this.gattCharacteristic.isNotifying()) {
+            this.gattCharacteristic.removeAllListeners()
             await this.gattCharacteristic.stopNotifications()
             this.gattCharacteristic=null
-        }
-    }
-    async stopListening(){
-        super.stopListening()
-        await this.disconnectGATTCharacteristic()
-       
-        if (await this.device.isConnected()){
-               await this.device.disconnect()
         }
     }
 }

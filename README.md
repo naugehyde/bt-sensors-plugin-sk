@@ -1,6 +1,11 @@
 # Bluetooth Sensors for [Signal K](http://www.signalk.org) 
 
 ## WHAT'S NEW  
+# Version 1.2.6-beta-4
+
+- Improved reconnect logic for connected devices
+- Error display in config (preliminary effort)  
+- JikongBMS support (aka JKBMS)
 
 # Version 1.2.6-beta-3
 

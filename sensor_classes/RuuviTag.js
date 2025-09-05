@@ -122,5 +122,6 @@ Offset	Allowed values	Description
         if (props.ManufacturerData)
             this.emitValuesFrom( this.getManufacturerData(this.constructor.manufacturerID) )
     }
+
 }
 module.exports=RuuviTag

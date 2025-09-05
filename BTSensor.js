@@ -75,7 +75,7 @@ function signalQualityPercentQuad(rssi, perfect_rssi=-20, worst_rssi=-85) {
 class BTSensor extends EventEmitter {
  
     static DEFAULTS = require('./plugin_defaults.json');
-    static DistanceManagerSingleton= new DistanceManager({DISTANCE_FIND_LAST_FEW_SAMPLE_TIME_FRAME_MILLIS:60000}) //should be a singleton
+    static DistanceManagerSingleton= new DistanceManager({DISTANCE_FIND_LAST_FEW_SAMPLE_TIME_FRAME_MILLIS:60000}) 
 
     static IsRoaming = false;
 
@@ -255,6 +255,36 @@ class BTSensor extends EventEmitter {
 
     //END static identity functions
 
+    _debugLog=[]
+    _errorLog=[]
+
+    getErrorLog(){
+        return this._errorLog
+    }
+    getDebugLog(){
+        return this._debugLog
+    }
+
+    debug(message){
+        if (this._app)
+            this._app.debug(message)
+        else
+            console.log(message)
+        this._debugLog.push({timestamp:Date.now(), message:message})
+    }
+
+    setError(message){
+        if (this._app){
+            this._app.debug(message)
+            this._app.setPluginError(message)
+        }
+        else
+            console.log(message)
+
+        this._errorLog.push({timestamp:Date.now(), message:message})
+        this.setState("ERROR")
+    }
+
     //Instance Initialization functions
     /**
      * 
@@ -263,6 +293,7 @@ class BTSensor extends EventEmitter {
      * subclasses must call await super.init()
      *  
      */
+
 
     async initSchema(){
         this._schema = {
@@ -337,16 +368,20 @@ class BTSensor extends EventEmitter {
             try {
                 this.activateGATT()
             } catch (e) {
-                this.debug(`GATT services unavailable for ${this.getName()}. Reason: ${e}`)
-                this._state="ERROR"
+                this.setError(`GATT services unavailable for ${this.getName()}. Reason: ${e}`)
                 return
             }
         }
-        this._state="ACTIVE"
+        this.setState("ACTIVE")
         this._propertiesChanged(this.currentProperties)
 
     }
 
+    async getGATTServer(){
+        if (!this._gattServer) 
+            this._gattServer = await this.device.gatt()
+        return this._gattServer
+    }
     async activateGATT(isReconnecting=false){
         try{
             await this.initGATTConnection(isReconnecting)
@@ -357,13 +392,26 @@ class BTSensor extends EventEmitter {
                 await this.initGATTNotifications()
         }
         catch(e) {
-            this.app.debug(`Unable to activate GATT connection for ${this.getName()} (${this.getMacAddress()}): ${e}`)
+            this.debug(`Unable to activate GATT connection for ${this.getName()} (${this.getMacAddress()}): ${e}`)
         }
     }
 
     async deactivateGATT(){
-        if (this.device) 
+        if (this.device) {
+            this.debug(`(${this.getName()}) disconnecting from GATT server`)
+            if (this._gattServer) { //getGATTServer() was called which calls node-ble's Device::gatt() which needs cleaning up after
+            (await this._gattServer.services()).forEach(async (uuid) => {
+                await this._gattServer.getPrimaryService(uuid).then(async (service) => {
+                (await service.characteristics()).forEach(async (uuid) => {
+                    (await service.getCharacteristic(uuid)).helper.removeListeners();
+                });
+                service.helper.removeListeners();
+                });
+                this._gattServer.helper.removeListeners();
+            });        
+            }
           await this.device.disconnect()  
+        }
     }
 
     /**
@@ -458,9 +506,8 @@ class BTSensor extends EventEmitter {
     * see: VictronBatteryMonitor for an example
     */ 
 
-    async initGATTConnection(isReconnecting=false){
-        await this.connectDevice(isReconnecting);
-        //throw new Error("::initGATTConnection() should be implemented by the BTSensor subclass")
+    async initGATTConnection(isReconnecting=false, retries=5, retryInterval=3){
+        await this.connectDevice(isReconnecting,retries, retryInterval);
     }
     /**
     * Subclasses providing GATT support should override this method  
@@ -494,6 +541,10 @@ class BTSensor extends EventEmitter {
 
             }
         }
+    }
+    setConnected(state){
+        this._connected=state
+        this.emit("connected", this._connected)
     }
     deviceConnect(isReconnecting=false, autoReconnect=false) {
 
@@ -531,7 +582,7 @@ class BTSensor extends EventEmitter {
                         await this.activateGATT(true);
                         this.debug(`(${this.getName()}) Device reconnected.`);
                     } catch (e) {
-                        this.setPluginError(
+                        this.setError(
                         `Error while reconnecting to ${this.getName()}: ${
                             e.message
                         }`
@@ -589,22 +640,21 @@ class BTSensor extends EventEmitter {
 
     initGATTInterval(){
         this.device.disconnect().then(()=>{
-            this.initPropertiesChanged()
-            this.intervalID = setInterval( () => {
-                this.initGATTConnection().then(async ()=>{
-                    this.emitGATT().then(()=>{ 
-                        this.deactivateGATT().then(()=>
-                            this.initPropertiesChanged()
-                        )
-                        .catch((e)=>{
-                            this.debug(`Error disconnecting from ${this.getName()}: ${e.message}`)
-                        })
-                    })
-                })
-                .catch((error)=>{
+            this.intervalID = setInterval( async () => {
+                try {
+                    await this.initGATTConnection()
+                    await this.emitGATT()
+                }
+                catch(error) {
                     this.debug(error)
                     throw new Error(`unable to emit values for device ${this.getName()}:${error}`)
-                })
+                }
+                finally{ 
+                    this.deactivateGATT().catch(
+                        (e)=>{
+                            this.debug(`(${this.getName()}) Error deactivating GATT Connection: ${e.message}`)
+                    })
+                }
             }
             , this.pollFreq*1000)
         })
@@ -688,16 +738,7 @@ class BTSensor extends EventEmitter {
     }
 
     getDescription(){
-        return `<div>${this.getImageHTML()} ${this.getTextDescription()} </div> <div>Status: ${JSON.stringify(this.getStatus())}</div>`
-    }
-
-    getStatus(){
-        return {
-            active: this.isActive(),
-            connected: this.isConnected(),
-            secondsSinceLastContact: this.elapsedTimeSinceLastContact(),
-            error: this?._error??"no error"
-        }
+        return `<div>${this.getImageHTML()} ${this.getTextDescription()} </div>`
     }
 
     static getDescription(){
@@ -776,6 +817,10 @@ class BTSensor extends EventEmitter {
 
     getState(){
         return this._state
+    }
+    setState(state){
+        this._state = state
+        this.emit("state",this._state)
     }
 
     getDomain(){
@@ -882,12 +927,11 @@ class BTSensor extends EventEmitter {
             try {
                 await this.activateGATT(true)
             } catch (e) {
-                this.debug(`GATT services unavailable for ${this.getName()}. Reason: ${e}`)
-                this._state="ERROR"
+                this.setError(`GATT services unavailable for ${this.getName()}. Reason: ${e}`)
                 return
             }
         }
-        this._state="ACTIVE"
+        this.setState("ACTIVE")
         this._propertiesChanged(this.currentProperties)
     }
 
@@ -924,7 +968,7 @@ class BTSensor extends EventEmitter {
         }
         if( this.usingGATT() )
             await this.deactivateGATT()
-        this._state="ASLEEP"
+        this.setState("ASLEEP")
     }
     //END Sensor listen-to-changes functions
     
@@ -949,7 +993,7 @@ class BTSensor extends EventEmitter {
             const path = config.paths[tag]
             if (!(path===undefined)) {
                 const preparedPath  =
-                this.app.handleMessage(id, 
+                this._app.handleMessage(id, 
                 {
                 updates: 
                     [{ meta: [{path:  this.preparePath(path), value: { units: pathMeta?.unit }}]}]
@@ -967,7 +1011,7 @@ class BTSensor extends EventEmitter {
                 let preparedPath =  this.preparePath(path)
                 this.on(tag, (val)=>{
 					if (pathMeta.notify){
-						this.app.notify(tag, val, id )
+						this._app.notify(tag, val, id )
 					} else {
 						this.updatePath(preparedPath,val, id, source)
 					}
@@ -976,7 +1020,7 @@ class BTSensor extends EventEmitter {
 		})
 	}
 	updatePath(path, val, id, source){
-		this.app.handleMessage(id, {updates: [ { $source: source, values: [ { path: path, value: val }] } ] })
+		this._app.handleMessage(id, {updates: [ { $source: source, values: [ { path: path, value: val }] } ] })
   	}  
     elapsedTimeSinceLastContact(){
         return (Date.now()-this?._lastContact??Date.now())/1000
@@ -1020,12 +1064,6 @@ class BTSensor extends EventEmitter {
     return resultString || str; // Return original string if no replacements were made
   }
 
-    setError(errorText){
-        this._error = errorText
-    }
-    unsetError(){
-        this._error = null
-    }
 
 }
 

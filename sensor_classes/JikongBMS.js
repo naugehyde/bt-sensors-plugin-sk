@@ -452,19 +452,8 @@ class JikongBMS extends BTSensor {
     this.debug(`${this.getName()}::initGATTConnection`);
 
     await super.initGATTConnection(isReconnecting);
-    if (this.gattServer) {
-      (await this.gattServer.services()).forEach(async (uuid) => {
-        await this.gattServer.getPrimaryService(uuid).then(async (service) => {
-          (await service.characteristics()).forEach(async (uuid) => {
-            (await service.getCharacteristic(uuid)).helper.removeListeners();
-          });
-          service.helper.removeListeners();
-        });
-        this.gattServer.helper.removeListeners();
-      });
-    }
-    this.gattServer = await this.device.gatt();
-    this.rxService = await this.gattServer.getPrimaryService(
+  
+    this.rxService = await this.getGATTServer().getPrimaryService(
       this.constructor.RX_SERVICE
     );
     this.rxChar = await this.rxService.getCharacteristic(

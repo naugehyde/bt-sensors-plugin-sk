@@ -61,6 +61,7 @@ class ShellySBMO003Z extends AbstractBTHomeSensor {
 		)
 		.default="sensors.{macAndName}.button"
 
+
 /*
 		this.addMetadatum(
 			"packetID",
@@ -71,6 +72,10 @@ class ShellySBMO003Z extends AbstractBTHomeSensor {
 		.default="sensors.{macAndName}.packetID"
 */
 
+	}
+	getState() {
+	
+	return super.getState()
 	}
 }
 

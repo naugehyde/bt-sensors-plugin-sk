@@ -56,7 +56,7 @@ const BTSensor = require("../BTSensor");
      }
     emitInfo1Data(buffer){
         if (buffer.length < 20) {
-            app.debug(`Bad buffer size ${buffer.length}. Buffer size must be 20 bytes or more.`)
+            this.debug(`Bad buffer size ${buffer.length}. Buffer size must be 20 bytes or more.`)
             return
         }
         this.emit("versionNumber", buffer.readUInt8(0))
@@ -85,7 +85,7 @@ const BTSensor = require("../BTSensor");
     emitInfo2Data(buffer){
 
         if (buffer.size < 12) {
-            app.debug(`Bad buffer size ${buffer.length}. Buffer size must be 12 bytes or more.`)
+            this.setError(`Bad buffer size ${buffer.length}. Buffer size must be 12 bytes or more.`)
             return
          }
         this.emit("versionNumber", buffer.readUInt8(0))
@@ -96,8 +96,7 @@ const BTSensor = require("../BTSensor");
     }
     emitEventData(buffer){
         if (buffer.length < 14) {
-            this.debug(buffer)
-            app.debug(`Bad buffer size ${buffer.length}. Buffer size must be 14 bytes or more.`)
+            this.debug(`Bad buffer size ${buffer.length}. Buffer size must be 14 bytes or more.`)
             return
          }
         const eventType = buffer.readUInt16LE(8)

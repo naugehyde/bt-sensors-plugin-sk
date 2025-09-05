@@ -228,7 +228,7 @@ async function fetchJSONData(path, data = {}) {
       function sensorChangedEvent(event){
         console.log("sensorchanged")
         const json = JSON.parse(event.data)      
-        
+        console.log(json)
         setSensorMap( (_sm) => {
           const sensor = _sm.get(json.mac)
           if (sensor) 
@@ -387,8 +387,13 @@ function createListGroupItem(sensor){
         {`${sensor._changesMade?"*":""}${sensor.info.name} MAC: ${sensor.info.mac} RSSI: ${ifNullNaN(sensor.info.RSSI)}`  }
         <div class="d-flex justify-content-between ">
           {
+            sensor.info.state
+          }
+        <div class="d-flex justify-content-between ">
+          {
             signalStrengthIcon(sensor)
           }
+        </div>
         </div>
         </div>
         </ListGroupItem>

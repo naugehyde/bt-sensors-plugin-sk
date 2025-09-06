@@ -85,6 +85,9 @@ class MissingSensor  {
 	isActive(){
 		return false
 	}
+	isConnected(){return false}
+
+	
 	elapsedTimeSinceLastContact(){
 		return NaN
 	}
@@ -93,6 +96,12 @@ class MissingSensor  {
 	}
 	prepareConfig(){
 		
+	}
+	getErrorLog(){
+		return []
+	}
+	getDebugLog(){
+		return []
 	}
 
 }

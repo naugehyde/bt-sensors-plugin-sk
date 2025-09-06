@@ -1,3 +1,4 @@
+const { ThemeProvider } = require("react-bootstrap");
 const BTSensor = require("../BTSensor");
 let FakeDevice,FakeGATTService,FakeGATTCharacteristic;
 
@@ -108,6 +109,7 @@ class JikongBMS extends BTSensor {
     }
   }
 
+  pollFreq=20
   async initSchema() {
     super.initSchema();
     this.addDefaultParam("batteryID");
@@ -452,26 +454,49 @@ class JikongBMS extends BTSensor {
     this.debug(`${this.getName()}::initGATTConnection`);
 
     await super.initGATTConnection(isReconnecting);
-  
-    this.rxService = await this.getGATTServer().getPrimaryService(
+    const gattServer = await this.getGATTServer();
+
+    this.rxService = await gattServer.getPrimaryService(
       this.constructor.RX_SERVICE
     );
+    
+    if (this.rxChar)
+      try {
+        await this.rxChar.stopNotifications()
+      }
+      catch(e){
+        this.rxChar.removeAllListeners()
+
+        this.debug(`error while stopping notifications`)
+        this.debug(e)
+      }
+
     this.rxChar = await this.rxService.getCharacteristic(
       this.constructor.RX_CHAR_UUID
     );
 
     await this.rxChar.startNotifications();
-    await this.getBuffer(0x97);
+    try {
+      await this.getBuffer(0x97)
+    } catch (e) {
+      this.setError(e.message)
+    }
+
     //this.debug(`(${this.getName()}) Connections: ${this.connections++}`)
   }
 
   activate(config, plugin) {
     super.activate(config, plugin);
     this.initGATTConnection().then(async () => {
-      await this.getAndEmitBatteryInfo();
+      try {
+        await this.getAndEmitBatteryInfo();
+      } catch(e) {
+        this.setError(e.message)
+      }
       this.intervalID = setInterval(async () => {
-        if (!(await this.device.isConnected()))
+        if (!(await this.device.isConnected())) {
           await this.initGATTConnection(true);
+        }
         await this.getAndEmitBatteryInfo();
       }, this.pollFreq * 1000);
     });

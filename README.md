@@ -1,6 +1,10 @@
 # Bluetooth Sensors for [Signal K](http://www.signalk.org) 
 
 ## WHAT'S NEW  
+# Version 1.2.6-beta-5
+
+- JikongBMS fixes
+
 # Version 1.2.6-beta-4
 
 - Improved reconnect logic for connected devices
@@ -111,11 +115,11 @@ It's pretty easy to write and deploy your own sensor class for any currently uns
 |Redodo| Rebranded LiTime |
 |Kilovault| [Kilovault HLX+ smart batteries ](https://sunwatts.com/content/manual/KiloVault_HLX_PLUS_Datasheet_06252021%20%281%29.pdf?srsltid=AfmBOooY-cGnC_Qm6V1T9Vg5oZzBCJurS0AOGoWqWeyy-dwz2vA-l1Jb) (Note: Kilovault appears to be out of business as of March 2024) |
 |[Lancol](www.Lancol.com)| [Micro 10C 12V Car Battery Monitor](https://www.lancol.com/product/12v-bluetooth-4-0-battery-tester-micro-10-c/)|
+|[Jikong](https://jikongbms.com/)| https://jikongbms.com/product/ |
 |[Junctek](https://www.junteks.com)|[Junctek BMS](https://www.junteks.com/pages/product/index) |
 |[Remoran](https://remoran.eu)| [Remoran Wave.3](https://remoran.eu/wave.html)|
 |[AC DC Systems](https://marinedcac.com) | [Bank Manager] hybrid (Pb and Li) charger(https://marinedcac.com/pages/bankmanager)|
 |[Ective](https://ective.de/)| Also Topband(?), Skanbatt and others |
-
 
 ### Environmental 
 | Manufacturer |  Devices | 

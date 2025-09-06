@@ -267,16 +267,16 @@ class BTSensor extends EventEmitter {
 
     debug(message){
         if (this._app)
-            this._app.debug(message)
+            this._app.debug(`${this.getName()}) ${message}`)
         else
-            console.log(message)
+            console.log(`${this.getName()}) ${message}`)
         this._debugLog.push({timestamp:Date.now(), message:message})
     }
 
     setError(message){
         if (this._app){
-            this._app.debug(message)
-            this._app.setPluginError(message)
+            this._app.debug(`${this.getName()}) ${message}`)
+            this._app.setPluginError(`${this.getName()}) ${message}`)
         }
         else
             console.log(message)

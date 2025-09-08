@@ -92,8 +92,8 @@ class RenogySensor extends BTSensor{
  
     }
 
-    async initGATTConnection() {   
-        await this.deviceConnect()      
+    async initGATTConnection(isReconnecting) {   
+        await super.initGATTConnection(isReconnecting)
         const rw = await this.constructor.getReadWriteCharacteristics(this.device)
 
         this.readChar = rw.read    
@@ -108,18 +108,11 @@ class RenogySensor extends BTSensor{
     hasGATT(){
         return true
     }
-
-    async stopListening(){
-        super.stopListening()
-    
-        if (this.readChar)
-            await this.readChar.stopNotifications()
-        
-        if (await this.device.isConnected()){
-            await this.device.disconnect()
-            this.debug(`Disconnected from ${ this.getName()}`)
-        }
+    async deactivateGATT(){
+        await this.stopGATTNotifications(this.readChar)
+        await super.deactivateGATT()
     }
+
 
 }
 module.exports=RenogySensor

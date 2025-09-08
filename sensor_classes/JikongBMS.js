@@ -69,6 +69,7 @@ class JikongBMS extends BTSensor {
   }
   static ImageFile = "JikongBMS.jpg";
   connections = 0;
+  pollFreq = 30;
 
   jikongCommand(command) {
     var result = [
@@ -404,7 +405,7 @@ class JikongBMS extends BTSensor {
   }
 
   usingGATT() {
-    return false;
+    return true;
   }
 
   async getAndEmitBatteryInfo() {
@@ -482,12 +483,12 @@ class JikongBMS extends BTSensor {
 
   async initGATTInterval(){
     this.intervalID = setInterval(async () => {
-        this.setError(false)
+        this._error = false
         if (!(await this.device.isConnected())) {
           await this.initGATTConnection(true);
         }
         await this.getAndEmitBatteryInfo();
-      }, this?.pollFreq??40 * 1000);
+      }, (this?.pollFreq??40) * 1000);
 
     try {
       await this.getAndEmitBatteryInfo();

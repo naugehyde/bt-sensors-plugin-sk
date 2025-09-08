@@ -562,6 +562,7 @@ class BTSensor extends EventEmitter {
         }
     }
     setConnected(state){
+        this._connected=state
         this.setState(state?"CONNECTED":"DISCONNECTED")
     }
 

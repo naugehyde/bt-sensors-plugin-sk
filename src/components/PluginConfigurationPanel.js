@@ -7,7 +7,7 @@ import {useEffect, useState} from 'react'
 import {Button, Grid, Snackbar } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 
-import { SignalCellular0Bar, SignalCellular1Bar, SignalCellular2Bar, SignalCellular3Bar, SignalCellular4Bar, SignalCellularConnectedNoInternet0Bar    } from '@material-ui/icons';
+import { BluetoothConnected, SignalCellular1Bar, SignalCellular2Bar, SignalCellular3Bar, SignalCellular4Bar, SignalCellular0Bar    } from '@material-ui/icons';
 
 const log = (type) => console.log.bind(console, type);
 
@@ -350,6 +350,9 @@ function confirmDelete(mac){
 }
  
 function signalStrengthIcon(sensor){
+  if (sensor.info.connected) 
+    return <BluetoothConnected/>  
+  
   if (sensor.info.lastContactDelta ==null || sensor.info.lastContactDelta > sensor.config.discoveryTimeout) 
     return <SignalCellularConnectedNoInternet0Bar/>  
   

@@ -276,7 +276,13 @@ class BTSensor extends EventEmitter {
         this._debugLog.push({timestamp:Date.now(), message:message})
     }
 
+    unsetError(){
+        this._error=false
+        this.emit("error", false)
+    }
+
     setError(message){
+        
         if (this._app){
             this._app.debug(`(${this.getName()} ${this.getMacAddress()}) ${message}`)
             this._app.setPluginError(`(${this.getName()} ${this.getMacAddress()}) ${message}`)
@@ -368,6 +374,8 @@ class BTSensor extends EventEmitter {
     }
     async activate(config, plugin){
         this.setState("ACTIVATING")
+        this.unsetError()
+
         if (config.paths){
             this.createPaths(config,plugin.id)
             this.initPaths(config,plugin.id)
@@ -384,6 +392,7 @@ class BTSensor extends EventEmitter {
             this.setState("ACTIVE")
         }
         this._active = true
+        this._error = false
 
         this._propertiesChanged(this.currentProperties)
 

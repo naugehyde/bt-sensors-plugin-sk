@@ -78,7 +78,7 @@ class MissingSensor  {
 		return NaN
 	}
 	getState(){
-		return "ERROR"
+		return "OUT_OF_RANGE"
 	}
 	stopListening(){}
 	listen(){}
@@ -102,6 +102,13 @@ class MissingSensor  {
 	}
 	getDebugLog(){
 		return []
+	}
+	on(){
+
+	}
+
+	isError(){
+		return true
 	}
 
 }
@@ -420,6 +427,7 @@ module.exports =   function (app) {
 			sensor.removeAllListeners("connected")
 			sensor.removeAllListeners("error")
 			sensor.removeAllListeners("debug")
+			sensor.removeAllListeners("RSSI")
 
 			sensorMap.delete(sensor.getMacAddress())
 			channel.broadcast({mac:sensor.getMacAddress()},"removesensor")
@@ -439,6 +447,16 @@ module.exports =   function (app) {
 			sensor.on("debug", ()=>{
 				updateSensor(sensor)			
 			})
+			sensor._lastRSSI=-1*Infinity
+			sensor.on("RSSI",(()=>{
+				if (Date.now()-sensor._lastRSSI > 30000) { //only update RSSI on client every 30 seconds
+
+					sensor._lastRSSI=Date.now()
+		
+					updateSensor(sensor)
+				}	
+
+			}))
 			channel.broadcast(sensorToJSON(sensor),"newsensor");
 		}
 		function deviceNameAndAddress(config){
@@ -461,18 +479,7 @@ module.exports =   function (app) {
 				if (s instanceof BLACKLISTED)
 					reject ( `Device is blacklisted (${s.reasonForBlacklisting()}).`)
 				else{
-				
 					addSensorToList(s)
-					s._lastRSSI=-1*Infinity
-					s.on("RSSI",(()=>{
-						if (Date.now()-s._lastRSSI > 30000) { //only update RSSI on client every 30 seconds
-
-							s._lastRSSI=Date.now()
-				
-							updateSensor(s)
-						}	
-
-					}))
 					resolve(s)
 				}
 			})
@@ -750,7 +757,7 @@ module.exports =   function (app) {
 				const dt = config?.discoveryTimeout??options.discoveryTimeout
 				const lc=sensor.elapsedTimeSinceLastContact()
 				if (lc > dt) { 
-					channel.broadcast(getSensorInfo(sensor), "sensorchanged")
+					updateSensor(sensor)
 				}
 			})
 		}, intervalTimeout)

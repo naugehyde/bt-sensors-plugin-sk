@@ -256,9 +256,9 @@ module.exports =   function (app) {
 					options, async () => {
 						res.status(200).json({message: "Sensor updated"})
 						if (sensor) {
-							removeSensorFromList(sensor)
 							if (sensor.isActive()) 
 								await sensor.stopListening()
+								removeSensorFromList(sensor)
 						} 
 						initConfiguredDevice(req.body)
 					}
@@ -364,6 +364,7 @@ module.exports =   function (app) {
 					 class: sensor.constructor.name,
 					 domain: sensor.getDomain().name,
 					 state: sensor.getState(),
+					 error: sensor.isError(),
 					 errorLog: sensor.getErrorLog(),
 					 debugLog: sensor.getDebugLog(),
 					 RSSI: sensor.getRSSI(),
@@ -415,12 +416,29 @@ module.exports =   function (app) {
 		}
 
 		function removeSensorFromList(sensor){
+			sensor.removeAllListeners("state")
+			sensor.removeAllListeners("connected")
+			sensor.removeAllListeners("error")
+			sensor.removeAllListeners("debug")
+
 			sensorMap.delete(sensor.getMacAddress())
 			channel.broadcast({mac:sensor.getMacAddress()},"removesensor")
 		}
 		
 		function addSensorToList(sensor){
 			sensorMap.set(sensor.getMacAddress(),sensor)
+			sensor.on("state", (state)=>{
+				updateSensor(sensor)
+			})
+			sensor.on("connected", (state)=>{
+				updateSensor(sensor)			
+			})
+			sensor.on("error",(error)=>{
+				updateSensor(sensor)		
+			})
+			sensor.on("debug", ()=>{
+				updateSensor(sensor)			
+			})
 			channel.broadcast(sensorToJSON(sensor),"newsensor");
 		}
 		function deviceNameAndAddress(config){
@@ -469,18 +487,9 @@ module.exports =   function (app) {
 						device.once("deviceFound",async (device)=>{
 								s.device=device
 								s.listen()
-								s.activate(config, plugin)
+								await s.activate(config, plugin)
 								removeSensorFromList(s)
 								addSensorToList(s)
-						})
-						s.on("state", (state)=>{
-							channel.broadcast(getSensorInfo(s), "sensorchanged")
-						})
-						s.on("error",(error)=>{
-							channel.broadcast(getSensorInfo(s), "sensorchanged")
-						})
-						s.on("debug", ()=>{
-							channel.broadcast(getSensorInfo(s), "sensorchanged")
 						})
 						addSensorToList(s)
 						resolve(s)
@@ -537,11 +546,13 @@ module.exports =   function (app) {
 				return sensor
 			}
 			catch(error){
-				const msg = `Unable to instantiate ${await BTSensor.getDeviceProp(device,"Address")}: ${error.message} `
-				plugin.debug(msg)
-				plugin.debug(error)
-				if (config.active) 
-					plugin.setError(msg)
+				if (!config.unconfigured) {
+					const msg = `Unable to instantiate ${await BTSensor.getDeviceProp(device,"Address")}: ${error.message} `
+					plugin.debug(msg)
+					plugin.debug(error)
+					if (config.active) 
+						plugin.setError(msg)
+				}
 				return null
 			}
 
@@ -552,19 +563,23 @@ module.exports =   function (app) {
 			plugin.setStatusText(`Initializing ${deviceNameAndAddress(deviceConfig)}`);
 			if (!deviceConfig.discoveryTimeout)
 				deviceConfig.discoveryTimeout = options.discoveryTimeout
-			createSensor(adapter, deviceConfig).then((sensor)=>{
+			createSensor(adapter, deviceConfig).then(async (sensor)=>{
 				if (startNumber != starts ) {
 						return
 				}	
 				if (deviceConfig.active && !(sensor.device instanceof OutOfRangeDevice) ) {
 					plugin.setStatusText(`Listening to ${++foundConfiguredDevices} sensors.`);
-					sensor.activate(deviceConfig, plugin)
+					try {
+						await sensor.activate(deviceConfig, plugin)
+					} catch (e){
+						sensor.setError(`Unable to activate sensor. Reason: ${e.message}`)
+					}
 				}
 				
 			})
 			.catch((error)=>
 				{
-					if (deviceConfig.unconfigured) return
+					if (deviceConfig?.unconfigured??false) return
 					if (startNumber != starts ) {
 						return
 					}	

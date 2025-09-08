@@ -36,9 +36,7 @@ class BankManager extends BTSensor{
     getManufacturer(){
         return "Bank Manager"
     }
-    hasGATT(){
-        return false
-    }
+
     usingGATT(){
         return true
     }
@@ -49,48 +47,38 @@ class BankManager extends BTSensor{
         this.emit("current", parseFloat(data[3])) 
         this.emit("soc", parseFloat(data[4])/100) 
         this.emit("connectionStatus", parseInt(data[5])) 
-
     }
+
     emitGATT(){
     
     }
     ImageFile = "BankManager.webp" 
 
-    initGATTConnection(){ 
-        return new Promise((resolve,reject )=>{ this.deviceConnect().then(async ()=>{ 
-            if (!this.gattServer) { 
-                this.gattServer = await this.device.gatt() 
-                this.service = await this.gattServer.getPrimaryService("0000ffe0-0000-1000-8000-00805f9b34fb") 
-                this.characteristic = await this.service.getCharacteristic("0000ffe1-0000-1000-8000-00805f9b34fb")
-             } 
-            resolve(this)
-             }) .catch((e)=>{ reject(e.message) }) }) 
+    async initGATTConnection(isReconnecting){ 
+        await super.initGATTConnection(isReconnecting)
+        const gattServer= await this.getGATTServer()
+        const service = await gattServer.getPrimaryService("0000ffe0-0000-1000-8000-00805f9b34fb") 
+        this.characteristic = await service.getCharacteristic("0000ffe1-0000-1000-8000-00805f9b34fb")
     }
 
-    initGATTNotifications() { 
-        Promise.resolve(this.characteristic.startNotifications().then(()=>{   
-            let data = null 
-            this.characteristic.on('valuechanged', buffer => {
-                if (buffer.length>0 && buffer[0]==0x23) {
-                    data = Buffer.from(buffer)
-                } else if (data && buffer.indexOf(0x0d0a)!==-1) {
-                    data=Buffer.concat([data,buffer.subarray(0,buffer.indexOf(0x0d0a)-1)], data.length+buffer.indexOf(0x0d0a)-1)
-                    this.emitDataFrom(data)
-                    data=null
-                }
-            })
-        }))
-       
+    async initGATTNotifications() { 
+        await this.characteristic.startNotifications()
+        let data = null 
+        this.characteristic.on('valuechanged', buffer => {
+            if (buffer.length>0 && buffer[0]==0x23) {
+                data = Buffer.from(buffer)
+            } else if (data && buffer.indexOf(0x0d0a)!==-1) {
+                data=Buffer.concat([data,buffer.subarray(0,buffer.indexOf(0x0d0a)-1)], data.length+buffer.indexOf(0x0d0a)-1)
+                this.emitDataFrom(data)
+                data=null
+            }
+        })
     }
   
-    async stopListening(){
-        super.stopListening()
-        if (this.characteristic  && await this.characteristic.isNotifying()) {
-            await this.characteristic.stopNotifications()
-        }
-        if (await this.device.isConnected()){
-            await this.device.disconnect()
-        }
+
+    async deactivateGATT(){
+        await this.stopGATTNotifications(this.characteristic)
+        await this.deactivateGATT()
     }                  
 }
 module.exports=BankManager

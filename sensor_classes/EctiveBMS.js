@@ -35,7 +35,6 @@ const testData=[
 ]
 class EctiveDataManager extends EventEmitter{
   static expectedLength = 120
-  static ImageFile = "TopbandBattery.webp"
   buffer = Buffer.from([])
   
   delimitedAt(data){
@@ -91,6 +90,7 @@ class EctiveData{
 }
 class EctiveBMS extends BTSensor {
   static Domain = BTSensor.SensorDomains.electrical
+  static ImageFile = "TopbandBattery.webp"
 
   static RX_SERVICE = "0000ffe0-0000-1000-8000-00805f9b34fb"  
   static NOTIFY_CHAR_UUID = "0000ffe4-0000-1000-8000-00805f9b34fb"
@@ -246,23 +246,20 @@ emitGATT(){
         } )
   }
 
-  async initGATTConnection() {
+  async initGATTConnection(isReconnecting) {
      
-        await this.deviceConnect() 
-        const gattServer = await this.device.gatt()
+        await super.initGATTConnection(isReconnecting)
+        const gattServer = await this.getGATTServer()
         const rxService= await gattServer.getPrimaryService(this.constructor.RX_SERVICE)
         this.rxChar = await rxService.getCharacteristic(this.constructor.NOTIFY_CHAR_UUID)
 
 }
 
-
-async stopListening(){
-  super.stopListening()
-  if (this.rxChar) 
-    this.rxChar.stopNotifications()
-  if (this.device)
-    await this.device.disconnect()
+async deactivateGATT(){
+  await this.stopGATTNotifications(this.rxChar)
+  await super.deactivateGATT()
 }
+
   
 }
 

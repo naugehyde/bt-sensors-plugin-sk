@@ -110,18 +110,11 @@ class XiaomiMiBeacon extends BTSensor{
         return ""
     }
 
-    initGATTConnection(){
-        return new Promise((resolve,reject )=>{
-            this.deviceConnect().then(async ()=>{
-                const gatt = await this.getGATTServer()
-                this.gattService = await gatt.getPrimaryService("ebe0ccb0-7a0a-4b0c-8a1a-6ff2997da3a6")
-                this.gattCharacteristic = await this.gattService.getCharacteristic("ebe0ccc1-7a0a-4b0c-8a1a-6ff2997da3a6")                
-                resolve(this)
-            })
-            .catch((e)=>{
-                reject(e.message)
-            })
-        })
+    async initGATTConnection(isReconnecting){
+        await super.initGATTConnection(isReconnecting)
+        const gatt = await this.getGATTServer()
+        const gattService = await gatt.getPrimaryService("ebe0ccb0-7a0a-4b0c-8a1a-6ff2997da3a6")
+        this.gattCharacteristic = await gattService.getCharacteristic("ebe0ccc1-7a0a-4b0c-8a1a-6ff2997da3a6")                
     }
 
     emitGATT(){
@@ -132,11 +125,10 @@ class XiaomiMiBeacon extends BTSensor{
     }
 
     async initGATTNotifications() { 
-        Promise.resolve(this.gattCharacteristic.startNotifications().then(()=>{    
-            this.gattCharacteristic.on('valuechanged', buffer => {
-                this.emitValues(buffer)
-            })
-        }))
+        await this.gattCharacteristic.startNotifications()
+        this.gattCharacteristic.on('valuechanged', buffer => {
+            this.emitValues(buffer)
+        })
     }
 
     decryptV2and3(data){
@@ -244,20 +236,11 @@ class XiaomiMiBeacon extends BTSensor{
             return super.getName()
         else
             return this?.name??`${dt.name} ${dt.model}`
-
     }
 
     async deactivateGATT(){
-        await this.disconnectGATTCharacteristic()
+        await this.stopGATTNotifications(this.gattCharacteristic)
         await super.deactivateGATT()
-    }
-
-    async disconnectGATTCharacteristic(){
-        if (this.gattCharacteristic  && await this.gattCharacteristic.isNotifying()) {
-            this.gattCharacteristic.removeAllListeners()
-            await this.gattCharacteristic.stopNotifications()
-            this.gattCharacteristic=null
-        }
     }
 }
 module.exports=XiaomiMiBeacon

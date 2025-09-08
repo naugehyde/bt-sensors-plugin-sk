@@ -177,49 +177,41 @@ const BTSensor = require("../BTSensor");
     }
 
  
-     initGATTConnection(){ 
-         return new Promise((resolve,reject )=>{ this.deviceConnect().then(async ()=>{ 
-             if (!this.gattServer) { 
-                 this.gattServer = await this.device.gatt() 
-                 this.service = await this.gattServer.getPrimaryService(this.serviceUUID) 
-                 this.info1Characteristic = await this.service.getCharacteristic(this.info1CharUUID)
-                 this.info2Characteristic = await this.service.getCharacteristic(this.info2CharUUID) 
-                 this.eventCharacteristic = await this.service.getCharacteristic(this.eventUUID)
-                 resolve(this)
-            }}) .catch((e)=>{ this.debug(e); reject(e.message) }) }) 
+     async initGATTConnection(isReconnecting){ 
+        await super.initGATTConnection(isReconnecting)
+        const gattServer = await this.getGATTServer()
+        const service = await gattServer.getPrimaryService(this.serviceUUID) 
+        this.info1Characteristic = await service.getCharacteristic(this.info1CharUUID)
+        this.info2Characteristic = await service.getCharacteristic(this.info2CharUUID) 
+        this.eventCharacteristic = await service.getCharacteristic(this.eventUUID)
      }
      
-     initGATTNotifications() { 
-         Promise.resolve(this.info1Characteristic.startNotifications().then(()=>{    
+     async initGATTNotifications() { 
+         await this.info1Characteristic.startNotifications()
              this.info1Characteristic.on('valuechanged', buffer => {
                  this.emitInfo1Data(buffer)
              })
-         }))
-         Promise.resolve(this.info2Characteristic.startNotifications().then(()=>{    
-             this.info2Characteristic.on('valuechanged', buffer => {
+         
+        await this.info2Characteristic.startNotifications()
+            this.info2Characteristic.on('valuechanged', buffer => {
                  this.emitInfo2Data(buffer)
              })
-         }))
-         Promise.resolve(this.eventCharacteristic.startNotifications().then(()=>{    
+         
+        await this.eventCharacteristic.startNotifications()
              this.eventCharacteristic.on('valuechanged', buffer => {
                  this.emitEventData(buffer)
              })
-         }))
+         
      }
     
-    async stopNotifications(characteristic){
-        if (characteristic  && await characteristic.isNotifying()) {
-                await characteristic.stopNotifications()
-        }
-    }
-     async stopListening(){
-        super.stopListening()
-        await this.stopNotifications(this?.info1Characteristic)
-        await this.stopNotifications(this?.info2Characteristic)
-        await this.stopNotifications(this?.eventCharacteristic)
-        if (await this.device.isConnected()){
-            await this.device.disconnect()
-        }
+   
+     async deactivateGATT(){
+        
+        await this.stopGATTNotifications(this?.info1Characteristic)
+        await this.stopGATTNotifications(this?.info2Characteristic)
+        await this.stopGATTNotifications(this?.eventCharacteristic)
+        await super.deactivateGATT()
+ 
      }
  }
  module.exports=RemoranWave3

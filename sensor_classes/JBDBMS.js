@@ -107,7 +107,7 @@ class JBDBMS extends BTSensor {
   usingGATT(){
     return true
   }
-  initGATTNotifications(){
+  async initGATTNotifications(){
     this.intervalID = setInterval( async ()=>{
         await this.emitGATT()
     }, 1000*(this?.pollFreq??60) )
@@ -198,18 +198,15 @@ async getAndEmitCellVoltages(){
   }})
 }
 
-initGATTInterval(){
+async initGATTInterval(){
    
-  this.emitGATT()
-  this.initGATTNotifications()
+  await this.emitGATT()
+  await this.initGATTNotifications()
 }
 
-async stopListening(){
-  super.stopListening()
-  if (this.rxChar) 
-    this.rxChar.stopNotifications()
-  if (this.device)
-    await this.device.disconnect()
+async deactivateGATT(){
+  await this.stopGATTNotifications(this.rxChar)
+  await super.deactivateGATT()
 }
   
 }

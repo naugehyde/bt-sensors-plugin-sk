@@ -1,6 +1,6 @@
 const AbstractBeaconMixin = require('./AbstractBeaconMixin')
 function getTxPower(){
-    return (this.app.getSelfPath(this._txPowerPath)?.value??0)
+    return (this._app.getSelfPath(this._txPowerPath)?.value??0)
 }
 
 class iBeacon extends AbstractBeaconMixin {

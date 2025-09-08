@@ -28,10 +28,8 @@ class MercurySmartcraft extends BTSensor{
     }
     static ImageFile = "MercurySmartcraft.jpg"
 
-    
-
     hasGATT(){
-        return false
+        return true
     }
     usingGATT(){
         return true
@@ -80,48 +78,40 @@ class MercurySmartcraft extends BTSensor{
         ).default='tanks.petrol.currentLevel'
     }
 
-    initGATTConnection(){ 
-        return new Promise((resolve,reject )=>{ this.deviceConnect().then(async ()=>{ 
-            if (!this.gattServer) { 
-                this.gattServer = await this.device.gatt() 
-                this.sdpService = await this.gattServer.getPrimaryService("00000000-0000-1000-8000-ec55f9f5b963") 
-                this.sdpCharacteristic = await this.sdpService.getCharacteristic("00000001-0000-1000-8000-ec55f9f5b963") 
-                this.dataService = await this.gattServer.getPrimaryService("00000100-0000-1000-8000-ec55f9f5b963") 
-                this.dataCharacteristics = {
-                    rpm: await this.dataService.getCharacteristic("00000102-0000-1000-8000-ec55f9f5b963"),
-                    coolant: await this.dataService.getCharacteristic("00000103-0000-1000-8000-ec55f9f5b963"),
-                    alternatorVoltage: await this.dataService.getCharacteristic("00000104-0000-1000-8000-ec55f9f5b963"),
-                    runtime: await this.dataService.getCharacteristic("00000106-0000-1000-8000-ec55f9f5b963"),
-                    rate: await this.dataService.getCharacteristic("00000107-0000-1000-8000-ec55f9f5b963"),
-                    level: await this.dataService.getCharacteristic("00000108-0000-1000-8000-ec55f9f5b963"),
-                    pressure: await this.dataService.getCharacteristic("0000010a-0000-1000-8000-ec55f9f5b963")
-                }
-            } 
-                resolve(this)
-             }) .catch((e)=>{ reject(e.message) }) }) 
+    async initGATTConnection(isReconnecting){ 
+        await super.initGATTConnection(isReconnecting)
+        
+        const gattServer = await this.getGATTServer() 
+        this.sdpService = await gattServer.getPrimaryService("00000000-0000-1000-8000-ec55f9f5b963") 
+        this.sdpCharacteristic = await this.sdpService.getCharacteristic("00000001-0000-1000-8000-ec55f9f5b963") 
+        this.dataService = await gattServer.getPrimaryService("00000100-0000-1000-8000-ec55f9f5b963") 
+        this.dataCharacteristics = {
+            rpm: await this.dataService.getCharacteristic("00000102-0000-1000-8000-ec55f9f5b963"),
+            coolant: await this.dataService.getCharacteristic("00000103-0000-1000-8000-ec55f9f5b963"),
+            alternatorVoltage: await this.dataService.getCharacteristic("00000104-0000-1000-8000-ec55f9f5b963"),
+            runtime: await this.dataService.getCharacteristic("00000106-0000-1000-8000-ec55f9f5b963"),
+            rate: await this.dataService.getCharacteristic("00000107-0000-1000-8000-ec55f9f5b963"),
+            level: await this.dataService.getCharacteristic("00000108-0000-1000-8000-ec55f9f5b963"),
+            pressure: await this.dataService.getCharacteristic("0000010a-0000-1000-8000-ec55f9f5b963")
+        }
+
     }
     async initGATTNotifications() { 
         await this.sdpCharacteristic.writeValue(Buffer.from([0x0D,0x01]))
         for (const c in this.dataCharacteristics){
-            Promise.resolve(this.dataCharacteristics[c].startNotifications().then(()=>{    
-                this.dataCharacteristics[c].on('valuechanged', buffer => {
-                    this.emitData(c,buffer)
-                })
-            }))
+            await this.dataCharacteristics[c].startNotifications()
+            this.dataCharacteristics[c].on('valuechanged', buffer => {
+                this.emitData(c,buffer)
+            })
         }
     }
-  
-    async stopListening(){
-        super.stopListening()
+    async deactivateGATT(){
         for (const c in this.dataCharacteristics){
-            if (this.dataCharacteristics[c] && await this.dataCharacteristics[c].isNotifying()) {
-                await this.dataCharacteristics[c].stopNotifications()
-            }
+            await this.stopGATTNotifications(c)
         }
+        await super.deactivateGATT()
 
-        if (await this.device.isConnected()){
-            await this.device.disconnect()
-        }
     }
+
 }
 module.exports=MercurySmartcraft

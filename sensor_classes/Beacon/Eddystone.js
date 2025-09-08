@@ -1,7 +1,7 @@
 const AbstractBeaconMixin = require("./AbstractBeaconMixin")
 
 function getTxPower(){
-    return (this.app.getSelfPath(this._txPowerPath)?.value??0)-41
+    return (this._app.getSelfPath(this._txPowerPath)?.value??0)-41
 }
 
 

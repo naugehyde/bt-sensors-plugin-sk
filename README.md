@@ -1,6 +1,10 @@
 # Bluetooth Sensors for [Signal K](http://www.signalk.org) 
 
 ## WHAT'S NEW  
+
+# Version 1.2.6-beta-6
+ - Funny you should ask...
+ 
 # Version 1.2.6-beta-5
 
 - JikongBMS fixes

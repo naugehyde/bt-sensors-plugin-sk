@@ -52,53 +52,36 @@ class UltrasonicWindMeter extends BTSensor{
         .default='environment.wind.speedApparent'
     }
 
-    initGATTConnection(){ 
-        return new Promise((resolve,reject )=>{ this.deviceConnect().then(async ()=>{ 
-            if (!this.gattServer) { 
-                this.gattServer = await this.device.gatt() 
-                this.battService = await this.gattServer.getPrimaryService("0000180f-0000-1000-8000-00805f9b34fb") 
-                this.battCharacteristic = await this.battService.getCharacteristic("00002a19-0000-1000-8000-00805f9b34fb")
-                this.envService = await this.gattServer.getPrimaryService("0000181a-0000-1000-8000-00805f9b34fb") 
-                this.awsCharacteristic = await this.envService.getCharacteristic("00002a72-0000-1000-8000-00805f9b34fb") 
-                this.awaCharacteristic = await this.envService.getCharacteristic("00002a73-0000-1000-8000-00805f9b34fb") } 
-                resolve(this)
-             }) .catch((e)=>{ reject(e.message) }) }) 
+    async initGATTConnection(isReconnecting){ 
+        await super.initGATTConnection(isReconnecting)
+        const gattServer = await this.getGATTServer() 
+        const battService = await gattServer.getPrimaryService("0000180f-0000-1000-8000-00805f9b34fb") 
+        this.battCharacteristic = await battService.getCharacteristic("00002a19-0000-1000-8000-00805f9b34fb")
+        const envService = await gattServer.getPrimaryService("0000181a-0000-1000-8000-00805f9b34fb") 
+        this.awsCharacteristic = await envService.getCharacteristic("00002a72-0000-1000-8000-00805f9b34fb") 
+        this.awaCharacteristic = await envService.getCharacteristic("00002a73-0000-1000-8000-00805f9b34fb") 
     }
-    initGATTNotifications() { 
-        Promise.resolve(this.battCharacteristic.startNotifications().then(()=>{    
-            this.battCharacteristic.on('valuechanged', buffer => {
-                this.emitData("batt",buffer)
-            })
-        }))
-        Promise.resolve(this.awaCharacteristic.startNotifications().then(()=>{    
-            this.awaCharacteristic.on('valuechanged', buffer => {
+    async initGATTNotifications() { 
+        await this.battCharacteristic.startNotifications()
+        this.battCharacteristic.on('valuechanged', buffer => {
+            this.emitData("batt",buffer)
+        })
+    
+        await this.awaCharacteristic.startNotifications()
+        this.awaCharacteristic.on('valuechanged', buffer => {
                 this.emitData("awa", buffer)
-            })
-        }))
-        Promise.resolve(this.awsCharacteristic.startNotifications().then(()=>{    
-            this.awsCharacteristic.on('valuechanged', buffer => {
+        })
+        await this.awsCharacteristic.startNotifications()
+        this.awsCharacteristic.on('valuechanged', buffer => {
                 this.emitData("aws", buffer)
-            })
-        }))
-    }
+        })
+}
   
-    async stopListening(){
-        super.stopListening()
-        if (this.battCharacteristic  && await this.battCharacteristic.isNotifying()) {
-            await this.battCharacteristic.stopNotifications()
-            this.battCharacteristic=null
-        }
-        if (this.awaCharacteristic  && await this.awaCharacteristic.isNotifying()) {
-            await this.awaCharacteristic.stopNotifications()
-            this.awaCharacteristic=null
-        }
-        if (this.awsCharacteristic  && await this.awsCharacteristic.isNotifying()) {
-            await this.awsCharacteristic.stopNotifications()
-            this.awsCharacteristic=null
-        }
-        if (await this.device.isConnected()){
-            await this.device.disconnect()
-        }
+    async deactivateGATT(){
+        await this.stopGATTNotifications(this.battCharacteristic)
+        await this.stopGATTNotifications(this.awaCharacteristic)
+        await this.stopGATTNotifications(this.awsCharacteristic)
+        await super.deactivateGATT()
     }
 }
 module.exports=UltrasonicWindMeter

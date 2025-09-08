@@ -133,7 +133,6 @@ async function fetchJSONData(path, data = {}) {
 
   }
 
-
   async function getSensorInfo(mac, sensorClass){
     
     const response = await fetchJSONData("getSensorInfo",{mac_address: mac, class: sensorClass})
@@ -387,7 +386,7 @@ function createListGroupItem(sensor){
         {`${sensor._changesMade?"*":""}${sensor.info.name} MAC: ${sensor.info.mac} RSSI: ${ifNullNaN(sensor.info.RSSI)}`  }
         <div class="d-flex justify-content-between ">
           {
-            sensor.info.state
+            `${sensor.info.state} ${sensor.info.error?" (ERROR)": "" }`
           }
         <div class="d-flex justify-content-between ">
           {

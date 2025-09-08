@@ -95,8 +95,8 @@ class EcoWorthyBW02 extends BTSensor {
         this.addDefaultPath('SOC','electrical.batteries.capacity.stateOfCharge')
         .read=(buffer)=>{return buffer.readUInt16BE(16)/100} 
   
-        await this._initGATTConnection()
-        await this._initGATTNotifications()
+        await this.initGATTConnection()
+        await this.initGATTNotifications()
         await waitForVariable(this,"numberOfTemps")
         await waitForVariable(this,"numberOfCells")
 
@@ -118,8 +118,11 @@ class EcoWorthyBW02 extends BTSensor {
   hasGATT(){
     return true
   }
+  usingGATT(){
+    return true
+  }
 
-  async _initGATTNotifications(){
+  async initGATTNotifications(){
       await this.rxChar.startNotifications()
       
       this.rxChar.on("valuechanged", (buffer)=>{
@@ -146,27 +149,17 @@ class EcoWorthyBW02 extends BTSensor {
           }
       })
   }
-async _initGATTConnection() {
-   await this.deviceConnect() 
-   const gattServer = await this.device.gatt()
+async initGATTConnection(isReconnecting) {
+   await super.initGATTConnection(isReconnecting) 
+   const gattServer = await this.getGATTServer()
    const txRxService= await gattServer.getPrimaryService(this.constructor.TX_RX_SERVICE)
    this.rxChar = await txRxService.getCharacteristic(this.constructor.NOTIFY_CHAR_UUID)
   return this  
 }
 
-async init(){
-  
-  return await super.init()
-
-}
-
-async stopListening(){
-  super.stopListening()
-  if (this.rxChar) 
-    this.rxChar.stopNotifications()
-  if (this.device)
-    await this.device.disconnect()
-}
-  
+  async deactivateGATT(){
+      await this.stopGATTNotifications(this.rxChar)
+      await super.deactivateGATT()
+  }
 }
 module.exports = EcoWorthyBW02;

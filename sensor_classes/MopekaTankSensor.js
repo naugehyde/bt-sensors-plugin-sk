@@ -90,7 +90,7 @@ class MopekaTankSensor extends BTSensor{
         this.addParameter("tankHeight",
             {
                 title:"height of tank (in mm)",
-                type:"integer",
+                type:"number",
                 unit:"mm",
                 isRequired: true
             }

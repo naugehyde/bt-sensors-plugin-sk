@@ -148,25 +148,19 @@ class ShenzhenLiONBMS extends BTSensor{
         this.getJSONSchema().properties.params.required=["batteryID", "numberOfCells" ]
     }
 
-    async initGATTConnection(){ 
+    async initGATTConnection(isReconnecting){ 
 
-        return new Promise((resolve,reject )=>{ 
-            this.deviceConnect().then(async ()=>{ 
-            if (!this.gattServer) { 
-                this.gattServer = await this.device.gatt() 
-                this.service = await this.gattServer.getPrimaryService("0000ffe0-0000-1000-8000-00805f9b34fb") 
-                this.rxCharacteristic = await this.service.getCharacteristic("0000ffe1-0000-1000-8000-00805f9b34fb")
-                this.txCharacteristic = await this.service.getCharacteristic("0000ffe2-0000-1000-8000-00805f9b34fb")
-            }
-            resolve(this)
-        })})
+        await super.initGATTConnection(isReconnecting)
+        const gattServer = await this.getGATTServer()
+        const service = await gattServer.getPrimaryService("0000ffe0-0000-1000-8000-00805f9b34fb") 
+        this.txCharacteristic = await service.getCharacteristic("0000ffe2-0000-1000-8000-00805f9b34fb")
+        this.rxCharacteristic = await service.getCharacteristic("0000ffe1-0000-1000-8000-00805f9b34fb")
     }
 
     async initGATTInterval(){
         await this.initGATTNotifications() 
     }
-    emitGATT(){
-        
+    emitGATT(){ 
     }
     async initGATTNotifications() { 
         await this.rxCharacteristic.startNotifications()    
@@ -180,15 +174,9 @@ class ShenzhenLiONBMS extends BTSensor{
         )    
     }
   
-    async stopListening(){
-        super.stopListening() //clears IntervalID as it happens
-        if (this.rxCharacteristic  && await this.rxCharacteristic.isNotifying()) {
-            await this.rxCharacteristic.stopNotifications()
-            this.rxCharacteristic=null
-        }
-        if (await this.device.isConnected()){
-            await this.device.disconnect()
-        }
+    async deactivateGATT(){
+        await this.stopGATTNotifications(this.rxCharacteristic)
+        await super.deactivateGATT() 
     }
 }
 module.exports=ShenzhenLiONBMS

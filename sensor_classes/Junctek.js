@@ -151,35 +151,24 @@ class JunctekBMS extends BTSensor{
             this.emitFrom(buffer)
         })*/
     }
-    initGATTConnection(){ 
-        return new Promise((resolve,reject )=>{ this.deviceConnect().then(async ()=>{ 
-            if (!this.gattServer) { 
-                this.gattServer = await this.device.gatt() 
-                this.battService = await this.gattServer.getPrimaryService("0000fff0-0000-1000-8000-00805f9b34fb") 
-                this.battCharacteristic = await this.battService.getCharacteristic("0000fff1-0000-1000-8000-00805f9b34fb")
+    async initGATTConnection(isReconnecting){ 
+        super.initGATTConnection(isReconnecting)
+            const gattServer = await this.getGATTServer()
+            const battService = await gattServer.getPrimaryService("0000fff0-0000-1000-8000-00805f9b34fb") 
+            this.battCharacteristic = await battService.getCharacteristic("0000fff1-0000-1000-8000-00805f9b34fb")
 
-            }
-                resolve(this)
-             }) .catch((e)=>{ reject(e.message) }) }) 
     }
 
-    initGATTNotifications() { 
-        Promise.resolve(this.battCharacteristic.startNotifications().then(()=>{    
-            this.battCharacteristic.on('valuechanged', buffer => {
+    async initGATTNotifications() { 
+        this.battCharacteristic.startNotifications()
+        this.battCharacteristic.on('valuechanged', buffer => {
                 this.emitFrom(buffer)
-            })
-        }))
+        })
+        
     }
-  
-    async stopListening(){
-        super.stopListening()
-        if (this.battCharacteristic  && await this.battCharacteristic.isNotifying()) {
-            await this.battCharacteristic.stopNotifications()
-            this.battCharacteristic=null
-        }
-        if (await this.device.isConnected()){
-            await this.device.disconnect()
-        }
+    async deactivateGATT(){
+        await this.stopGATTNotifications(this.battCharacteristic) 
+        await super.deactivateGATT()
     }
 }
 module.exports=JunctekBMS

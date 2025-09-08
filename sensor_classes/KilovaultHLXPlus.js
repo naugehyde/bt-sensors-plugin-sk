@@ -194,34 +194,25 @@ class KilovaultHLXPlus extends BTSensor{
       }
     }
 
-    initGATTConnection(){ 
-        return new Promise((resolve,reject )=>{ this.deviceConnect().then(async ()=>{ 
-            if (!this.gattServer) { 
-                this.gattServer = await this.device.gatt() 
-                this.battService = await this.gattServer.getPrimaryService("0000ffe0-0000-1000-8000-00805f9b34fb") 
-                this.battCharacteristic = await this.battService.getCharacteristic("0000ffe4-0000-1000-8000-00805f9b34fb")
-                }
-                resolve(this)
-             }) .catch((e)=>{ reject(e.message) }) }) 
+    async initGATTConnection(isReconnecting){ 
+        await super.initGATTConnection(isReconnecting)
+        const gattServer= this.getGATTServer()
+        
+        this.battService = await gattServer.getPrimaryService("0000ffe0-0000-1000-8000-00805f9b34fb") 
+        this.battCharacteristic = await battService.getCharacteristic("0000ffe4-0000-1000-8000-00805f9b34fb")
     }
 
-    initGATTNotifications() { 
-        Promise.resolve(this.battCharacteristic.startNotifications().then(()=>{    
-            this.battCharacteristic.on('valuechanged', buffer => {
-                this.reassemble(buffer)
-            })
-        }))
+    async initGATTNotifications() { 
+        await this.battCharacteristic.startNotifications()
+        this.battCharacteristic.on('valuechanged', buffer => {
+            this.reassemble(buffer)
+        })
+
+    }
+    async deactivateGATT(){
+        await this.stopGATTNotifications(this.battCharacteristic)
+        await super.deactivateGATT()
     }
   
-    async stopListening(){
-        super.stopListening()
-        if (this.battCharacteristic  && await this.battCharacteristic.isNotifying()) {
-            await this.battCharacteristic.stopNotifications()
-            this.battCharacteristic=null
-        }
-        if (await this.device.isConnected()){
-               await this.device.disconnect()
-        }
-    }
 }
 module.exports=KilovaultHLXPlus

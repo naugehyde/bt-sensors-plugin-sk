@@ -109,7 +109,7 @@ class JikongBMS extends BTSensor {
     }
   }
 
-  pollFreq=20
+  
   async initSchema() {
     super.initSchema();
     this.addDefaultParam("batteryID");
@@ -131,6 +131,7 @@ class JikongBMS extends BTSensor {
 
     if (this.numberOfCells == undefined) {
       try {
+        this.debug("Getting number of cells...")
         await this.initGATTConnection();
         this.numberOfCells = await this.getNumberOfCells()
       }
@@ -315,9 +316,9 @@ class JikongBMS extends BTSensor {
       }
     ).default = "electrical.batteries.{batteryID}.discharging";
 
-    this.addMetadatum("temp1", "K", "Temperature 1 in K", (buffer) => {
+    this.addMetadatum("temp1", "K", "Temperature in K", (buffer) => {
       return 273.15 + buffer.readInt16LE(130 + this.offset * 2) / 10;
-    }).default = "electrical.batteries.{batteryID}.temperature1";
+    }).default = "electrical.batteries.{batteryID}.temperature";
 
     this.addMetadatum("temp2", "K", "Temperature 2 in K", (buffer) => {
       return 273.15 + buffer.readInt16LE(132 + this.offset * 2) / 10;
@@ -437,70 +438,63 @@ class JikongBMS extends BTSensor {
   }
 
   async deactivateGATT() {
-    this.debug(`${this.getName()}::deactivateGATT`);
-    if (this.rxChar) {
-      try {
-        await this.rxChar.stopNotifications();
-      } catch (e) {
-        this.debug(
-          `(${this.getName()}) Error stopping notifications for rxChar`
-        );
-      }
-    }
+    await this.stopGATTNotifications(this.rxChar) 
+
     await super.deactivateGATT();
   }
 
   async initGATTConnection(isReconnecting = false) {
     this.debug(`${this.getName()}::initGATTConnection`);
 
-    await super.initGATTConnection(isReconnecting);
-    const gattServer = await this.getGATTServer();
-
-    this.rxService = await gattServer.getPrimaryService(
-      this.constructor.RX_SERVICE
-    );
-    
     if (this.rxChar)
       try {
+        this.rxChar.removeAllListeners()
         await this.rxChar.stopNotifications()
       }
       catch(e){
-        this.rxChar.removeAllListeners()
-
         this.debug(`error while stopping notifications`)
         this.debug(e)
       }
-
-    this.rxChar = await this.rxService.getCharacteristic(
-      this.constructor.RX_CHAR_UUID
-    );
-
-    await this.rxChar.startNotifications();
+    
     try {
-      await this.getBuffer(0x97)
+      await super.initGATTConnection(isReconnecting);
+      const gattServer = await this.getGATTServer();
+
+      this.rxService = await gattServer.getPrimaryService(
+        this.constructor.RX_SERVICE
+      );
+      this.rxChar = await this.rxService.getCharacteristic(
+        this.constructor.RX_CHAR_UUID
+      );
+      await this.rxChar.startNotifications();
+
     } catch (e) {
       this.setError(e.message)
     }
-
+    
+    try {
+      await this.getBuffer(0x97)
+    } catch(e){
+      this.debug(`Error encountered calling getBuffer(0x97)`)
+    }
     //this.debug(`(${this.getName()}) Connections: ${this.connections++}`)
   }
 
-  activate(config, plugin) {
-    super.activate(config, plugin);
-    this.initGATTConnection().then(async () => {
-      try {
-        await this.getAndEmitBatteryInfo();
-      } catch(e) {
-        this.setError(e.message)
-      }
-      this.intervalID = setInterval(async () => {
+  async initGATTInterval(){
+    this.intervalID = setInterval(async () => {
+        this.setError(false)
         if (!(await this.device.isConnected())) {
           await this.initGATTConnection(true);
         }
         await this.getAndEmitBatteryInfo();
-      }, this.pollFreq * 1000);
-    });
-  }
+      }, this?.pollFreq??40 * 1000);
+
+    try {
+      await this.getAndEmitBatteryInfo();
+    } catch(e) {
+      this.setError(e.message)
+    } 
+    }
 }
 
 module.exports = JikongBMS;

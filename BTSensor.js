@@ -1,4 +1,4 @@
-const { Variant } = require('dbus-next');
+const { Variant } = require('@jellybrick/dbus-next');
 const { log } = require('node:console');
 const EventEmitter = require('node:events');
 const AutoQueue =  require("./Queue.js")
@@ -67,8 +67,8 @@ function signalQualityPercentQuad(rssi, perfect_rssi=-20, worst_rssi=-85) {
  * @abstract
  * @extends EventEmitter
  * 
- * @requires module:node-ble/Device
- * @requires module:node-ble/BusHelper
+ * @requires module:@naugehyde/node-ble/Device
+ * @requires module:@naugehyde/node-ble/BusHelper
  * 
  */
 

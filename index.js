@@ -1,8 +1,8 @@
 const packageInfo = require("./package.json")
 
 
-const {createBluetooth} = require('node-ble')
-const {Variant} = require('dbus-next')
+const {createBluetooth} = require('@naugehyde/node-ble')
+const {Variant} = require('@jellybrick/dbus-next')
 const {bluetooth, destroy} = createBluetooth()
 
 const BTSensor = require('./BTSensor.js')

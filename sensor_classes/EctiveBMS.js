@@ -33,11 +33,8 @@ const testData=[
    "30 35 37 44 00 00 00 00 00 00 00 00"
   ]
 ]
-class EctiveDataManager extends EventEmitter{
-  static expectedLength = 120
-  buffer = Buffer.from([])
-  
-  delimitedAt(data){
+
+function delimitedAt(data){
     const delimiters = [0x5e,0xaf] 
     for (const d of delimiters){
       if (data.includes(d)) return data.indexOf(d)
@@ -45,9 +42,15 @@ class EctiveDataManager extends EventEmitter{
     return -1
   }
 
+class EctiveDataManager extends EventEmitter{
+  static expectedLength = 120
+  buffer = Buffer.from([])
+  
+  
+
   add(buff) {
       
-      const delimiterIndex = this.delimitedAt(buff)
+      const delimiterIndex = delimitedAt(buff)
       if (delimiterIndex == 0)
         this.buffer= buff.subarray(1)
       else {

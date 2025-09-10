@@ -82,17 +82,17 @@ class MercurySmartcraft extends BTSensor{
         await super.initGATTConnection(isReconnecting)
         
         const gattServer = await this.getGATTServer() 
-        this.sdpService = await gattServer.getPrimaryService("00000000-0000-1000-8000-ec55f9f5b963") 
-        this.sdpCharacteristic = await this.sdpService.getCharacteristic("00000001-0000-1000-8000-ec55f9f5b963") 
-        this.dataService = await gattServer.getPrimaryService("00000100-0000-1000-8000-ec55f9f5b963") 
+        const sdpService = await gattServer.getPrimaryService("00000000-0000-1000-8000-ec55f9f5b963") 
+        this.sdpCharacteristic = await sdpService.getCharacteristic("00000001-0000-1000-8000-ec55f9f5b963") 
+        const dataService = await gattServer.getPrimaryService("00000100-0000-1000-8000-ec55f9f5b963") 
         this.dataCharacteristics = {
-            rpm: await this.dataService.getCharacteristic("00000102-0000-1000-8000-ec55f9f5b963"),
-            coolant: await this.dataService.getCharacteristic("00000103-0000-1000-8000-ec55f9f5b963"),
-            alternatorVoltage: await this.dataService.getCharacteristic("00000104-0000-1000-8000-ec55f9f5b963"),
-            runtime: await this.dataService.getCharacteristic("00000106-0000-1000-8000-ec55f9f5b963"),
-            rate: await this.dataService.getCharacteristic("00000107-0000-1000-8000-ec55f9f5b963"),
-            level: await this.dataService.getCharacteristic("00000108-0000-1000-8000-ec55f9f5b963"),
-            pressure: await this.dataService.getCharacteristic("0000010a-0000-1000-8000-ec55f9f5b963")
+            rpm: await dataService.getCharacteristic("00000102-0000-1000-8000-ec55f9f5b963"),
+            coolant: await dataService.getCharacteristic("00000103-0000-1000-8000-ec55f9f5b963"),
+            alternatorVoltage: await dataService.getCharacteristic("00000104-0000-1000-8000-ec55f9f5b963"),
+            runtime: await dataService.getCharacteristic("00000106-0000-1000-8000-ec55f9f5b963"),
+            rate: await dataService.getCharacteristic("00000107-0000-1000-8000-ec55f9f5b963"),
+            level: await dataService.getCharacteristic("00000108-0000-1000-8000-ec55f9f5b963"),
+            pressure: await dataService.getCharacteristic("0000010a-0000-1000-8000-ec55f9f5b963")
         }
 
     }

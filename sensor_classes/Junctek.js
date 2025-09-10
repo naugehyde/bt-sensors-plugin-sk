@@ -153,9 +153,9 @@ class JunctekBMS extends BTSensor{
     }
     async initGATTConnection(isReconnecting){ 
         super.initGATTConnection(isReconnecting)
-            const gattServer = await this.getGATTServer()
-            const battService = await gattServer.getPrimaryService("0000fff0-0000-1000-8000-00805f9b34fb") 
-            this.battCharacteristic = await battService.getCharacteristic("0000fff1-0000-1000-8000-00805f9b34fb")
+        const gattServer = await this.getGATTServer()
+        const battService = await gattServer.getPrimaryService("0000fff0-0000-1000-8000-00805f9b34fb") 
+        this.battCharacteristic = await battService.getCharacteristic("0000fff1-0000-1000-8000-00805f9b34fb")
 
     }
 

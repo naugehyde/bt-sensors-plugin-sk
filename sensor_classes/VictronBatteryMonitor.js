@@ -90,7 +90,7 @@ class VictronBatteryMonitor extends VictronSensor{
             }
             } catch(e){ 
                 this.debug(`Unable to determine device AuxMode. ${e.message}`)
-                this.debug(e)
+                this._app.debug(e)
                 this.auxMode=VC.AuxMode.DISABLED
             }
         }
@@ -218,7 +218,7 @@ class VictronBatteryMonitor extends VictronSensor{
         }
         if (await this.device.isConnected()){
             await this.device.disconnect()
-            this.debug(`Disconnected from ${ this.getName()}`)
+            this.debug(`Disconnected`)
         }
     }
     

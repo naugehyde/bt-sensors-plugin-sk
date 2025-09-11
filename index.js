@@ -103,6 +103,10 @@ class MissingSensor  {
 	getDebugLog(){
 		return []
 	}
+
+	removeAllListeners(){
+
+	}
 	on(){
 
 	}

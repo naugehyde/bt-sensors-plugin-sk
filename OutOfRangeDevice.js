@@ -23,7 +23,7 @@ class OutOfRangeDevice extends EventEmitter{
         this.intervalID=setInterval(
             ()=>{
 			adapter.waitDevice(config.mac_address,(config?.discoveryTimeout??30)*1000)
-			.then(async (device)=> { 
+			.then( (device)=> { 
                 this.emit("deviceFound", device)
                 clearInterval(this.intervalID)
                 this.intervalID=undefined

@@ -6,12 +6,6 @@ const RenogySensor = require("./Renogy/RenogySensor.js");
 class RenogyBattery extends RenogySensor {
     
     static ImageFile="RenogySmartLiFePo4Battery.webp"
-  
-    async init(){
-        this.numberOfCells = await this.retrieveNumberOfCells()
-        this.deviceID = await this.retrieveDeviceID()
-        await super.init()
-    }
 
     async getAllEmitterFunctions(){
         return [this.getAndEmitBatteryInfo.bind(this), 
@@ -46,6 +40,8 @@ class RenogyBattery extends RenogySensor {
     }
     async initGATTConnection() {
         await super.initGATTConnection()
+        this.numberOfCells = await this.retrieveNumberOfCells()
+        this.deviceID = await this.retrieveDeviceID()
         this.emit('numberOfCells', this.numberOfCells)
     }
     

@@ -2,32 +2,22 @@
 
 ## WHAT'S NEW  
 
-# Version 1.2.6-beta-6
- - Funny you should ask...
- 
-# Version 1.2.6-beta-5
+# Version 1.3.0
 
-- JikongBMS fixes
-
-# Version 1.2.6-beta-4
-
-- Improved reconnect logic for connected devices
-- Error display in config (preliminary effort)  
 - JikongBMS support (aka JKBMS)
-
-# Version 1.2.6-beta-3
-
+- EcoWorthyBW02 Batteries/BMS support (need testers)
+- Ective, Topband, Skanbatt etc LiFePo4 BMS support (ective.de BMS manufacturer)
+- FeasyCom BP108B support -- iBeacon/Eddystone protocols
+- Refactored code for connected devices 
+- Display connection/active state in config
+- DBus resource issues addressed
+- dbus-next package replaced with @jellybrick/dbus-next
+- Improved reconnect logic for connected devices
 - UI improvements for selecting Sensor Class (if available, paths appear immediately upon selection)
-- EcoWorthy Batteries/BMS (need testers)
-
-# Version 1.2.6-beta
-
-
 - Mopeka examples not defaults in config for underused paths
 - Fix so no plugin restart required after selecting sensor class for an unidentified device
-- FeasyCom BP108B support -- iBeacon/Eddystone protocols
-- Ective, Topband, Skanbatt etc LiFePo4 BMS support (ective.de)
 - Fixed Junctek chargeDirection at start (amps will not reported until chargeDirection is known)
+- auxMode detection fixes for Victron SmartBatteryMonitor devices
 
 # Version 1.2.5-1
 

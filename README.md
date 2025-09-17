@@ -2,6 +2,12 @@
 
 ## WHAT'S NEW  
 
+
+# Version 1.3.1
+
+- JBD Protection status
+- SensorPush devices (untested)
+
 # Version 1.3.0
 
 - JikongBMS support (aka JKBMS)
@@ -112,7 +118,7 @@ It's pretty easy to write and deploy your own sensor class for any currently uns
 |[Jikong](https://jikongbms.com/)| https://jikongbms.com/product/ |
 |[Junctek](https://www.junteks.com)|[Junctek BMS](https://www.junteks.com/pages/product/index) |
 |[Remoran](https://remoran.eu)| [Remoran Wave.3](https://remoran.eu/wave.html)|
-|[AC DC Systems](https://marinedcac.com) | [Bank Manager] hybrid (Pb and Li) charger(https://marinedcac.com/pages/bankmanager)|
+|[AC DC Systems](https://marinedcac.com) | [Bank Manager](https://marinedcac.com/pages/bankmanager) hybrid (Pb and Li) charger|
 |[Ective](https://ective.de/)| Also Topband(?), Skanbatt and others |
 
 ### Environmental 
@@ -128,6 +134,7 @@ It's pretty easy to write and deploy your own sensor class for any currently uns
 |[Govee](http://www.govee.com)| Govee H50xx and H510x Temperature and humidity sensors |
 |[BTHome](https://bthome.io/)| NOTE: Framework for IOT sensor devices. |
 |[Inkbird](https://inkbird.com/)| TH-2 Temp and Humidity Sensor |
+|[SensorPush](https://www.sensorpush.com/)| Temperature, Humidity and Atmospheric Pressure sensor|
 
 
 ### Tanks 

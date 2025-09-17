@@ -6,7 +6,7 @@ class SensorPush extends BTSensor{
         
         const name = await this.getDeviceProp(device,"Name")
         const regex= /^SensorPush\s(HT|HTP)\s[0-9a-fA-F]{4}$/
-        if (name.match(regex))
+        if (name && name.match(regex))
             return this 
         else
             return null
@@ -31,21 +31,7 @@ class SensorPush extends BTSensor{
     usingGATT(){
         return true
     }
-    async initGATTInterval(){
-    this.intervalID = setInterval(async () => {
-        this._error = false
-        if (!(await this.device.isConnected())) {
-          await this.initGATTConnection(true);
-        }
-        await this.emitGATT();
-      }, (this?.pollFreq??40) * 1000);
-
-    try {
-      await this.emitGATT();
-    } catch(e) {
-      this.setError(e.message)
-    } 
-    }
+    
 
     async emitGATT(){
         this.characteristics.temp.writeValue(0x01000000).then(async ()=>{

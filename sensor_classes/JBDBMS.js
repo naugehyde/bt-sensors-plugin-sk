@@ -62,7 +62,24 @@ class JBDBMS extends BTSensor {
         .read=(buffer)=>{return buffer.readUInt16BE(12)} 
 
       this.addMetadatum('protectionStatus', '', 'Protection Status',
-        (buffer)=>{return buffer.readUInt16BE(20)} )
+        (buffer)=>{
+          const bits = buffer.readUInt16BE(20).toString(2)
+          return {    
+		        singleCellOvervolt: bits[0]=='1',
+		        singleCellUndervolt: bits[1]=='1',
+		        packOvervolt: (bits[2]=='1'),
+		        packUndervolt: bits[3]=='1',
+		        chargeOvertemp:bits[4]=='1',
+		        chargeUndertemp:bits[5]=='1',
+		        dischargeOvertemp:bits[6]=='1',
+		        dischargeUndertemp:bits[7]=='1',
+		        chargeOvercurrent:bits[8]=='1',
+		        dischargeOvercurrent:bits[9]=='1',
+		        shortCircut:bits[10]=='1',
+		        frontEndDetectionICError:bits[11]=='1',
+		        softwareLockMOS:bits[12]=='1',
+          }  
+        })
         .default="electrical.batteries.{batteryID}.protectionStatus"
          
       this.addDefaultPath('SOC','electrical.batteries.capacity.stateOfCharge')

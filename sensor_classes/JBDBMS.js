@@ -84,10 +84,19 @@ class JBDBMS extends BTSensor {
          
       this.addDefaultPath('SOC','electrical.batteries.capacity.stateOfCharge')
         .read=(buffer)=>{return buffer.readUInt8(23)/100} 
-      
-      this.addMetadatum('FET', '', 'FET Control',
-          (buffer)=>{return buffer.readUInt8(24)} )
-          .default="electrical.batteries.{batteryID}.FETControl"
+
+
+      this.addMetadatum('FET', '', 'FET On/Off Status',
+          (buffer)=>{return buffer.readUInt8(24) !=0 } )
+          .default="electrical.batteries.{batteryID}.FETStatus"
+  
+      this.addMetadatum('FETCharging', '', 'FET Status Charging',
+          (buffer)=>{return (buffer.readUInt8(24) & 0x1) !=0  })
+          .default="electrical.batteries.{batteryID}.FETStatus.charging"
+
+      this.addMetadatum('FETDischarging', '', 'FET Status Discharging',
+          (buffer)=>{return (buffer.readUInt8(24) & 0x2) !=0 })
+          .default="electrical.batteries.{batteryID}.FETStatus.discharging"
   
         await this.deviceConnect() 
         const gattServer = await this.device.gatt()

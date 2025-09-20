@@ -100,7 +100,7 @@ class ShenzhenLiONBMS extends BTSensor{
                 (buff)=>{return buff.readInt16LE(16+(cellNum*2)) /1000})
             .default=`electrical.batteries.{batteryID}.cells.${cellNum+1}.voltage`
 
-            this.addMetadatum(`cell${cellNum+1}Balancing`,'V', `cell #${cellNum+1} balance state (true=balancing)`)
+            this.addMetadatum(`cell${cellNum+1}Balancing`,'', `cell #${cellNum+1} balance state (true=balancing)`)
             .default=`electrical.batteries.{batteryID}.cells.${cellNum+1}.balancing`
         }
 
@@ -130,7 +130,7 @@ class ShenzhenLiONBMS extends BTSensor{
             .default="electrical.batteries.{batteryID}.balanceMemoryActive"
 
         this.addMetadatum('protectionState','', 'protection state',
-                (buff)=>{return buff.slice(76,80).reverse().join("")})
+                (buff)=>{return ProtectionStatus[buff.readUInt16LE(76)]??"Normal"})
             .default="electrical.batteries.{batteryID}.protectionState"
 
         this.addMetadatum('failureState','', 'failure state',
@@ -138,7 +138,7 @@ class ShenzhenLiONBMS extends BTSensor{
             .default="electrical.batteries.{batteryID}.failureState"
 
         this.addMetadatum('batteryState','', 'charge disabled = "0004", charging = "0001" (when charging active app will show estimated time untill fully charged), discharging/idle: "0000", unkown = "0002"',
-            (buff)=>{return this.constructor.BatteryState[buff.readUInt16LE(88)]??"Unknown"})
+            (buff)=>{return (BatteryState[buff.readUInt16LE(88)])??"Unknown"})
         .default="electrical.batteries.{batteryID}.batteryState"
 
         this.addMetadatum('dischargeCount','', 'discharge count',
@@ -157,10 +157,10 @@ class ShenzhenLiONBMS extends BTSensor{
 
     emitValuesFrom(buffer){
         super.emitValuesFrom(buffer)
-        const balanceState= buff.slice(84,88).reverse().join("")
+        const balanceState= buffer.slice(84,88).reverse().join("")
 
         for(let cellNum=0; cellNum < this?.numberOfCells??4; cellNum++) {
-            this.emitData(`cell${cellNum+1}Balancing`, balanceState[cellNum]==='1')
+            this.emit(`cell${cellNum+1}Balancing`, balanceState[cellNum]==='1')
         }
 
     }

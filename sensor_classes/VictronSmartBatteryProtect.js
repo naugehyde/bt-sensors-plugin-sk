@@ -40,7 +40,7 @@ class VictronSmartBatteryProtect extends VictronSensor{
         this.addMetadatum('outputVoltage','V', 'output voltage', 
             (buff)=>{return this.NaNif(buff.readUInt16LE(9),0xFFFF)/100})
         this.addMetadatum('offReason','', 'off reason', 
-            (buff)=>{return VC.OffReasons.get(buff.readUInt16LE(11))}) //TODO
+            (buff)=>{return VC.OffReasons.get(buff.readUInt32LE(11))}) //TODO
         }
 
 }

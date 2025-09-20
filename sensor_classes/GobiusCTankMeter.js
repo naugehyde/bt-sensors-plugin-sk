@@ -348,7 +348,7 @@ class GobiusCTankMeter extends BTSensor{
     }
 
     async deactivateGATT(){
-        await this.stopNotifications(this.characteristic)
+        await this.stopGATTNotifications(this.characteristic)
         await super.deactivateGATT()
     }
    

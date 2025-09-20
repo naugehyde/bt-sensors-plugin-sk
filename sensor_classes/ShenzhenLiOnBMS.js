@@ -18,6 +18,14 @@ const ProtectionStatus = {
  0x4000: "Short Circuit Protection"
 }
 
+const BatteryState = {
+    0: "Discharging/Idle",
+    1: "Charging",
+    2: "Unknown",
+    4: "Charge Disabled"
+
+}
+
 class ShenzhenLiONBMS extends BTSensor{
     static Domain = BTSensor.SensorDomains.electrical
     static ImageFile = "LiTimeLiFePo4Battery.avif"
@@ -91,6 +99,9 @@ class ShenzhenLiONBMS extends BTSensor{
             this.addMetadatum(`cell${cellNum+1}Voltage`,'V', `cell #${cellNum+1} voltage`,
                 (buff)=>{return buff.readInt16LE(16+(cellNum*2)) /1000})
             .default=`electrical.batteries.{batteryID}.cells.${cellNum+1}.voltage`
+
+            this.addMetadatum(`cell${cellNum+1}Balancing`,'V', `cell #${cellNum+1} balance state (true=balancing)`)
+            .default=`electrical.batteries.{batteryID}.cells.${cellNum+1}.balancing`
         }
 
         this.addDefaultPath('current','electrical.batteries.current')
@@ -125,13 +136,9 @@ class ShenzhenLiONBMS extends BTSensor{
         this.addMetadatum('failureState','', 'failure state',
                 (buff)=>{return buff.slice(80,84).reverse().join("").slice(-3)})
             .default="electrical.batteries.{batteryID}.failureState"
-        
-        this.addMetadatum('balanceState','', '1 = cell at offset is balancing',
-                (buff)=>{return buff.slice(84,88).reverse().join("")})
-            .default="electrical.batteries.{batteryID}.balanceState"
 
         this.addMetadatum('batteryState','', 'charge disabled = "0004", charging = "0001" (when charging active app will show estimated time untill fully charged), discharging/idle: "0000", unkown = "0002"',
-            (buff)=>{return buff.slice(88,90).reverse().join("")})
+            (buff)=>{return this.constructor.BatteryState[buff.readUInt16LE(88)]??"Unknown"})
         .default="electrical.batteries.{batteryID}.batteryState"
 
         this.addMetadatum('dischargeCount','', 'discharge count',
@@ -146,6 +153,16 @@ class ShenzhenLiONBMS extends BTSensor{
             .read=(buff)=>{return buff.readUInt16LE(90)/100}
         
         this.getJSONSchema().properties.params.required=["batteryID", "numberOfCells" ]
+    }
+
+    emitValuesFrom(buffer){
+        super.emitValuesFrom(buffer)
+        const balanceState= buff.slice(84,88).reverse().join("")
+
+        for(let cellNum=0; cellNum < this?.numberOfCells??4; cellNum++) {
+            this.emitData(`cell${cellNum+1}Balancing`, balanceState[cellNum]==='1')
+        }
+
     }
 
     async initGATTConnection(isReconnecting){ 

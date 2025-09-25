@@ -37,7 +37,7 @@ class VictronLynxSmartBMS extends VictronSensor{
             (buff)=>{return buff.readUInt16LE(7)})
         .default="electrical.batteries.{batteryID}.IOStatus"
 
-        this.addMetadatum('warningsAndAlarms','','warnings and alarms')
+        this.addMetadatum('warningsAndAlarms','','warnings and alarms (undocumented)')
 
         this.addDefaultPath('soc','electrical.batteries.capacity.stateOfCharge')
         

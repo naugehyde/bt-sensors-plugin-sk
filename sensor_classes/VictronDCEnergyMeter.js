@@ -55,6 +55,7 @@ class VictronDCEnergyMeter extends VictronSensor{
         this.addMetadatum('alarm','', 'alarm', 
             (buff)=>{return buff.readUInt16LE(4)})
            .default="electrical.meters.{id}.alarm"
+        this.getPath("alarm").notify=true
         this.addMetadatum('current','A', 'current')
         .default="electrical.meters.{id}.current"       
  
@@ -65,9 +66,7 @@ class VictronDCEnergyMeter extends VictronSensor{
         this.emitData("voltage",decData,2);
         const alarm = this.getPath("alarm").read(decData,4)
         if (alarm>0){
-            this.emit(
-                `ALARM #${alarm} from ${this.getDisplayName()})`, 
-                { message: AlarmReason(alarm), state: 'alert'})
+            this.emitAlarm("alarm",alarm)
         }
         switch(this.auxMode){
             case VC.AuxMode.STARTER_VOLTAGE:

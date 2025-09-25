@@ -25,7 +25,7 @@ class VictronDCDCConverter extends VictronSensor{
         .default="electrical.chargers.{id}.output.voltage"
 
         this.addMetadatum('offReason','', 'reason unit is off',
-                (buff)=>{return VC.OffReasons.get(buff.readUInt32LE(6))})
+                (buff)=>{return this.offReasonText(buff.readUInt32LE(6))})
         .default="electrical.chargers.{id}.offReason"
 
                 

@@ -80,7 +80,7 @@ class VictronBatteryMonitor extends VictronSensor{
 
         this.auxMode=VC.AuxMode.STARTER_VOLTAGE
 
-        if (!this.auxMode){
+        if (this.auxMode==undefined){
             const md=await this.constructor.getDataPacket(this.device, this.getManufacturerData(this.constructor.ManufacturerID))
             try {
                 if (this.encryptionKey){
@@ -120,17 +120,15 @@ class VictronBatteryMonitor extends VictronSensor{
         }
                 
     }
-    
+  
     emitValuesFrom(decData){
         
         this.emitData("ttg",decData,0)
         this.emitData("voltage",decData,2);
         const alarm = this.getPath("alarm").read(decData,4)
-        if (alarm>0){
-            this.emit(
-                `ALARM #${alarm} from ${this.getDisplayName()})`, 
-                { message: VC.AlarmReason.get(alarm), state: 'alert'})
-        }
+        if (alarm>0)
+            this.emitAlarm("alarm",alarm)
+        
         switch(this.auxMode){
         case VC.AuxMode.STARTER_VOLTAGE:
             this.emitData("starterVoltage",decData,6);

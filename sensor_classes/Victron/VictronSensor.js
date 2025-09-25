@@ -11,7 +11,7 @@ const VictronIdentifier = require('./VictronIdentifier.js');
     constructor(device,config,gattConfig){
         super(device,config,gattConfig)
         
-        if (device.modelID)
+        if (device&&device.modelID)
             this.modelID=device.modelID        
     }
 
@@ -52,6 +52,31 @@ const VictronIdentifier = require('./VictronIdentifier.js');
         } 
         return null
     }
+
+    offReasonText(value){
+        let reasons=[];
+        VC.OffReasons.forEach((v,k)=>{
+            if (k&value)
+                reasons.push(v);
+        })
+        return reasons.join("|");
+    }
+
+    alarmReasonText(value){
+        let reasons=[];
+        VC.AlarmReason.forEach((v,k)=>{
+            if (k&value)
+                reasons.push(v);
+        })
+        return reasons.join("|");
+    }
+    emitAlarm(tag="alarm", alarm){
+        this.emit(
+             tag,
+            { message:this.alarmReasonText(alarm), 
+              alarm: `0x${alarm.toString(16).padStart(8,"0")}`,
+              alarmstate: 'alert'})
+    }
    async init(){
         await super.init()
         this.addParameter(
@@ -63,7 +88,7 @@ const VictronIdentifier = require('./VictronIdentifier.js');
         )
     }
     alarmReason(alarmValue){
-        return this.constructor.AlarmReason[alarmValue]
+        return VC.AlarmReason.get(alarmValue)
     }
     getModelName(){
         const mID = this.getModelID()

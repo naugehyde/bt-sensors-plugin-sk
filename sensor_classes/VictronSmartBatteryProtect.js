@@ -32,7 +32,8 @@ class VictronSmartBatteryProtect extends VictronSensor{
         this.addMetadatum('chargerError','', 'charger error',
             (buff)=>{return VC.ChargerError.get(buff.readUInt8(3))})
         this.addMetadatum('alarmReason','', 'alarm reason', 
-            (buff)=>{return VC.AlarmReason.get(buff.readUInt16LE(4))})
+            (buff)=>{return buff.readUInt16LE(4)})
+        this.getPath("alarmReason").notify=true
         this.addMetadatum('warningReason','', 'warning reason', //TODO
             (buff)=>{return (buff.readUInt16LE(5))})
         this.addMetadatum('channel1Voltage','V', 'channel one voltage', 
@@ -40,8 +41,14 @@ class VictronSmartBatteryProtect extends VictronSensor{
         this.addMetadatum('outputVoltage','V', 'output voltage', 
             (buff)=>{return this.NaNif(buff.readUInt16LE(9),0xFFFF)/100})
         this.addMetadatum('offReason','', 'off reason', 
-            (buff)=>{return VC.OffReasons.get(buff.readUInt32LE(11))}) //TODO
+            (buff)=>{return this.offReasonText(buff.readUInt32LE(11))}) 
         }
+          emitValuesFrom(decData){
+            super.emitValuesFrom(decData)
+            const alarm = this.getPath("alarm").read(decData)
+            if (alarm>0)
+                this.emitAlarm("alarm",alarm)
+          }
 
 }
 module.exports=VictronSmartBatteryProtect 

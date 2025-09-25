@@ -110,7 +110,7 @@ class MissingSensor  {
 	on(){
 
 	}
-
+	stopNotifications(){}
 	isError(){
 		return true
 	}

@@ -20,11 +20,11 @@ class ShellySBMO003Z extends AbstractBTHomeSensor {
 	 * @type {string}
 	 */
 	static LOCAL_NAME="Shelly BLU Motion";
-	static ImageFile="ShellyBLUMotion.webp"
+	static ImageFile="ShellyBLUMotion.webp" 
    	
 	getTextDescription(){
 		return `${!this.isPaired()?"NOTE: Device must be paired with SignalK server machine to operate properly (see: <a href=https://shelly-api-docs.shelly.cloud/docs-ble/common#pairing target=\"_blank\">https://shelly-api-docs.shelly.cloud/docs-ble/common#pairing</a> ":"Device is paired."}).<br><br>For more information about the sensor click here: <a href=https://us.shelly.com/products/shelly-blu-motion target="_blank">Shelly Blu Motion</a>.` 
-	}
+	} 
 
 	initSchema() {
 		super.initSchema()

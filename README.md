@@ -1,7 +1,12 @@
 # Bluetooth Sensors for [Signal K](http://www.signalk.org) 
 
 ## WHAT'S NEW  
+# Version 1.3.2
 
+- Victron Alarm Reason improvements
+- VictronOrionXS offReason text implementation
+- Shelly Blu H&T description changes 
+- 
 
 # Version 1.3.1
 

@@ -6,7 +6,6 @@
 - Victron Alarm Reason improvements
 - VictronOrionXS offReason text implementation
 - Shelly Blu H&T description changes 
-- 
 
 # Version 1.3.1
 

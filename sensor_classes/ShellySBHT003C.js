@@ -20,7 +20,7 @@ class ShellySBHT003C extends AbstractBTHomeSensor {
 
 	
 	getTextDescription(){
-		return `NOTE: Device must be paired with SignalK server machine to operate properly. For more information about the sensor go here: <a href=https://us.shelly.com/products/shelly-blu-h-t-black target="_blank">Shelly Blu H&T</a>.` 
+		return `NOTE: Device must be paired with SignalK server machine or you won't see updates (see: <a href=https://shelly-api-docs.shelly.cloud/docs-ble/common#pairing target="_blank">https://shelly-api-docs.shelly.cloud/docs-ble/common#pairing</a> ). For more information about the sensor go here: <a href=https://us.shelly.com/blogs/documentation/shelly-blu-h-t target="_blank">Shelly Blu H&T</a>.<br><br>Alternatively you can edit your /etc/bluetooth/main.conf file and set "TemporaryTimeout = 90" in the [General] section, then restart the bluetooth service.` 
 	}
 	
 	initSchema() {

@@ -23,7 +23,7 @@ class ShellySBMO003Z extends AbstractBTHomeSensor {
 	static ImageFile="ShellyBLUMotion.webp"
    	
 	getTextDescription(){
-		return `NOTE: Device must be paired with SignalK server machine to operate properly. For more information about the sensor go here: <a href=https://us.shelly.com/products/shelly-blu-motion target="_blank">Shelly Blu Motion</a>.` 
+		return `${!this.isPaired()?"NOTE: Device must be paired with SignalK server machine to operate properly (see: <a href=https://shelly-api-docs.shelly.cloud/docs-ble/common#pairing target=\"_blank\">https://shelly-api-docs.shelly.cloud/docs-ble/common#pairing</a> ":"Device is paired."}).<br><br>For more information about the sensor click here: <a href=https://us.shelly.com/products/shelly-blu-motion target="_blank">Shelly Blu Motion</a>.` 
 	}
 
 	initSchema() {
@@ -62,20 +62,6 @@ class ShellySBMO003Z extends AbstractBTHomeSensor {
 		.default="sensors.{macAndName}.button"
 
 
-/*
-		this.addMetadatum(
-			"packetID",
-			null,
-			"packetID from sensor",
-			this.parsePacketID.bind(this)
-		)
-		.default="sensors.{macAndName}.packetID"
-*/
-
-	}
-	getState() {
-	
-	return super.getState()
 	}
 }
 

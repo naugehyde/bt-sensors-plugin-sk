@@ -21,7 +21,7 @@ const ProtectionStatus = {
 const BatteryState = {
     0: "Discharging/Idle",
     1: "Charging",
-    2: "Unknown",
+    2: "Discharging",
     4: "Charge Disabled"
 
 }

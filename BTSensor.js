@@ -856,6 +856,10 @@ class BTSensor extends EventEmitter {
         return this.currentProperties?.RSSI??NaN
     }
 
+    isPaired(){
+        return this.currentProperties?.Paired??false
+    }
+
     getSignalStrength(){
         const rssi =  this.getRSSI()
         if (!rssi) 

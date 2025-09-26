@@ -12,9 +12,21 @@ class RenogyBattery extends RenogySensor {
                 this.getAndEmitCellTemperatures.bind(this), 
                 this.getAndEmitCellVoltages.bind(this)]
     }
+    numberOfCells=4
     initSchema(){
-
-        this.addMetadatum('numberOfCells','', 'number of cells')
+        this.addDefaultParam("batteryID").default="house"
+        this.addParameter(
+            "numberOfCells",
+            {
+                title:"Number of cells",
+                type: "number",
+                isRequired: true,
+                default: this.numberOfCells,
+                minimum: 1,
+                maximum: 16,
+                multipleOf:1
+            }
+        )
         this.addDefaultPath('current','electrical.batteries.current')
             .read=(buffer)=>{return buffer.readInt16BE(3)/100}
              
@@ -41,8 +53,6 @@ class RenogyBattery extends RenogySensor {
     async initGATTConnection() {
         await super.initGATTConnection()
         this.numberOfCells = await this.retrieveNumberOfCells()
-        this.deviceID = await this.retrieveDeviceID()
-        this.emit('numberOfCells', this.numberOfCells)
     }
     
     retrieveNumberOfCells(){
@@ -56,16 +66,7 @@ class RenogyBattery extends RenogySensor {
             this.readChar.once('valuechanged', valChanged )
         })
     }
-    retrieveDeviceID(){
-        return new Promise( async ( resolve, reject )=>{
-            this.sendFunctionRequest(0x14, 0x67)
-
-            const valChanged = async (buffer) => {
-                resolve((buffer.readUInt8(4)))
-            }
-            this.readChar.once('valuechanged', valChanged )
-        })
-    }
+   
 
     getAndEmitBatteryInfo(){
         return new Promise( async ( resolve, reject )=>{

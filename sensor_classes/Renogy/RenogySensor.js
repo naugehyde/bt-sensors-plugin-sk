@@ -3,7 +3,7 @@ ported from https://github.com/cyrils/renogy-bt
 */
 const BTSensor = require("../../BTSensor.js");
 const VC = require('./RenogyConstants.js');
-const crc16Modbus = require('./CRC.js')
+const crc16Modbus = require('./CRC.js');
 class RenogySensor extends BTSensor{
     static Domain=BTSensor.SensorDomains.electrical
     static ALIAS_PREFIX = 'BT-TH'
@@ -34,20 +34,27 @@ class RenogySensor extends BTSensor{
         b.writeUInt16BE(words,4) 
         b.writeUInt16BE(crc16Modbus(b.subarray(0,6)),6)          
         
-        await writeCharacteristic.writeValueWithResponse(b,  0)
+        await writeCharacteristic.writeValueWithoutResponse(b,  0)
     
     }
     static identify(device){
         return null
     }
-
+    pollFreq=30
     async initSchema(){
         await super.initSchema()
-       
+        this.getGATTParams().pollFreq.default=this.pollFreq
         this.addParameter(
             "deviceID",
             {
-                title: 'ID of device'
+                title: 'ID of device',
+                description: 'only modify if hub mode or daisy chain',
+                default:255,
+                type: 'number',
+                minimum: 0, 
+                maximum: 255,
+                multipleOf:1,
+                isRequired: true                
             }
         ) 
     }
@@ -73,15 +80,17 @@ class RenogySensor extends BTSensor{
     }
 
     async sendReadFunctionRequest(writeReq, words){
-        this.constructor.sendReadFunctionRequest(
+        await this.constructor.sendReadFunctionRequest(
             this.writeChar, this.getDeviceID(), writeReq, words) 
     }
 
     initGATTInterval(){
+        this.emitGATT()
         this.intervalID = setInterval(()=>{
             this.emitGATT()
         }, 1000*(this?.pollFreq??60) )
     }
+
     emitGATT(){
          this.getAllEmitterFunctions().forEach(async (emitter)=>
             await emitter()

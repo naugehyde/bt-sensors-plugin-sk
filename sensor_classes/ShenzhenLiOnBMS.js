@@ -71,11 +71,12 @@ class ShenzhenLiONBMS extends BTSensor{
          "numberOfCells",
             {
                 title:"Number of cells",
-                type: "integer",
+                type: "number",
                 isRequired: true,
                 default: 4,
                 minimum: 1,
-                maximum: 16
+                maximum: 16,
+                multipleOf:1
             }
        )
 

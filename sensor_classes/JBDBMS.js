@@ -197,6 +197,7 @@ class JBDBMS extends BTSensor {
 } 
 
 async initGATTConnection() {
+  this.setConnected(await this.device.isConnected())
   return this  
 }
 

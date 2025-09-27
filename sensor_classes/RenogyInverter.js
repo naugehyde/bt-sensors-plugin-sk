@@ -54,10 +54,24 @@ class RenogyInverter extends RenogySensor {
         })
     }
 
+    retrieveModelID(){
+        return new Promise( async ( resolve, reject )=>{
+
+        await this.sendReadFunctionRequest(0x10d7,0x08)
+          
+        this.readChar.once('valuechanged', async (buffer) => {
+            if (buffer[2]!=0x10) 
+                reject("Unknown error retrieving model ID") //???
+            const model = buffer.subarray(3,17).toString().trim()
+            resolve(model)           
+        })
+    })
+    }
+
     getAndEmitInverterStats(){
         return new Promise( async ( resolve, reject )=>{
 
-            await this.sendReadFunctionRequest(0xfa0, 0x8)
+            await this.sendReadFunctionRequest(0xfa0, 0xA)
         
             this.readChar.once('valuechanged', (buffer) => {
                 ["ueiVoltage","ueiCurrent", "voltage", "loadCurrent", "frequency","temperature"].forEach((tag)=>
@@ -71,7 +85,7 @@ class RenogyInverter extends RenogySensor {
     getAndEmitSolarCharging(){
         return new Promise( async ( resolve, reject )=>{
 
-            await this.sendReadFunctionRequest(0x10e9, 0x5)
+            await this.sendReadFunctionRequest(0x10e9, 0x7)
         
             this.readChar.once('valuechanged', (buffer) => {
                 ["solarVoltage","solarCurrent", "solarPower", "solarChargingStatus", "solarChargingPower"].forEach((tag)=>
@@ -85,7 +99,7 @@ class RenogyInverter extends RenogySensor {
     getAndEmitInverterLoad(){
         return new Promise( async ( resolve, reject )=>{
             
-            await this.sendReadFunctionRequest(0x113a, 0x2)
+            await this.sendReadFunctionRequest(0x113a, 0x6)
         
             this.readChar.once('valuechanged', (buffer) => {
                 ["loadPower", "chargingCurrent"].forEach((tag)=>

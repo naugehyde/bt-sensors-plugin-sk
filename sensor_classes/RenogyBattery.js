@@ -55,6 +55,19 @@ class RenogyBattery extends RenogySensor {
         this.numberOfCells = await this.retrieveNumberOfCells()
     }
     
+    retrieveModelID(){
+        return new Promise( async ( resolve, reject )=>{
+
+        await this.sendReadFunctionRequest(0x1402,0x08)
+          
+        this.readChar.once('valuechanged', async (buffer) => {
+            if (buffer[2]!=0x10) 
+                reject("Unknown error retrieving model ID") //???
+            const model = buffer.subarray(3,17).toString().trim()
+            resolve(model)           
+        })
+    })
+    }
     retrieveNumberOfCells(){
 
         return new Promise( async ( resolve, reject )=>{

@@ -48,7 +48,7 @@ class RenogySensor extends BTSensor{
             "deviceID",
             {
                 title: 'ID of device',
-                description: 'only modify if hub mode or daisy chain',
+                description: 'only modify if device is in hub mode or daisy chained',
                 default:255,
                 type: 'number',
                 minimum: 0, 

@@ -45,9 +45,9 @@ class VictronSmartBatteryProtect extends VictronSensor{
         }
           emitValuesFrom(decData){
             super.emitValuesFrom(decData)
-            const alarm = this.getPath("alarm").read(decData)
+            const alarm = this.getPath("alarmReason").read(decData)
             if (alarm>0)
-                this.emitAlarm("alarm",alarm)
+                this.emitAlarm("alarmReason",alarm)
           }
 
 }

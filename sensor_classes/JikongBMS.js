@@ -257,7 +257,7 @@ class JikongBMS extends BTSensor {
 
     this.addMetadatum("cycleCapacity", "number", "Cycle capacity", (buffer) => {
       return buffer.readUInt32LE(154 + this.offset * 2) / 1000;
-    }).default = "electrical.batteries.{batteryID}.discharging";
+    }).default = "electrical.batteries.{batteryID}.cycleCapacity";
 
     this.addMetadatum(
       "balanceAction",

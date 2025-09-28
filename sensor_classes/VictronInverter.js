@@ -17,7 +17,6 @@ class VictronInverter extends VictronSensor{
         const md = this.addMetadatum('alarmReason','', 'reason for alarm',
             (buff)=>{return buff.readIntU16LE(1)})
         .default="electrical.inverters.{id}.alarm"
-        md.notify=true
 
         this.addDefaultPath('dcVoltage','electrical.inverters.dc.voltage') 
             .read=(buff)=>{return this.NaNif(buff.readInt16LE(3),0x7FFF)/100}

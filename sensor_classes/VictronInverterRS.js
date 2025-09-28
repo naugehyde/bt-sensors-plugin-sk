@@ -18,7 +18,6 @@ class VictronInverterRS extends VictronSensor{
         const md = this.addMetadatum('chargerError','', 'charger error',
             (buff)=>{return VC.ChargerError(buff.readIntU8(1))})
             md.default='electrical.inverters.{id}.error'
-            md.notify=true
 
         this.addMetadatum('batteryVoltage','V', 'battery voltage', 
             (buff)=>{return this.NaNif(buff.readInt16LE(2),0x7FFF)/100})

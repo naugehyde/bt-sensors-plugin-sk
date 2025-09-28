@@ -55,7 +55,6 @@ class VictronDCEnergyMeter extends VictronSensor{
         this.addMetadatum('alarm','', 'alarm', 
             (buff)=>{return buff.readUInt16LE(4)})
            .default="electrical.meters.{id}.alarm"
-        this.getPath("alarm").notify=true
         this.addMetadatum('current','A', 'current')
         .default="electrical.meters.{id}.current"       
  

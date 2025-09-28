@@ -26,7 +26,7 @@ class VictronBatteryMonitor extends VictronSensor{
         d.debug.bind(d)
         d.initSchema()
         Object.keys(d.getPaths()).forEach((tag)=>{
-                d.on(tag,(v)=>console.log(`${tag}=${v}`))
+                d.on(tag,(v)=>console.log(`${tag}=${JSON.stringify(v)}`))
         })
         if (key)
             b = d.decrypt(b)
@@ -62,7 +62,6 @@ class VictronBatteryMonitor extends VictronSensor{
         const alarmMD = this.addMetadatum('alarm','',  'alarm', 
                 (buff,offset=0)=>{return buff.readInt16LE(offset)})
                 alarmMD.default='electrical.batteries.{batteryID}.alarm'                
-                alarmMD.notify=true
 
         this.addMetadatum( 'consumed','Ah', 'amp-hours consumed', 
                 (buff,offset=0)=>{return buff.readInt32LE(offset)/10},

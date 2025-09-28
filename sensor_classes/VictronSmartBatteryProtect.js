@@ -33,7 +33,6 @@ class VictronSmartBatteryProtect extends VictronSensor{
             (buff)=>{return VC.ChargerError.get(buff.readUInt8(3))})
         this.addMetadatum('alarmReason','', 'alarm reason', 
             (buff)=>{return buff.readUInt16LE(4)})
-        this.getPath("alarmReason").notify=true
         this.addMetadatum('warningReason','', 'warning reason', //TODO
             (buff)=>{return (buff.readUInt16LE(5))})
         this.addMetadatum('channel1Voltage','V', 'channel one voltage', 

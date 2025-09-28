@@ -1059,11 +1059,11 @@ class BTSensor extends EventEmitter {
 			if (!(path === undefined)) {
                 let preparedPath =  this.preparePath(path)
                 this.on(tag, (val)=>{
-					if (pathMeta.notify){
+/*					if (pathMeta.notify){
 						this._app.notify(tag, val, id )
-					} else {
+					} else {*/
 						this.updatePath(preparedPath,val, id, source)
-					}
+					//}
                 })
 			}
 		})

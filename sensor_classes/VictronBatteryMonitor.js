@@ -77,8 +77,6 @@ class VictronBatteryMonitor extends VictronSensor{
             .read=(buff,offset=0)=>{return this.NaNif(buff.readUInt16LE(offset),0xFFFF)*60}
         this.getPath("ttg").gatt='65970ffe-4bda-4c1e-af4b-551c4cf74769';
 
-        this.auxMode=VC.AuxMode.STARTER_VOLTAGE
-
         if (this.auxMode==undefined){
             const md=await this.constructor.getDataPacket(this.device, this.getManufacturerData(this.constructor.ManufacturerID))
             try {

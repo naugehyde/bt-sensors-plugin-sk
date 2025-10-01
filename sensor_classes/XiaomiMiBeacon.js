@@ -141,6 +141,7 @@ class XiaomiMiBeacon extends BTSensor{
         return cipher.update(encryptedPayload)
     }
     decryptV4and5(data){
+        
         const encryptedPayload = data.subarray(11,-7);
         const xiaomi_mac = data.subarray(5,11)
         const nonce = Buffer.concat([xiaomi_mac, data.subarray(2, 5), data.subarray(-7,-4)]);
@@ -161,13 +162,17 @@ class XiaomiMiBeacon extends BTSensor{
         
         const data = this.getServiceData(this.constructor.SERVICE_MIBEACON)
         var dec
+
+        const frameControl = data[0] + (data[1] << 8)
+        const isEncrypted = (frameControl >> 3) & 1
+        const encryptionVersion = frameControl >> 12 
         if (!this.encryptionKey){
             throw new Error(`${this.getNameAndAddress()} requires an encryption key.`)
         }
-        if (this.encryptionVersion >= 4) {
+        if (encryptionVersion >= 4) {
             dec = this.decryptV4and5(data)
         } else {
-            if(this.encryptionVersion>=2){
+            if(encryptionVersion>=2){
                 dec=this.decryptV2and3(data)
             }
         }
@@ -201,10 +206,8 @@ class XiaomiMiBeacon extends BTSensor{
         const data = this.getServiceData(this.constructor.SERVICE_MIBEACON)
         if (!data || data.length<4)
             throw new Error(`Service Data ${this.constructor.SERVICE_MIBEACON} not available for ${this.getName()}`)
-        const frameControl = data[0] + (data[1] << 8)
         this.deviceID = data[2] + (data[3] << 8)
-        this.isEncrypted = (frameControl >> 3) & 1
-        this.encryptionVersion = frameControl >> 12 
+
     }   
     initSchema(){
         super.initSchema()

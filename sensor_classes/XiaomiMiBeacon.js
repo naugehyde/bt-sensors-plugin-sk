@@ -100,7 +100,7 @@ class XiaomiMiBeacon extends BTSensor{
     }
 
     getDescription(){
-        return `<div><p><img src="../bt-sensors-plugin-sk/images/LYWSD03MMC-Device.jpg" alt=LYWSD03MMC image" style="float: left; margin-right: 10px;" /> The LYWSD03MMC temperature and humidity sensor is an inexpensive environmental sensor from Xiaomi Inc. <p> WARNING: If you use the GATT connection, you won't need an encrypytion//bind key to get your data but the energy cost of maintaining a GATT connection is high and will drain your battery in about 2 weeks of persistent use. Instead follow the instructions <a href=https://github.com/PiotrMachowski/Xiaomi-cloud-tokens-extractor/?tab=readme-ov-file#linux--home-assistant-in-ssh--web-terminal target="_blank">here</a> to get your device's encryption key.<div>`
+        return `<div><p><img src="../bt-sensors-plugin-sk/images/LYWSD03MMC-Device.jpg" alt=LYWSD03MMC image" style="float: left; margin-right: 10px;" /> The LYWSD03MMC temperature and humidity sensor is an inexpensive environmental sensor from Xiaomi Inc. <p> Follow the instructions <a href=https://github.com/PiotrMachowski/Xiaomi-cloud-tokens-extractor/?tab=readme-ov-file#linux--home-assistant-in-ssh--web-terminal target="_blank">here</a> to get your device's encryption key.<div>`
     }
     
     getManufacturer(){
@@ -109,19 +109,7 @@ class XiaomiMiBeacon extends BTSensor{
     getGATTDescription() {
         return ""
     }
-/*const frctrl = data.readUInt16LE(4);
 
-    const frctrl_mesh = (frctrl >> 7) & 1;           // mesh device
-    const frctrl_version = frctrl >> 12;             // version
-    const frctrl_auth_mode = (frctrl >> 10) & 3;
-    const frctrl_solicited = (frctrl >> 9) & 1;
-    const frctrl_registered = (frctrl >> 8) & 1;
-    const frctrl_object_include = (frctrl >> 6) & 1;     // object/payload data present
-    const frctrl_capability_include = (frctrl >> 5) & 1; // capability byte present
-    const frctrl_mac_include = (frctrl >> 4) & 1;        // MAC address included in payload
-    const frctrl_is_encrypted = (frctrl >> 3) & 1;       // encryption used
-    const frctrl_request_timing = frctrl & 1;     
-*/
     async initGATTConnection(isReconnecting){
         await super.initGATTConnection(isReconnecting)
         const gatt = await this.getGATTServer()
@@ -143,20 +131,18 @@ class XiaomiMiBeacon extends BTSensor{
         })
     }
 
-    decryptV2and3(data){
+    decryptV2and3(data, index=11){
         const encryptedPayload = data.subarray(-4);
-        const xiaomi_mac = data.subarray(5,11)
-        const nonce = Buffer.concat([data.subarray(0, 5), data.subarray(-4,-1), xiaomi_mac.subarray(-1)]);
+        const nonce = Buffer.concat([data.subarray(0, 5), data.subarray(-4,-1), (this._mac_reversed)]);
         const cipher = crypto.createDecipheriv('aes-128-ccm', Buffer.from(this.encryptionKey,"hex"), nonce, { authTagLength: 4});
         cipher.setAAD(Buffer.from('11', 'hex'), { plaintextLength: encryptedPayload.length });
         
         return cipher.update(encryptedPayload)
     }
-    decryptV4and5(data){
+    decryptV4and5(data, index=11){
         
-        const encryptedPayload = data.subarray(11,-7);
-        const xiaomi_mac = data.subarray(5,11);
-        const nonce = Buffer.concat([xiaomi_mac, data.subarray(2, 5), data.subarray(-7,-4)]);
+        const encryptedPayload = data.subarray(index,-7);
+        const nonce = Buffer.concat([(this._mac_reversed), data.subarray(2, 5), data.subarray(-7,-4)]);
         const cipher = crypto.createDecipheriv('aes-128-ccm', Buffer.from(this.encryptionKey,"hex"), nonce, { authTagLength: 4});
         cipher.setAAD(Buffer.from('11', 'hex'), { plaintextLength: encryptedPayload.length });
         cipher.setAuthTag(data.subarray(-4))    
@@ -164,7 +150,7 @@ class XiaomiMiBeacon extends BTSensor{
     }
 
     hasGATT(){
-        return true
+        return false
     }
 
     propertiesChanged(props){
@@ -194,16 +180,16 @@ class XiaomiMiBeacon extends BTSensor{
             throw new Error(`${this.getNameAndAddress()} requires an encryption key.`)
         }
         if (encryptionVersion >= 4) {
-            dec = this.decryptV4and5(data)
+            dec = this.decryptV4and5(data, macInclude?11:5)
         } else {
             if(encryptionVersion>=2){
-                dec=this.decryptV2and3(data)
+                dec=this.decryptV2and3(data, macInclude?11:5)
             }
         }
         if (dec.length==0)
             throw new Error(`${this.getNameAndAddress()} received empty decrypted packet. Check that the bind/encryption key in config is correct.`)
 
-        const objCode = (dec[0]+(dec[1]<<8))
+        const objCode = dec.readUInt16LE(0)
 
         switch(objCode){
         case 0x100D:
@@ -221,7 +207,7 @@ class XiaomiMiBeacon extends BTSensor{
             this.emitData("humidity",dec,3)          
             break
         case 0x4C01:
-            this.emit("temperature",Buffer.from(dec).readFloatLE(3))          
+            this.emit("temperature",dec.readFloatLE(3)+273.15)          
             break
                    
         case 0x4C02:
@@ -240,6 +226,7 @@ class XiaomiMiBeacon extends BTSensor{
     async init(){
 
         await super.init()
+        this._mac_reversed = (Buffer.from(this.getMacAddress().replaceAll(":",""), "hex")).reverse()
         const data = this.getServiceData(this.constructor.SERVICE_MIBEACON)
         if (!data || data.length<4)
             throw new Error(`Service Data ${this.constructor.SERVICE_MIBEACON} not available for ${this.getName()}`)

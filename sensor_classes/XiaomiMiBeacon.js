@@ -207,7 +207,7 @@ class XiaomiMiBeacon extends BTSensor{
             this.emitData("humidity",dec,3)          
             break
         case 0x4C01:
-            this.emit("temperature",dec.readFloatLE(3)+273.15)          
+            this.emit("temp",dec.readFloatLE(3)+273.15)          
             break
                    
         case 0x4C02:

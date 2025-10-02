@@ -109,7 +109,19 @@ class XiaomiMiBeacon extends BTSensor{
     getGATTDescription() {
         return ""
     }
+/*const frctrl = data.readUInt16LE(4);
 
+    const frctrl_mesh = (frctrl >> 7) & 1;           // mesh device
+    const frctrl_version = frctrl >> 12;             // version
+    const frctrl_auth_mode = (frctrl >> 10) & 3;
+    const frctrl_solicited = (frctrl >> 9) & 1;
+    const frctrl_registered = (frctrl >> 8) & 1;
+    const frctrl_object_include = (frctrl >> 6) & 1;     // object/payload data present
+    const frctrl_capability_include = (frctrl >> 5) & 1; // capability byte present
+    const frctrl_mac_include = (frctrl >> 4) & 1;        // MAC address included in payload
+    const frctrl_is_encrypted = (frctrl >> 3) & 1;       // encryption used
+    const frctrl_request_timing = frctrl & 1;     
+*/
     async initGATTConnection(isReconnecting){
         await super.initGATTConnection(isReconnecting)
         const gatt = await this.getGATTServer()
@@ -143,7 +155,7 @@ class XiaomiMiBeacon extends BTSensor{
     decryptV4and5(data){
         
         const encryptedPayload = data.subarray(11,-7);
-        const xiaomi_mac = data.subarray(5,11)
+        const xiaomi_mac = data.subarray(5,11);
         const nonce = Buffer.concat([xiaomi_mac, data.subarray(2, 5), data.subarray(-7,-4)]);
         const cipher = crypto.createDecipheriv('aes-128-ccm', Buffer.from(this.encryptionKey,"hex"), nonce, { authTagLength: 4});
         cipher.setAAD(Buffer.from('11', 'hex'), { plaintextLength: encryptedPayload.length });
@@ -161,11 +173,23 @@ class XiaomiMiBeacon extends BTSensor{
         if (!props.hasOwnProperty("ServiceData")) return
         
         const data = this.getServiceData(this.constructor.SERVICE_MIBEACON)
-        var dec
+        if (data.length<12) return
+        
+        let dec=[]
+        let dataIndex=5
 
-        const frameControl = data[0] + (data[1] << 8)
+        const frameControl = data.readUInt16LE(0)
         const isEncrypted = (frameControl >> 3) & 1
         const encryptionVersion = frameControl >> 12 
+        const mesh = (frameControl >> 7) & 1;           // mesh device
+        const authMode = (frameControl >> 10) & 3;
+        const solicited = (frameControl >> 9) & 1;
+        const registered = (frameControl >> 8) & 1;
+        const objectInclude = (frameControl >> 6) & 1;     // object/payload data present
+        const capabilityInclude = (frameControl >> 5) & 1; // capability byte present
+        const macInclude = (frameControl >> 4) & 1;        // MAC address included in payload
+        const requestTiming = frameControl & 1;     
+    
         if (!this.encryptionKey){
             throw new Error(`${this.getNameAndAddress()} requires an encryption key.`)
         }
@@ -179,21 +203,34 @@ class XiaomiMiBeacon extends BTSensor{
         if (dec.length==0)
             throw new Error(`${this.getNameAndAddress()} received empty decrypted packet. Check that the bind/encryption key in config is correct.`)
 
-        switch(dec[0]){
-        case 0x0D:
+        const objCode = (dec[0]+(dec[1]<<8))
+
+        switch(objCode){
+        case 0x100D:
             this.emitData("temp",dec,3)  
             this.emitData("humidity",dec,5)      
             break    
 
-        case 0x0A:
+        case 0x100A:
             this.emitData("batteryStrength",dec,3)
             break
-        case 0x04:    
+        case 0x1004:    
             this.emitData("temp",dec,3)  
             break        
-        case 0x06:
+        case 0x1006:
             this.emitData("humidity",dec,3)          
             break
+        case 0x4C01:
+            this.emit("temperature",Buffer.from(dec).readFloatLE(3))          
+            break
+                   
+        case 0x4C02:
+            this.emit("humidity",dec[3]/100)          
+            break
+        case 0x4C03:
+            this.emit("batteryStrength",dec[3]/100)          
+            break
+        
         default:
             throw new Error(`${this.getNameAndAddress()} unable to parse decrypted service data (${util.inspect(dec)})`)
             

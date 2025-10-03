@@ -63,6 +63,22 @@ class HSC14F extends BTSensor {
     super.initSchema();
     this.addDefaultParam("batteryID");
 
+    // Number of cells parameter - configurable (default 4 for LiFePO4)
+    if (this.numberOfCells === undefined) {
+      this.numberOfCells = 4;
+    }
+
+    this.addParameter("numberOfCells", {
+      title: "Number of cells",
+      description: "Number of cells in the battery (typically 4 for 12V LiFePO4)",
+      type: "number",
+      isRequired: true,
+      default: this.numberOfCells,
+      minimum: 1,
+      maximum: 16,
+      multipleOf: 1
+    });
+
     // Voltage
     this.addDefaultPath("voltage", "electrical.batteries.voltage").read = (
       buffer
@@ -131,8 +147,8 @@ class HSC14F extends BTSensor {
     }).default = "electrical.batteries.{batteryID}.model";
 
     // Cell voltages (from command 0x22)
-    // Based on capture, appears to be 4S battery (4 cells)
-    for (let i = 0; i < 4; i++) {
+    // Number of cells is configurable via numberOfCells parameter
+    for (let i = 0; i < this.numberOfCells; i++) {
       this.addMetadatum(
         `cell${i}Voltage`,
         "V",
@@ -292,7 +308,7 @@ class HSC14F extends BTSensor {
       // Debug logging to verify buffer received
       this.debug(`Command 0x22 response: ${buffer.length} bytes, hex: ${buffer.slice(0, 30).toString('hex')}`);
       
-      for (let i = 0; i < 4; i++) {
+      for (let i = 0; i < this.numberOfCells; i++) {
         this.emitData(`cell${i}Voltage`, buffer);
       }
     });

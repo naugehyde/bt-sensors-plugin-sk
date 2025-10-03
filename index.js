@@ -445,7 +445,7 @@ module.exports =   function (app) {
 			sensor.on("connected", (state)=>{
 				updateSensor(sensor)			
 			})
-			sensor.on("error",(error)=>{
+			sensor.on("errorDetected",(error)=>{
 				updateSensor(sensor)		
 			})
 			sensor.on("debug", ()=>{
@@ -492,19 +492,17 @@ module.exports =   function (app) {
 					s.stopListening()
 				else{
 					const device = new OutOfRangeDevice(adapter, config)
-					const c = await getClassFor(device,config)
-					if (c.domain==BTSensor.SensorDomains.beacons || c.IsRoaming){
-						s = await instantiateSensor(device,config)
-						device.once("deviceFound",async (device)=>{
-								s.device=device
-								s.listen()
-								await s.activate(config, plugin)
-								removeSensorFromList(s)
-								addSensorToList(s)
-						})
+					s = await instantiateSensor(device,config)
+					device.once("deviceFound",async (device)=>{
+						s.device=device
+						s.listen()
+						if (config.active)
+							await s.activate(config, plugin)
+						removeSensorFromList(s)
 						addSensorToList(s)
-						resolve(s)
-					}
+					})
+					addSensorToList(s)
+					resolve(s)
 				}
 				if (startNumber == starts ) {
 					const errorTxt = `Unable to communicate with device ${deviceNameAndAddress(config)} Reason: ${e?.message??e}`

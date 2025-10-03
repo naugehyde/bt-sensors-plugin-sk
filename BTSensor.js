@@ -3,7 +3,7 @@ const { log } = require('node:console');
 const EventEmitter = require('node:events');
 const AutoQueue =  require("./Queue.js")
 const DistanceManager = require("./DistanceManager")
-
+const OutOfRangeDevice = require("./OutOfRangeDevice.js")
 /** 
  * @author Andrew Gerngross <oh.that.andy@gmail.com>
 */
@@ -278,7 +278,7 @@ class BTSensor extends EventEmitter {
 
     unsetError(){
         this._error=false
-        this.emit("error", false)
+        this.emit("errorDetected", false)
     }
 
     setError(message){
@@ -292,7 +292,7 @@ class BTSensor extends EventEmitter {
 
         this._errorLog.push({timestamp:Date.now(), message:message})
         this._error=true
-        this.emit("error", true)
+        this.emit("errorDetected", true)
     }
 
     //Instance Initialization functions
@@ -365,7 +365,10 @@ class BTSensor extends EventEmitter {
         await this.initSchema()
 
         this.initListen()
-        this.setState("DORMANT")
+        if ( this.device instanceof OutOfRangeDevice)
+            this.setState("OUT OF RANGE")
+        else
+            this.setState("DORMANT")
 
     }
 

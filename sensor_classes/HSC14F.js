@@ -71,11 +71,11 @@ class HSC14F extends BTSensor {
       return buffer.readUInt16LE(3) / 1000;
     };
 
-    // Current
+    // Current - CORRECTED based on buffer analysis
     this.addDefaultPath("current", "electrical.batteries.current").read = (
       buffer
     ) => {
-      // Bytes 7-8: current in signed little-endian, in milliamps
+      // Bytes 7-8: current in milliamps, signed little-endian
       // Negative = charging, Positive = discharging
       return buffer.readInt16LE(7) / 1000;
     };
@@ -85,25 +85,25 @@ class HSC14F extends BTSensor {
       "SOC",
       "electrical.batteries.capacity.stateOfCharge"
     ).read = (buffer) => {
-      // Bytes 11-12: SOC percentage
+      // Byte 11: SOC percentage (0-100)
       return buffer.readUInt8(11) / 100;
     };
 
-    // Temperature 1 (ENV temperature)
+    // Temperature 1 (ENV temperature) - CORRECTED byte position
     this.addMetadatum("temp1", "K", "Battery Environment Temperature", (buffer) => {
       // Byte 27: Environment temperature in °C
       const tempC = buffer.readUInt8(27);
       return 273.15 + tempC; // Convert to Kelvin
     }).default = "electrical.batteries.{batteryID}.temperature";
 
-    // Temperature 2 (MOS temperature)
+    // Temperature 2 (MOS temperature) - CORRECTED byte position
     this.addMetadatum("temp2", "K", "Battery MOS Temperature", (buffer) => {
       // Byte 28: MOS (MOSFET) temperature in °C
       const tempC = buffer.readUInt8(28);
       return 273.15 + tempC;
     }).default = "electrical.batteries.{batteryID}.mosfetTemperature";
 
-    // Temperature 3 (Sensor 1)
+    // Temperature 3 (Sensor) - CORRECTED byte position
     this.addMetadatum("temp3", "K", "Battery Sensor Temperature", (buffer) => {
       // Byte 29: Additional temperature sensor in °C
       const tempC = buffer.readUInt8(29);
@@ -155,10 +155,8 @@ class HSC14F extends BTSensor {
   }
 
   async initGATTNotifications() {
-    // Poll battery every 30 seconds (or configured pollFreq)
-    this.intervalID = setInterval(async () => {
-      await this.emitGATT();
-    }, 1000 * (this?.pollFreq ?? 30));
+    // Don't use notifications for polling mode
+    // The parent class initGATTInterval will handle periodic connections
   }
 
   async emitGATT() {
@@ -166,16 +164,18 @@ class HSC14F extends BTSensor {
       await this.getAndEmitBatteryInfo();
     } catch (e) {
       this.debug(`Failed to emit battery info for ${this.getName()}: ${e}`);
+      throw e; // Re-throw so parent can handle reconnection
     }
 
     // Get cell voltages after a short delay
-    setTimeout(async () => {
-      try {
-        await this.getAndEmitCellVoltages();
-      } catch (e) {
-        this.debug(`Failed to emit cell voltages for ${this.getName()}: ${e}`);
-      }
-    }, 2000);
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    try {
+      await this.getAndEmitCellVoltages();
+    } catch (e) {
+      this.debug(`Failed to emit cell voltages for ${this.getName()}: ${e}`);
+      throw e; // Re-throw so parent can handle reconnection
+    }
   }
 
   /**
@@ -185,12 +185,14 @@ class HSC14F extends BTSensor {
   async getBuffer(command) {
     let result = Buffer.alloc(256);
     let offset = 0;
+    let lastPacketTime = Date.now();
 
     // Set up listener first
     const responsePromise = new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         clearTimeout(timer);
-        this.rxChar.removeAllListeners();
+        if (completionTimer) clearTimeout(completionTimer);
+        this.rxChar.removeAllListeners("valuechanged");
         reject(
           new Error(
             `Response timed out (+10s) from HSC14F device ${this.getName()}.`
@@ -198,7 +200,9 @@ class HSC14F extends BTSensor {
         );
       }, 10000);
 
-      const valChanged = async (buffer) => {
+      let completionTimer = null;
+
+      const valChanged = (buffer) => {
         // HSC14F responses start with 0xaa followed by command byte
         if (offset === 0 && (buffer[0] !== 0xaa || buffer[1] !== command)) {
           this.debug(
@@ -211,18 +215,19 @@ class HSC14F extends BTSensor {
 
         buffer.copy(result, offset);
         offset += buffer.length;
+        lastPacketTime = Date.now();
 
-        // Check if this is the final packet
-        // HSC14F responses end with checksum bytes, typically packets are 20 bytes
-        // For simplicity, we'll wait for a pause in notifications
-        // A more robust implementation would parse the length field
-        if (buffer.length < 20 || offset > 60) {
-          // Likely complete
+        // Clear any existing completion timer
+        if (completionTimer) clearTimeout(completionTimer);
+
+        // Wait 200ms after last packet to consider response complete
+        // This allows multi-packet responses to assemble properly
+        completionTimer = setTimeout(() => {
           result = Uint8Array.prototype.slice.call(result, 0, offset);
-          this.rxChar.removeAllListeners();
+          this.rxChar.removeAllListeners("valuechanged");
           clearTimeout(timer);
           resolve(result);
-        }
+        }, 200);
       };
 
       // Set up listener BEFORE sending command
@@ -230,13 +235,13 @@ class HSC14F extends BTSensor {
     });
 
     // Small delay to ensure listener is attached
-    await new Promise(r => setTimeout(r, 50));
+    await new Promise(r => setTimeout(r, 100));
     
     // Send the command
     try {
       await this.sendCommand(command);
     } catch (err) {
-      this.rxChar.removeAllListeners();
+      this.rxChar.removeAllListeners("valuechanged");
       throw err;
     }
 
@@ -269,6 +274,9 @@ class HSC14F extends BTSensor {
    */
   async getAndEmitBatteryInfo() {
     return this.getBuffer(0x21).then((buffer) => {
+      // Debug logging to verify buffer received
+      this.debug(`Command 0x21 response: ${buffer.length} bytes, hex: ${buffer.slice(0, 30).toString('hex')}`);
+      
       ["voltage", "current", "SOC", "temp1", "temp2", "temp3"].forEach((tag) => {
         this.emitData(tag, buffer);
       });
@@ -281,6 +289,9 @@ class HSC14F extends BTSensor {
    */
   async getAndEmitCellVoltages() {
     return this.getBuffer(0x22).then((buffer) => {
+      // Debug logging to verify buffer received
+      this.debug(`Command 0x22 response: ${buffer.length} bytes, hex: ${buffer.slice(0, 30).toString('hex')}`);
+      
       for (let i = 0; i < 4; i++) {
         this.emitData(`cell${i}Voltage`, buffer);
       }
@@ -288,22 +299,7 @@ class HSC14F extends BTSensor {
   }
 
   async initGATTInterval() {
-    // Send initial handshake
-    try {
-      await this.getBuffer(0x00);
-    } catch (e) {
-      this.debug(`Handshake command failed: ${e.message}`);
-    }
-
-    // Send initialization command 0xF5 (required by HSC14F protocol)
-    try {
-      await this.getBuffer(0xF5);
-      this.debug(`Initialization command 0xF5 completed`);
-    } catch (e) {
-      this.debug(`Initialization command 0xF5 failed: ${e.message}`);
-    }
-
-    // Get static info (manufacturer, model)
+    // Get static info once (manufacturer, model) at first connection
     try {
       const mfgBuffer = await this.getBuffer(0x10);
       this.emitData("manufacturer", mfgBuffer);
@@ -314,9 +310,35 @@ class HSC14F extends BTSensor {
       this.debug(`Failed to get device info: ${e.message}`);
     }
 
-    // Start polling
-    await this.emitGATT();
-    await this.initGATTNotifications();
+    // Get first poll data before disconnecting
+    try {
+      await this.emitGATT();
+    } catch (error) {
+      this.debug(`Initial poll failed: ${error.message}`);
+    }
+
+    // Disconnect after initial data collection
+    await this.deactivateGATT().catch((e) => {
+      this.debug(`Error deactivating GATT Connection: ${e.message}`);
+    });
+    this.setState("WAITING");
+
+    // Set up polling interval - reconnect, poll, disconnect
+    this.intervalID = setInterval(async () => {
+      try {
+        this.setState("CONNECTING");
+        await this.initGATTConnection(true);
+        await this.emitGATT();
+      } catch (error) {
+        this.debug(error);
+        this.setError(`Unable to emit values for device: ${error.message}`);
+      } finally {
+        await this.deactivateGATT().catch((e) => {
+          this.debug(`Error deactivating GATT Connection: ${e.message}`);
+        });
+        this.setState("WAITING");
+      }
+    }, this.pollFreq * 1000);
   }
 
   async deactivateGATT() {

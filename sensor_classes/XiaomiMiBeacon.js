@@ -229,8 +229,9 @@ class XiaomiMiBeacon extends BTSensor{
         this._mac_reversed = (Buffer.from(this.getMacAddress().replaceAll(":",""), "hex")).reverse()
         const data = this.getServiceData(this.constructor.SERVICE_MIBEACON)
         if (!data || data.length<4)
-            throw new Error(`Service Data ${this.constructor.SERVICE_MIBEACON} not available for ${this.getName()}`)
-        this.deviceID = data[2] + (data[3] << 8)
+            this.setError(`Service Data ${this.constructor.SERVICE_MIBEACON} not available for ${this.getName()}`)
+        else
+            this.deviceID = data[2] + (data[3] << 8)
 
     }   
     initSchema(){

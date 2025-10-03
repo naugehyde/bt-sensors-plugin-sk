@@ -1,6 +1,13 @@
 # Bluetooth Sensors for [Signal K](http://www.signalk.org) 
 
 ## WHAT'S NEW  
+
+# Version 1.3.3 
+
+- Support for additional Xiaomi environmental sensors
+- Out Of Range device automatic retry
+- Pairing guide
+
 # Version 1.3.2-1
 
 - VictronSmartBatteryProtect fix

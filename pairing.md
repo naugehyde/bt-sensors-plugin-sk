@@ -126,3 +126,22 @@ Once the connection is established, you can exit the interactive utility.
 [bluetooth]# exit
 
 ```
+
+## Summary of Essential Commands
+
+| **Command** | **Purpose** | 
+| :--- | :--- |
+| `bluetoothctl` | Enter the interactive prompt. | 
+| `power on` | Power on the local Bluetooth adapter. | 
+| `scan on` | Start discovering nearby devices. | 
+| `scan off` | Stop device discovery. | 
+| `trust [MAC]` | Mark the device as trusted for auto-reconnection. **(Crucial)** | 
+| `connect [MAC]` | Establish a connection to the device (may implicitly trigger pairing). | 
+| `pair [MAC]` | Explicitly initiate the pairing process (key exchange). | 
+| `exit` | Exit the `bluetoothctl` utility. | 
+
+### Troubleshooting Tips
+
+* **Adapter Issues:** If `show` or `list` commands don't show an adapter, ensure your Bluetooth hardware is properly recognized by the system (check kernel logs or `rfkill list`).
+
+* **Device Out of Range:** Ensure the device is close to the computer and is fully charged.

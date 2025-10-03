@@ -330,11 +330,30 @@ class HSC14F extends BTSensor {
         await this.initGATTConnection(true);
         await this.emitGATT();
       } catch (error) {
+        // Check if device has been removed from BlueZ cache
+        if (error.message && error.message.includes("interface not found in proxy object")) {
+          this.debug(`Device removed from BlueZ cache. Clearing stale connection state.`);
+          this.setError(`Device out of range or removed from Bluetooth cache. Waiting for rediscovery...`);
+          
+          // Clear the interval to stop futile reconnection attempts
+          if (this.intervalID) {
+            clearInterval(this.intervalID);
+            this.intervalID = null;
+          }
+          
+          // Set state to indicate waiting for rediscovery
+          this.setState("OUT_OF_RANGE");
+          return;
+        }
+        
         this.debug(error);
         this.setError(`Unable to emit values for device: ${error.message}`);
       } finally {
         await this.deactivateGATT().catch((e) => {
-          this.debug(`Error deactivating GATT Connection: ${e.message}`);
+          // Suppress errors when device is already removed from BlueZ
+          if (!e.message || !e.message.includes("interface not found")) {
+            this.debug(`Error deactivating GATT Connection: ${e.message}`);
+          }
         });
         this.setState("WAITING");
       }

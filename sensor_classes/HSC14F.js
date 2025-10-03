@@ -75,9 +75,9 @@ class HSC14F extends BTSensor {
     this.addDefaultPath("current", "electrical.batteries.current").read = (
       buffer
     ) => {
-      // Bytes 13-14: current in signed little-endian (needs scaling)
-      // Based on capture, appears to be in 0.01A units
-      return buffer.readInt16LE(13) / 100;
+      // Bytes 7-8: current in signed little-endian, in milliamps
+      // Negative = charging, Positive = discharging
+      return buffer.readInt16LE(7) / 1000;
     };
 
     // State of Charge
@@ -89,13 +89,26 @@ class HSC14F extends BTSensor {
       return buffer.readUInt8(11) / 100;
     };
 
-    // Temperature 1
-    this.addMetadatum("temp1", "K", "Battery Temperature 1", (buffer) => {
-      // Temperature readings start around byte 23-27
-      // Need to determine exact offset and scaling
-      const tempRaw = buffer.readInt16LE(23);
-      return 273.15 + tempRaw / 10; // Convert to Kelvin
+    // Temperature 1 (ENV temperature)
+    this.addMetadatum("temp1", "K", "Battery Environment Temperature", (buffer) => {
+      // Byte 27: Environment temperature in °C
+      const tempC = buffer.readUInt8(27);
+      return 273.15 + tempC; // Convert to Kelvin
     }).default = "electrical.batteries.{batteryID}.temperature";
+
+    // Temperature 2 (MOS temperature)
+    this.addMetadatum("temp2", "K", "Battery MOS Temperature", (buffer) => {
+      // Byte 28: MOS (MOSFET) temperature in °C
+      const tempC = buffer.readUInt8(28);
+      return 273.15 + tempC;
+    }).default = "electrical.batteries.{batteryID}.mosfetTemperature";
+
+    // Temperature 3 (Sensor 1)
+    this.addMetadatum("temp3", "K", "Battery Sensor Temperature", (buffer) => {
+      // Byte 29: Additional temperature sensor in °C
+      const tempC = buffer.readUInt8(29);
+      return 273.15 + tempC;
+    }).default = "electrical.batteries.{batteryID}.sensorTemperature";
 
     // Manufacturer (from command 0x10)
     this.addMetadatum(
@@ -256,7 +269,7 @@ class HSC14F extends BTSensor {
    */
   async getAndEmitBatteryInfo() {
     return this.getBuffer(0x21).then((buffer) => {
-      ["voltage", "current", "SOC", "temp1"].forEach((tag) => {
+      ["voltage", "current", "SOC", "temp1", "temp2", "temp3"].forEach((tag) => {
         this.emitData(tag, buffer);
       });
     });

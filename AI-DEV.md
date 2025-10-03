@@ -18,7 +18,9 @@ Before starting, gather the following information about your Bluetooth battery:
 
 ### 2. Development Tools
 - Access to the physical device for testing
+- **Android device with Bluetooth debugging enabled** (CRITICAL - see section below)
 - Bluetooth scanning tools (`bluetoothctl`, nRF Connect app, etc.)
+- **Vendor's mobile app** for the battery (if available)
 - Sample data packets (advertising data, characteristic reads)
 
 ### 3. Technical Details
@@ -27,6 +29,151 @@ Before starting, gather the following information about your Bluetooth battery:
 - Data encoding format (byte order, scaling factors, units)
 - Any CRC/checksum algorithms used
 - Whether device uses advertising data or GATT connection
+
+## Critical First Step: Capture Real Bluetooth Data
+
+### Using Android Bluetooth HCI Snoop Log (ESSENTIAL)
+
+**This is the most important step** - Before writing any code, you need to capture actual Bluetooth communication from the device. The most effective method is using Android's built-in Bluetooth debugging with the vendor's app.
+
+**Why this matters:**
+- Reveals the exact protocol the device uses
+- Shows actual commands and responses
+- Eliminates guesswork about byte layouts
+- Provides test data for validation
+
+**Step-by-step process:**
+
+1. **Enable Developer Options on Android:**
+   - Go to Settings → About Phone
+   - Tap "Build Number" 7 times
+   - Go back to Settings → Developer Options
+
+2. **Enable Bluetooth HCI Snoop Log:**
+   - In Developer Options, enable "Bluetooth HCI snoop log"
+   - This captures ALL Bluetooth traffic to a file
+
+3. **Use the Vendor's App:**
+   - Install the battery manufacturer's official app
+   - Connect to your battery
+   - Navigate through all screens showing battery data
+   - Trigger all functions (refresh, settings, etc.)
+   - Let it run for 30-60 seconds
+
+4. **Extract the Log File:**
+   ```bash
+   # Pull the Bluetooth log from Android device via ADB
+   adb pull /sdcard/Android/data/btsnoop_hci.log
+   
+   # Or from newer Android versions:
+   adb bugreport
+   # Then extract: FS/data/misc/bluetooth/logs/btsnoop_hci.log
+   ```
+
+5. **Analyze with Wireshark:**
+   - Open btsnoop_hci.log in Wireshark
+   - Filter for your device's MAC address: `bluetooth.addr == XX:XX:XX:XX:XX:XX`
+   - Look for:
+     - **ATT (Attribute Protocol) packets** - GATT read/write/notify operations
+     - **Advertising packets** - Manufacturer/Service data broadcasts
+     - **Command/response patterns** - Protocol structure
+
+**What to look for in Wireshark:**
+
+For GATT devices:
+- `ATT Write Request` - Commands sent by app to device
+- `ATT Handle Value Notification` - Data pushed from device
+- `ATT Read Response` - Data read from characteristics
+- Note the characteristic handles (0x00XX) and UUIDs
+
+For Advertising devices:
+- `Advertising Data` packets
+- Manufacturer Data field with ID and hex bytes
+- Service Data field with UUID and hex bytes
+
+**Real Example - HSC14F Battery:**
+
+```
+Wireshark Filter: bluetooth.addr == AA:BB:CC:DD:EE:FF
+
+Frame 142: ATT Write Request, Handle: 0x000e
+Data: A5 5A 00 FF 01 03
+(This is the "read battery info" command)
+
+Frame 145: ATT Handle Value Notification, Handle: 0x000b
+Data: A5 5A 00 01 01 0C E4 10 0E 55 19 [...]
+(Device's response with battery data)
+
+Vendor app displayed at this moment:
+- Voltage: 13.2V (bytes 6-7: 0x0CE4 = 3300 * 0.01 / 2 cells)
+- Current: 10.5A (bytes 8-9: 0x100E = 4110 * 0.01 / 4)
+- SOC: 85% (byte 10: 0x55 = 85)
+```
+
+**Prompt to AI after capturing:**
+
+```
+I've captured Bluetooth HCI snoop log from my [DEVICE_NAME] using the vendor's
+Android app. Here's what Wireshark shows:
+
+[FOR GATT DEVICES:]
+Service UUID: 0000ffe0-0000-1000-8000-00805f9b34fb
+Characteristic UUID: 0000ffe1-0000-1000-8000-00805f9b34fb
+
+Write Request to device:
+A5 5A 00 FF 01 03
+
+Notification Response:
+A5 5A 00 01 01 0C E4 10 0E 55 19 00 01 02 [...]
+
+When this packet arrived, the vendor app displayed:
+- Voltage: 13.2V
+- Current: 10.5A
+- SOC: 85%
+- Temperature: 25°C
+
+Please help me:
+1. Understand the protocol structure
+2. Map hex bytes to displayed values
+3. Determine byte positions, endianness, and scaling
+4. Create the sensor class implementation
+
+[FOR ADVERTISING DEVICES:]
+Advertising Data shows:
+Manufacturer Data (0x1234): AB CD 0C E4 10 0E 55 01 F4
+
+When this was captured, device display showed:
+- Voltage: 13.2V
+- Current: 10.5A
+- SOC: 85%
+
+Please decode this packet format.
+```
+
+### Alternative: Using nRF Connect (If No Vendor App Available)
+
+If there's no vendor app:
+
+1. **Install nRF Connect** (Nordic Semiconductor app for Android/iOS)
+2. **Scan and connect** to your battery
+3. **Explore all services and characteristics**
+4. **Read values** from readable characteristics
+5. **Enable notifications** on notifiable characteristics
+6. **Screenshot hex values** and note what they represent
+
+**Prompt to AI:**
+```
+Using nRF Connect, I found on [DEVICE_NAME]:
+
+Service: 0000ffe0-0000-1000-8000-00805f9b34fb
+Characteristics:
+- 0000ffe1-... (Read, Notify)
+  Current value: A5 5A 00 01 01 0C E4 10 0E 55
+
+Battery label shows: 13.2V, 10.5A, 85%
+
+How do I decode this to get those values?
+```
 
 ## Step-by-Step AI-Assisted Development Process
 
@@ -444,11 +591,58 @@ MyBattery._test(sampleData)
 - [ ] Device correctly identified during scan
 - [ ] Connection establishes (if GATT)
 - [ ] All metrics parse with correct values
-- [ ] Values match device's own display
+- [ ] **Values match vendor app exactly** (critical!)
+- [ ] **Parsed values match HCI snoop captured data**
+- [ ] Values also match device's physical display (if available)
 - [ ] Reconnection works after going out of range
 - [ ] SignalK paths appear in data browser
 - [ ] Units are correct (Kelvin for temp, etc.)
 - [ ] No memory leaks over extended operation
+
+### Validating Against Captured HCI Data
+
+After implementing your sensor class, verify it parses the same packets you captured:
+
+**Extract specific packets from your capture:**
+```bash
+# Use tshark to extract hex data from your captured log
+tshark -r btsnoop_hci.log -Y "btatt && bluetooth.addr == XX:XX:XX:XX:XX:XX" \
+  -T fields -e btatt.value
+```
+
+**Test with captured data:**
+```javascript
+const MyBattery = require('./sensor_classes/MyBattery.js')
+
+// Use actual packet from your HCI capture
+const capturedPacket = "A5 5A 00 01 01 0C E4 10 0E 55 19 00 01 02"
+MyBattery._test(capturedPacket)
+
+// Output should match what vendor app showed:
+// voltage=13.2
+// current=10.5
+// SOC=0.85
+// temperature=298.15
+```
+
+**Prompt to AI if values don't match:**
+```
+My implementation parses this HCI-captured packet:
+A5 5A 00 01 01 0C E4 10 0E 55
+
+And produces:
+- voltage=33.0V (WRONG)
+- current=10.5A (CORRECT)
+
+But the vendor app showed voltage=13.2V when this packet was sent.
+
+Bytes 6-7 are: 0C E4 (hex)
+0x0CE4 = 3300 decimal
+
+The device is a 2-cell battery. Help me debug the voltage parsing.
+```
+
+**AI will likely identify:** You need to divide by number of cells, or the scaling factor is different, or byte order is reversed.
 
 ## Common Data Parsing Patterns
 

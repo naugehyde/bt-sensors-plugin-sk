@@ -498,6 +498,10 @@ module.exports =   function (app) {
 						s.listen()
 						if (config.active)
 							await s.activate(config, plugin)
+						else {
+							s.unsetError()
+							s.setState("DORMANT")
+						}
 						removeSensorFromList(s)
 						addSensorToList(s)
 					})

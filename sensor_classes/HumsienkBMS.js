@@ -22,7 +22,7 @@ const BTSensor = require("../BTSensor");
  * - 0x11: Model number
  */
 
-class HSC14F extends BTSensor {
+class HumsienkBMS extends BTSensor {
   static Domain = BTSensor.SensorDomains.electrical;
 
   // Discovered actual UUIDs from device
@@ -382,4 +382,4 @@ class HSC14F extends BTSensor {
   }
 }
 
-module.exports = HSC14F;
+module.exports = HumsienkBMS;

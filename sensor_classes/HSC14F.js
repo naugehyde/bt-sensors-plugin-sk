@@ -39,6 +39,9 @@ class HSC14F extends BTSensor {
   static ImageFile = "JBDBMS.webp"; // Using similar BMS image for now
   static Manufacturer = "BMC (HumsiENK)";
   static Description = "HSC14F LiFePO4 Battery Management System";
+  
+  // Default polling frequency in seconds (similar to other BMS sensors)
+  pollFreq = 30;
 
   /**
    * Create HSC14F command

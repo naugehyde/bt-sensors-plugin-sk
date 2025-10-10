@@ -128,8 +128,8 @@ class HSC14F extends BTSensor {
         return null;
       }
       const soc = buffer.readUInt8(11) / 100;
-      // Convert Ah to Coulombs (Ah * 3600)
-      return (this.batteryCapacityAh * soc) * 3600;
+      // Convert Ah to Coulombs (Ah * 3600), round to integer
+      return Math.round((this.batteryCapacityAh * soc) * 3600);
     };
 
     // Total Capacity - from configuration (only if batteryCapacityAh is configured)

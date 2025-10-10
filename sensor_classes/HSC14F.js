@@ -82,6 +82,16 @@ class HSC14F extends BTSensor {
       multipleOf: 1
     });
 
+    // Battery capacity parameter (optional) - HSC14F doesn't report this in protocol
+    this.addParameter("batteryCapacityAh", {
+      title: "Battery Capacity (Ah)",
+      description: "Total battery capacity in Amp-hours (optional). If provided, remaining and actual capacity will be calculated from SOC.",
+      type: "number",
+      isRequired: false,
+      minimum: 1,
+      maximum: 1000
+    });
+
     // Voltage
     this.addDefaultPath("voltage", "electrical.batteries.voltage").read = (
       buffer
@@ -106,6 +116,33 @@ class HSC14F extends BTSensor {
     ).read = (buffer) => {
       // Byte 11: SOC percentage (0-100)
       return buffer.readUInt8(11) / 100;
+    };
+
+    // Remaining Capacity - calculated from SOC (only if batteryCapacityAh is configured)
+    this.addDefaultPath(
+      "remainingCapacity",
+      "electrical.batteries.capacity.remaining"
+    ).read = (buffer) => {
+      // Only calculate if batteryCapacityAh is configured
+      if (this.batteryCapacityAh === undefined || this.batteryCapacityAh <= 0) {
+        return null;
+      }
+      const soc = buffer.readUInt8(11) / 100;
+      // Convert Ah to Coulombs (Ah * 3600)
+      return (this.batteryCapacityAh * soc) * 3600;
+    };
+
+    // Total Capacity - from configuration (only if batteryCapacityAh is configured)
+    this.addDefaultPath(
+      "capacity",
+      "electrical.batteries.capacity.actual"
+    ).read = (buffer) => {
+      // Only return value if batteryCapacityAh is configured
+      if (this.batteryCapacityAh === undefined || this.batteryCapacityAh <= 0) {
+        return null;
+      }
+      // Convert Ah to Coulombs (Ah * 3600)
+      return this.batteryCapacityAh * 3600;
     };
 
     // Temperature 1 (ENV temperature) - CORRECTED byte position
@@ -279,7 +316,8 @@ class HSC14F extends BTSensor {
       // Debug logging to verify buffer received
       this.debug(`Command 0x21 response: ${buffer.length} bytes, hex: ${buffer.slice(0, 30).toString('hex')}`);
       
-      ["voltage", "current", "SOC", "temp1", "temp2", "temp3"].forEach((tag) => {
+      // Always emit all registered paths - those with null values won't be emitted to SignalK
+      ["voltage", "current", "SOC", "remainingCapacity", "capacity", "temp1", "temp2", "temp3"].forEach((tag) => {
         this.emitData(tag, buffer);
       });
     });

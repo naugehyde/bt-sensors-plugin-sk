@@ -178,6 +178,11 @@ module.exports =   function (app) {
 				minimum: 10,
 				maximum: 3600 
 			},
+			inactivityTimeout: {title: "Inactivity timeout (in seconds). If no contact with any sensors for this period, the Bluetooth adapter will be recycled.", 
+				type: "integer", default: 60,
+				minimum: 0,
+				maximum: 3600 
+			},
 			discoveryInterval: {title: "Scan for new devices interval (in seconds-- 0 for no new device scanning)", 
 				type: "integer", 
 				default: 10,
@@ -203,6 +208,8 @@ module.exports =   function (app) {
 		plugin.started=true
 		var adapterID=options.adapter
 		var foundConfiguredDevices=0
+		var lastContactDelta=Infinity
+
 
 		if (Object.keys(options).length==0){ //empty config means initial startup. save defaults and enabled=true. 
 			let json = {configuration:{adapter:"hci0", transport:"le", discoveryTimeout:30, discoveryInterval:10}, enabled:true, enableDebug:false}
@@ -757,15 +764,28 @@ module.exports =   function (app) {
 		}
 		const minTimeout=Math.min(...deviceConfigs.map((dc)=>dc?.discoveryTimeout??options.discoveryTimeout))
 		const intervalTimeout = ((minTimeout==Infinity)?(options?.discoveryTimeout??plugin.schema.properties.discoveryTimeout.default):minTimeout)*1000
-		deviceHealthID = setInterval( ()=> {
+		
+		
+
+		deviceHealthID = setInterval( async ()=> {
 			sensorMap.forEach((sensor)=>{
 				const config = getDeviceConfig(sensor.getMacAddress())
 				const dt = config?.discoveryTimeout??options.discoveryTimeout
 				const lc=sensor.elapsedTimeSinceLastContact()
+				if (lc<lastContactDelta) //get min last contact delta
+					lastContactDelta=lc
 				if (lc > dt) { 
 					updateSensor(sensor)
 				}
 			})
+			if (sensorMap.size && lastContactDelta > options.inactivityTimeout)
+			{
+				
+				plugin.debug(`No contact with any sensors for ${lastContactDelta} seconds. Recycling Bluetooth adapter.`)	
+				await adapter.setPowered(false)
+				await adapter.setPowered(true)
+			}
+
 		}, intervalTimeout)
 		
 		if (!options.hasOwnProperty("discoveryInterval" )) //no config -- first run

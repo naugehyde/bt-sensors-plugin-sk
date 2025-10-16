@@ -2,6 +2,11 @@
 
 ## WHAT'S NEW  
 
+
+# Version 1.3.4 - beta
+
+- Experimental inactivity timeout with Bluetooth recycle
+
 # Version 1.3.3 
 
 - Support for additional Xiaomi environmental sensors

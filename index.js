@@ -178,8 +178,8 @@ module.exports =   function (app) {
 				minimum: 10,
 				maximum: 3600 
 			},
-			inactivityTimeout: {title: "Inactivity timeout (in seconds). If no contact with any sensors for this period, the Bluetooth adapter will be recycled.", 
-				type: "integer", default: 60,
+			inactivityTimeout: {title: "Inactivity timeout in seconds -- set to 0 to disable. (If no contact with any sensors for this period, the plugin will attempt to power cycle the Bluetooth adapter.)", 
+				type: "integer", default: 0,
 				minimum: 0,
 				maximum: 3600 
 			},
@@ -208,8 +208,6 @@ module.exports =   function (app) {
 		plugin.started=true
 		var adapterID=options.adapter
 		var foundConfiguredDevices=0
-		var lastContactDelta=Infinity
-
 
 		if (Object.keys(options).length==0){ //empty config means initial startup. save defaults and enabled=true. 
 			let json = {configuration:{adapter:"hci0", transport:"le", discoveryTimeout:30, discoveryInterval:10}, enabled:true, enableDebug:false}
@@ -330,7 +328,8 @@ module.exports =   function (app) {
 						transport: options.transport,
 						duplicateData: options.duplicateData,
 						discoveryTimeout: options.discoveryTimeout,
-						discoveryInterval: options.discoveryInterval
+						discoveryInterval: options.discoveryInterval,
+						inactivityTimeout: options.inactivityTimeout
 					}
 					}
 				);
@@ -521,7 +520,8 @@ module.exports =   function (app) {
 					{
 						s.setError(errorTxt)
 					} else {
-						plugin.setError(errorTxt)
+						if (config.active)
+							plugin.setError(errorTxt)
 					}
 					plugin.debug(e)
 
@@ -764,10 +764,9 @@ module.exports =   function (app) {
 		}
 		const minTimeout=Math.min(...deviceConfigs.map((dc)=>dc?.discoveryTimeout??options.discoveryTimeout))
 		const intervalTimeout = ((minTimeout==Infinity)?(options?.discoveryTimeout??plugin.schema.properties.discoveryTimeout.default):minTimeout)*1000
-		
-		
 
 		deviceHealthID = setInterval( async ()=> {
+			let lastContactDelta=Infinity
 			sensorMap.forEach((sensor)=>{
 				const config = getDeviceConfig(sensor.getMacAddress())
 				const dt = config?.discoveryTimeout??options.discoveryTimeout
@@ -778,7 +777,7 @@ module.exports =   function (app) {
 					updateSensor(sensor)
 				}
 			})
-			if (sensorMap.size && lastContactDelta > options.inactivityTimeout)
+			if (sensorMap.size && options.inactivityTimeout && lastContactDelta > options.inactivityTimeout)
 			{
 				
 				plugin.debug(`No contact with any sensors for ${lastContactDelta} seconds. Recycling Bluetooth adapter.`)	
@@ -811,6 +810,11 @@ module.exports =   function (app) {
 		if (progressTimeoutID) {
 			clearTimeout(progressTimeoutID)
 			progressTimeoutID=null
+		}
+
+		if (deviceHealthID) {
+			clearTimeout(deviceHealthID)
+			deviceHealthID=null
 		}
 
 		if ((sensorMap)){

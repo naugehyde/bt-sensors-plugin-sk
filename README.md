@@ -3,15 +3,16 @@
 ## WHAT'S NEW  
 
 
-# Version 1.3.4 - beta
+# Version 1.3.4 
 
-- Experimental inactivity timeout with Bluetooth recycle
-
+- Inactivity timeout configuration option. If > 0 and there's been no contact with any Bluetooth device, the plugin will power cycle the bluetooth adapter.
+- Exclude non-active devices that are Out of Range from Last Error and Status on SignalK Dashboard
+ 
 # Version 1.3.3 
 
 - Support for additional Xiaomi environmental sensors
 - Out Of Range device automatic retry
-- Pairing guide
+- [Device pairing guide](./pairing.md)
 
 # Version 1.3.2-1
 

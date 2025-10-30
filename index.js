@@ -516,13 +516,13 @@ module.exports =   function (app) {
 				}
 				if (startNumber == starts ) {
 					const errorTxt = `Unable to communicate with device ${deviceNameAndAddress(config)} Reason: ${e?.message??e}`
-					if(s)
-					{
-						s.setError(errorTxt)
-					} else {
-						if (config.active)
+					if (config.active) {
+						if(s)
+							s.setError(errorTxt)
+						 else 
 							plugin.setError(errorTxt)
 					}
+					plugin.debug(errorTxt)
 					plugin.debug(e)
 
 					reject( e?.message??e )

@@ -1075,7 +1075,10 @@ class BTSensor extends EventEmitter {
 		this._app.handleMessage(id, {updates: [ { $source: source, values: [ { path: path, value: val }] } ] })
   	}  
     elapsedTimeSinceLastContact(){
-        return (Date.now()-this?._lastContact??Date.now())/1000
+        if (this.device instanceof OutOfRangeDevice)
+            return Infinity
+        else 
+            return (Date.now()-this?._lastContact??Date.now())/1000
     }
 
     prepareConfig(config){

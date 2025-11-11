@@ -214,6 +214,20 @@ async getAndEmitBatteryInfo(){
     for (let i = 0; i<this.numberOfCells; i++){
       this.emit(`cell${i}Balance`,(1<<i & balances)?1:0)
     }
+
+    // cells 0-15 - read bits right to left
+    let balanceCells0to15 = buffer.readUInt16BE(16); 
+    for (let i = 0; i < Math.min(16, this.numberOfCells); i++) {
+      const bit = (balanceCells0to15 >> i) & 1; // right-to-left
+      this.emit(`cell${i}Balance`,bit);
+    }
+
+    // cells 16-31 - read bits right to left
+    let balanceCells16to31 = buffer.readUInt16BE(18);
+    for (let i = 0; i < Math.min(16, this.numberOfCells - 16); i++) {
+      const bit = (balanceCells16to31 >> i) & 1; // right-to-left 
+      this.emit(`cell${16 + i}Balance`,bit);
+    }
   })
 }
 

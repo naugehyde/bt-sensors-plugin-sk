@@ -412,7 +412,7 @@ function devicesInDomain(domain){
   }
 
   function getTabs(){
-    const sensorDomains = [... (new Set(sensorMap.entries().map((entry)=>{ return entry[1].info.domain})))].sort()
+    const sensorDomains = [... (new Set([...sensorMap.entries()].map((entry)=>{ return entry[1].info.domain})))].sort()
     const cd = Array.from(sensorMap.entries()).filter((entry)=>hasConfig(entry[1]))
     let sensorList={}
     sensorList["_configured"]=

@@ -63,6 +63,17 @@ class FeasyComBeacon extends BTSensor {
     getTextDescription(){
         return `${this.getName()} iBeacon/Eddystone device`
     }
+
+    async activate(config,paths){
+        await super.activate(config,paths)
+        await this.beacon.activate(config,paths)
+    }
+
+     async stopListening(){
+
+        await super.stopListening()
+        this.beacon.stopListening()
+    }
 }
 
 module.exports = FeasyComBeacon;

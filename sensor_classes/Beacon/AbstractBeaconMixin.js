@@ -18,7 +18,9 @@ class AbstractBeaconMixin  {
         this.initSchema=this.initSchema.bind(obj)
         this.initListen=this.initListen.bind(obj)
         this.propertiesChanged=this.propertiesChanged.bind(obj)
-        this.GPSLog=[]
+        this.activate=this.activate.bind(obj)
+        this.stopListening=this.stopListening.bind(obj)
+        obj.GPSLog=[]
     }
 
     initListen() {
@@ -27,6 +29,8 @@ class AbstractBeaconMixin  {
             //{message:`Crew Member: ${this.crewMember} evidently not on board.`})    
         }
     }
+
+
 
     initSchema() {
         this.addDefaultParam("id")
@@ -75,18 +79,7 @@ class AbstractBeaconMixin  {
         if(Object.hasOwn(props,"RSSI")){       
             const mac = this.getMacAddress()
             const rssi = props.RSSI.value
-            if (this._position){
-                this.GPSLog.unshift(
-                {
-                    timestamp: new Date().toISOString(),
-                    latitude: this._position.latitude,
-                    longitude: this._position.longitude,
-                })
-                if (this.GPSLog.length>AbstractBeaconMixin.logSize){
-                    this.GPSLog = this.GPSLog.slice(0,AbstractBeaconMixin.logSize)
-                }
-                this.emit("GPSLog", this.GPSLog)
-            }
+     
             this.constructor.DistanceManagerSingleton.addSample(mac, rssi) 
             const distances= getDistances(this.constructor.DistanceManagerSingleton, mac, this.getTxPower(), rssi)
             if (distances){
@@ -111,7 +104,6 @@ class AbstractBeaconMixin  {
 
       async activate(config,paths){
 
-        await super.activate(config,paths)
         this._positionSub  = this._app.streambundle.getSelfStream('navigation.position')
             .onValue(
                 (pos) => { 
@@ -126,7 +118,6 @@ class AbstractBeaconMixin  {
             this._positionSub()
             this._positionSub = null
         }
-        await super.stopListening()
     }
 
 }

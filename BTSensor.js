@@ -14,6 +14,7 @@ const OutOfRangeDevice = require("./OutOfRangeDevice.js")
  */
 
 const BTCompanies = require('./bt_co.json');
+const { nice } = require('d3');
 
 const connectQueue = new AutoQueue()
 
@@ -1119,6 +1120,41 @@ class BTSensor extends EventEmitter {
     return resultString || str; // Return original string if no replacements were made
   }
 
+  notifyUnableToCommunicate(){
+    	this._app.handleMessage('bt-sensors-plugin-sk', 
+            {
+                updates: [{
+                    $source: this.getName(),
+                    timestamp: (new Date()).toISOString(),
+                    values: [{
+                            path: `notifications.sensors.${this.macAndName()}`,
+                            value: {
+                            message: "Unable to communicate with sensor",
+                            state: "alert",
+                            method: ["visual", "sound"]
+                        }
+                        }]
+                }]
+            }
+        
+        );
+  }
+
+  clearUnableToCommunicate(){
+    	this._app.handleMessage('bt-sensors-plugin-sk', 
+            {
+                updates: [{
+                    $source: this.getName(),
+                    timestamp: (new Date()).toISOString(),
+                    values: [{
+                        path: `notifications.sensors.${this.macAndName()}`,
+                        value: null
+                    }]
+                }]
+            }
+        
+        );
+  }
 
 }
 

@@ -502,8 +502,10 @@ module.exports =   function (app) {
 					device.once("deviceFound",async (device)=>{
 						s.device=device
 						s.listen()
-						if (config.active)
+						if (config.active) {
+							s.clearUnableToCommunicate()
 							await s.activate(config, plugin)
+						}
 						else {
 							s.unsetError()
 							s.setState("DORMANT")
@@ -516,15 +518,18 @@ module.exports =   function (app) {
 				}
 				if (startNumber == starts ) {
 					const errorTxt = `Unable to communicate with device ${deviceNameAndAddress(config)} Reason: ${e?.message??e}`
+
 					if (config.active) {
-						if(s)
+						if(s) {
 							s.setError(errorTxt)
+							s.notifyUnableToCommunicate()	
+						}
 						 else 
 							plugin.setError(errorTxt)
 					}
 					plugin.debug(errorTxt)
 					plugin.debug(e)
-
+					
 					reject( e?.message??e )
 				}	
 			})})

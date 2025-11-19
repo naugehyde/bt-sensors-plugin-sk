@@ -73,6 +73,7 @@ const DEVICE_TYPES = new Map([
 class XiaomiMiBeacon extends BTSensor{
     static Domain = BTSensor.SensorDomains.environmental
 	static ImageFile = "LYWSD03MMC-Device.jpg"
+    
     constructor(device, config, gattConfig){
         super(device, config, gattConfig)
         this.encryptionKey = config?.encryptionKey

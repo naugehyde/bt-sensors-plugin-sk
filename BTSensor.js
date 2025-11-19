@@ -88,7 +88,11 @@ class BTSensor extends EventEmitter {
         tanks: { name: "tanks", description: "Sensors that measure level in tanks (gas, propane, water etc.) "},
         beacons: { name: "beacons", description: "iBeacon/Eddystone sensor tags"}
     }
+    static batteryStrengthTag="batteryStrength"
+
     static Domain = this.SensorDomains.unknown   
+
+    _currentValues = {}
     /**
      * 
      * @param {module:node-ble/Device} device 
@@ -956,6 +960,19 @@ class BTSensor extends EventEmitter {
         throw new Error("Subclass must implement ::emitGATT function")
     }
 
+    getCurrentValue(tag){
+        return this._currentValues[tag]
+    }
+
+    setCurrentValue(tag,value){
+        this._currentValues[tag]=value
+    }
+
+    emit(tag, value){
+        super.emit(tag, value)
+        this.setCurrentValue(tag,value)
+    }
+
     emitData(tag, buffer, ...args){
         const md = this.getPath(tag)
         if (md && md.read)
@@ -1049,7 +1066,7 @@ class BTSensor extends EventEmitter {
                 this._app.handleMessage(id, 
                 {
                 updates: 
-                    [{ meta: [{path:  this.preparePath(path), value: { units: pathMeta?.unit }}]}]
+                    [{ meta: [{path:  this.preparePath(path), value: { units: pathMeta?.unit, zones:pathMeta?.zones} }]}] 
                 })
             }
         })
@@ -1063,11 +1080,7 @@ class BTSensor extends EventEmitter {
 			if (!(path === undefined)) {
                 let preparedPath =  this.preparePath(path)
                 this.on(tag, (val)=>{
-/*					if (pathMeta.notify){
-						this._app.notify(tag, val, id )
-					} else {*/
-						this.updatePath(preparedPath,val, id, source)
-					//}
+					this.updatePath(preparedPath,val, id, source)
                 })
 			}
 		})
@@ -1129,8 +1142,8 @@ class BTSensor extends EventEmitter {
                     values: [{
                             path: `notifications.sensors.${this.macAndName()}`,
                             value: {
+                            state: "warn",
                             message: "Unable to communicate with sensor",
-                            state: "alert",
                             method: ["visual", "sound"]
                         }
                         }]
@@ -1155,7 +1168,9 @@ class BTSensor extends EventEmitter {
         
         );
   }
-
+  getBatteryStrength(){
+    return this.getCurrentValue(this.constructor.batteryStrengthTag)
+  }
 }
 
 module.exports = BTSensor   

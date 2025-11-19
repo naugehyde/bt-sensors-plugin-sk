@@ -167,6 +167,19 @@
             "title": "Battery Strength",
             "unit":"ratio",
             "default":"sensors.{macAndName}.battery.strength",
+            "zones":[
+                { "upper": 0.5,
+                  "lower": 0.3,
+                  "state": "alert",
+                  "message": "Battery low - change soon"
+                },
+                {
+                  "upper": 0.3,
+                  "lower": 0,
+                  "state": "warn",
+                  "message": "Battery very low -  change now"
+                }      
+            ],
             "description":"Sensor battery strength" 
         },
     

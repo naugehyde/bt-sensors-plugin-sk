@@ -77,6 +77,9 @@ class MissingSensor  {
 	getRSSI(){
 		return NaN
 	}
+	getBatteryStrength(){
+		return NaN
+	}
 	getState(){
 		return "OUT_OF_RANGE"
 	}
@@ -386,6 +389,7 @@ module.exports =   function (app) {
 					 debugLog: sensor.getDebugLog(),
 					 RSSI: sensor.getRSSI(),
 					 signalStrength: sensor.getSignalStrength(),
+					 batteryStrength: sensor.getBatteryStrength(),
             		 connected: sensor.isConnected(),
             		 lastContactDelta: sensor.elapsedTimeSinceLastContact()
 			}

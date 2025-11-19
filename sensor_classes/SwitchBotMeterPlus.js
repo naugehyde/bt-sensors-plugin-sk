@@ -12,6 +12,7 @@ class SwitchBotMeterPlus extends BTSensor{
     static ID = 0x0969
     static serviceDataKey = "0000fd3d-0000-1000-8000-00805f9b34fb"
     static modelID = 0x69
+    static batteryStrengthTag="battery"
 
     static async  identify(device){
         const md = await this.getDeviceProp(device,'ManufacturerData')

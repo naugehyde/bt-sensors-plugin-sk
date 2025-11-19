@@ -8,7 +8,7 @@ import {Button, Grid, Snackbar } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 
 import { BluetoothConnected, SignalCellular1Bar, SignalCellular2Bar, SignalCellular3Bar, SignalCellular4Bar, SignalCellular0Bar, SignalCellularConnectedNoInternet0Bar    } from '@material-ui/icons';
-
+import BatteryGauge from 'react-battery-gauge';
 const log = (type) => console.log.bind(console, type);
 
 import ListGroup from 'react-bootstrap/ListGroup';
@@ -371,10 +371,24 @@ function signalStrengthIcon(sensor){
   return <SignalCellular0Bar/>
 
 }
+function batteryIcon(sensor){
+  const batteryStrength = sensor.info.batteryStrength
+  if (batteryStrength===undefined)
+    return ""
+  else
+    return <BatteryGauge size={22} orientation='vertical' value={batteryStrength*100}/>
+}
 function hasConfig(sensor){
   return Object.keys(sensor.configCopy).length>0;
 }
 
+function batteryStrength(sensor){
+  const bs = sensor.info?.batteryStrength
+  if (bs)
+    return `BATT: ${bs*100}%`
+  else 
+    return ""
+}
 function createListGroupItem(sensor){
 
   const config = hasConfig(sensor)
@@ -386,7 +400,8 @@ function createListGroupItem(sensor){
         }
         }> 
         <div  class="d-flex justify-content-between align-items-center" style={config?{fontWeight:"normal"}:{fontStyle:"italic"}}>
-        {`${sensor._changesMade?"*":""}${sensor.info.name} MAC: ${sensor.info.mac} RSSI: ${ifNullNaN(sensor.info.RSSI)}`  }
+        {`${sensor._changesMade?"*":""}${sensor.info.name} MAC: ${sensor.info.mac} RSSI: ${ifNullNaN(sensor.info.RSSI)} ${batteryStrength(sensor)}`  }
+  
         <div class="d-flex justify-content-between ">
           {
             `${sensor.info.state} ${sensor.info.error?" (ERROR)": "" }`
@@ -396,6 +411,7 @@ function createListGroupItem(sensor){
             signalStrengthIcon(sensor)
           }
         </div>
+       
         </div>
         </div>
         </ListGroupItem>

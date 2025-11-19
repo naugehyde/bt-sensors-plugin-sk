@@ -2,6 +2,7 @@ const BTSensor = require("../BTSensor");
 
 class Inkbird extends BTSensor{
     static Domain = this.SensorDomains.environmental
+    static batteryStrengthTag="battery"
     static async  identify(device){
 
         const uuids = await this.getDeviceProp(device,'UUIDs')

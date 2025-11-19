@@ -29,6 +29,7 @@ class AbstractBTHomeSensor extends BTSensor {
 	 * 273.15 degrees Kelvin correspond to 0 degrees Celsius.
 	 */
 	static KELVIN_OFFSET = 273.15;
+	static batteryStrengthTag="battery"
 
 	/**
 	 * BTHome Service identifier

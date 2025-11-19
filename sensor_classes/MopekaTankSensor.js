@@ -10,6 +10,7 @@ class MopekaDevice{
 }
     
 const MopekaDevices = new Map()
+
 MopekaDevices.set()
     .set (0x0, new MopekaDevice("XXXX","Unknown Mopeka device"))
     .set (0x3, new MopekaDevice("M1017", "Pro Check"))
@@ -41,6 +42,7 @@ MopekaDevices.set()
 const BTSensor = require("../BTSensor");
 class MopekaTankSensor extends BTSensor{
     static Domain = BTSensor.SensorDomains.tanks
+    static batteryStrengthTag="battStrength"
 
     static serviceID = "0000fee5-0000-1000-8000-00805f9b34fb"
     static serviceID16 = 0xFEE5

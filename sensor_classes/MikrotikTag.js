@@ -7,6 +7,7 @@ const BTSensor = require("../BTSensor");
 class MikrotikTag extends BTSensor{
     static manufacturerID = 0x094F
     static Domain = BTSensor.SensorDomains.environmental
+    static batteryStrengthTag="battery"
     static ImageFile = "Mikrotik-TG-BT5-OUT.png"
     static  async identify(device){
         if (await this.getManufacturerID(device)==this.manufacturerID)

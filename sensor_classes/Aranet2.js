@@ -42,7 +42,7 @@ class Aranet2 extends AranetSensor{
         this.emitData("temp", buff)
         this.emitData("humidity", buff)
         this.emitData("pressure", buff)
-        this.emitData("batteryStrength", buff)
+        this.emitData("battery", buff)
         
     }       
     static ImageFile= "Aranet2.webp" 

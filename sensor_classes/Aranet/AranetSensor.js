@@ -20,6 +20,7 @@ class AranetSensor extends BTSensor{
         return null
     }
     static Domain = BTSensor.SensorDomains.environmental
+    static batteryStrengthTag="battery"
     initSchema(){
         super.initSchema()
         this.addDefaultParam("zone")

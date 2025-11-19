@@ -19,6 +19,7 @@ class GoveeSensor extends  BTSensor {
     }
 
     static DATA_ID=0xec88
+    static batteryStrengthTag="battery"
     getManufacturer(){
         return "Govee"
     }

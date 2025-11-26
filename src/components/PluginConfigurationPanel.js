@@ -376,7 +376,29 @@ function batteryIcon(sensor){
   if (batteryStrength===undefined)
     return ""
   else
-    return <BatteryGauge size={22} orientation='vertical' value={batteryStrength*100}/>
+    return <BatteryGauge size={22} orientation='vertical' customization={{
+          batteryBody: {
+            fill: 'silver',
+            strokeColor: 'silver',
+            strokeWidth: 2,
+          },
+          batteryCap: {
+            fill: 'silver',
+            strokeColor: 'silver',
+            cornerRadius: 3,
+            strokeWidth: 0,
+            capToBodyRatio: 0.4,
+          },
+         
+          readingText: {
+            lightContrastColor: 'purple',
+            darkContrastColor: 'yellow',
+            lowBatteryColor: 'red',
+            fontFamily: 'Arial',
+            fontSize: 12,
+          },
+        }} 
+  value={batteryStrength*100}/>
 }
 function hasConfig(sensor){
   return Object.keys(sensor.configCopy).length>0;
@@ -409,6 +431,9 @@ function createListGroupItem(sensor){
         <div class="d-flex justify-content-between ">
           {
             signalStrengthIcon(sensor)
+          }
+          {
+            batteryIcon(sensor)
           }
         </div>
        

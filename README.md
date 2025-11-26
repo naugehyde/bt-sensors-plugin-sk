@@ -2,6 +2,11 @@
 
 ## WHAT'S NEW  
 
+# Verstion 1.3.5 
+
+- Battery strength notification for supported sensors
+- Battery strength value/icon displayed on config page
+- MicrotikTag TG-BT5 environment sensor support 
 
 # Version 1.3.4 
 
@@ -157,6 +162,7 @@ It's pretty easy to write and deploy your own sensor class for any currently uns
 |[BTHome](https://bthome.io/)| NOTE: Framework for IOT sensor devices. |
 |[Inkbird](https://inkbird.com/)| TH-2 Temp and Humidity Sensor |
 |[SensorPush](https://www.sensorpush.com/)| Temperature, Humidity and Atmospheric Pressure sensor|
+|[MicrotikTag](https://mikrotik.com/products/group/iot-products)| TG-BT5 Temperature and Humidity and sensor|
 
 
 ### Tanks 

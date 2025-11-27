@@ -30,7 +30,6 @@
     "babel-loader": "^8.1.0",
     "chai": "^4.2.0",
     "css-loader": "^5.0.0",
-    "d3": "^6.2.0",
     "file-loader": "^6.1.1",
     "font-awesome": "^4.7.0",
     "mocha": "^8.0.1",

@@ -14,7 +14,6 @@ const OutOfRangeDevice = require("./OutOfRangeDevice.js")
  */
 
 const BTCompanies = require('./bt_co.json');
-const { nice } = require('d3');
 
 const connectQueue = new AutoQueue()
 

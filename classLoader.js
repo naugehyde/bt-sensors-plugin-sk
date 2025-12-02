@@ -15,7 +15,7 @@ const semver = require('semver')
                     classMap.set(cls.name, cls);
                 } 
                 catch (e) {
-                    console.log(`Unable to load class (${cls?.name}): ${e.message}`)
+                    console.log(`Unable to load classfile (${file}): ${e.message}`)
                     console.log(e)
                 }
 
@@ -38,7 +38,7 @@ const semver = require('semver')
                         const cls = require(module.location+module.module+"/"+classFile);
                         classMap.set(cls.name, cls);
                     } catch (e) {
-                        console.log(`Unable to load class (${cls.name}): ${e.message}`)
+                        console.log(`Unable to load classfile (${file}): ${e.message}`)
                         console.log(e)
                     }
                 })

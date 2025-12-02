@@ -1,4 +1,3 @@
-const { ThemeProvider } = require("react-bootstrap");
 const BTSensor = require("../BTSensor");
 let FakeDevice,FakeGATTService,FakeGATTCharacteristic;
 
@@ -47,7 +46,7 @@ class JikongBMS extends BTSensor {
         ),
       ]),
     ]);
-    const obj = new JikongBMS(device, { offset: 16, dischargeFloor: 0.1 });
+    const obj = new JikongBMS(device, { offset: 16, dischargeFloor: 0.1,  numberOfCells:4 });
     obj.currentProperties = { Name: "Fake JKBMS", Address: "<mac>" };
     obj.debug = (m) => {
       console.log(m);
@@ -55,7 +54,8 @@ class JikongBMS extends BTSensor {
     obj.deviceConnect = () => {};
 
     await obj.initSchema();
-    await obj.initGATTInterval();
+    await obj.initGATTConnection()
+    await obj.getAndEmitBatteryInfo();
     for (const [tag, path] of Object.entries(
       obj._schema.properties.paths.properties
     )) {

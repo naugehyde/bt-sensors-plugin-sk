@@ -395,7 +395,7 @@ function batteryIcon(sensor){
             darkContrastColor: 'yellow',
             lowBatteryColor: 'red',
             fontFamily: 'Arial',
-            fontSize: 12,
+            fontSize: 16,
           },
         }} 
   value={batteryStrength*100}/>
@@ -421,21 +421,20 @@ function createListGroupItem(sensor){
             setSensorData(sensor.config)
         }
         }> 
-        <div  class="d-flex justify-content-between align-items-center" style={config?{fontWeight:"normal"}:{fontStyle:"italic"}}>
+        <div class="d-flex justify-content-between">  
+        <div class="d-flex" style={config?{fontWeight:"normal"}:{fontStyle:"italic"}}>
         {`${sensor._changesMade?"*":""}${sensor.info.name} MAC: ${sensor.info.mac} RSSI: ${ifNullNaN(sensor.info.RSSI)} ${batteryStrength(sensor)}`  }
-  
-        <div class="d-flex justify-content-between ">
+                {batteryIcon(sensor)}          
+        </div>
+        <div class="d-flex ">
           {
             `${sensor.info.state} ${sensor.info.error?" (ERROR)": "" }`
           }
-        <div class="d-flex justify-content-between ">
+
           {
             signalStrengthIcon(sensor)
           }
-          {
-            batteryIcon(sensor)
-          }
-        </div>
+          
        
         </div>
         </div>

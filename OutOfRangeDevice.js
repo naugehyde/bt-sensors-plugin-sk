@@ -1,5 +1,4 @@
 
-const { toPathSchema } = require('@rjsf/utils');
 const EventEmitter = require('node:events');
 
 class OutOfRangeDevice extends EventEmitter{

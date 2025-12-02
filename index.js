@@ -788,7 +788,7 @@ module.exports =   function (app) {
 				if (lc > dt) { 
 					updateSensor(sensor)
 				}
-				if (sensor.noContactThreshhold && lc>sensor.noContactThreshold){
+				if (sensor.noContactThreshold && lc>sensor.noContactThreshold){
 					if (sensor.isActive())
 						sensor.notifyNoContact()
 				}

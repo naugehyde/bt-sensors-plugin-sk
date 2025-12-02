@@ -61,7 +61,7 @@ class ShellySBMO003Z extends AbstractBTHomeSensor {
 		)
 		.default="sensors.{macAndName}.button"
 
-		this._schema.properties.noContactThreshhold.default=0
+		this._schema.properties.params.properties.noContactThreshold.default=0
 	}
 }
 

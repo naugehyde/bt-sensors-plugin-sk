@@ -319,15 +319,17 @@ class BTSensor extends EventEmitter {
                     type: "integer", default:30,
                     minimum: 10,
                     maximum: 600 },
-                noContactThreshhold: {title: "If no contact (in seconds), raise warning. Set to 0 to disable", 
-                    type: "integer", 
-                    minimum: 0,
-                    maximum: 600,
-                    default: 2*(this?.discoveryTimeout??30) },
+
                 params:{
                     title:`Device parameters`,
                     type:"object",
-                    properties:{}
+                    properties:{
+                        noContactThreshold: {title: "If no contact (in seconds), raise warning. Set to 0 to disable", 
+                        type: "integer", 
+                        minimum: 0,
+                        maximum: 600,
+                        default: 2*(this?.discoveryTimeout??30) },
+                    }
                 },
                 paths:{
                     title:"Signalk Paths",

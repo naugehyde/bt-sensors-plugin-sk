@@ -43,7 +43,7 @@ class AbstractBeaconMixin  {
                 }
             )
              this.addParameter(
-                "presenceThreshhold",
+                "presenceThreshold",
                 {
                     title:'distance in meters beyond which presence on board should not be presumed',
                     type: 'integer',
@@ -51,7 +51,7 @@ class AbstractBeaconMixin  {
                 }
             )
             this.addParameter(
-                "lastContactThreshhold",
+                "lastContactThreshold",
                 {
                     title:'time in seconds beyond which presence on board should not be presumed',
                     type: 'integer',
@@ -69,7 +69,7 @@ class AbstractBeaconMixin  {
 
     }
     elapsedTimeSinceLastContact(lc){
-        if (Number.isNaN(lc) || lc > this.lastContactThreshhold){
+        if (Number.isNaN(lc) || lc > this.lastContactThreshold){
             this.emit("onBoard",false)
         }
         return lc
@@ -84,7 +84,7 @@ class AbstractBeaconMixin  {
             const distances= getDistances(this.constructor.DistanceManagerSingleton, mac, this.getTxPower(), rssi)
             if (distances){
                 this.emit("approxDistance", distances) 
-                this.emit("onBoard", distances.avgDistance<this?.presenceThreshhold??20)
+                this.emit("onBoard", distances.avgDistance<this?.presenceThreshold??20)
             }
              if (this._position){
                 this.GPSLog.unshift(

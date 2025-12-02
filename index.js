@@ -461,9 +461,12 @@ module.exports =   function (app) {
 			sensor.on("debug", ()=>{
 				updateSensor(sensor)			
 			})
+			sensor.on(sensor.constructor.batteryStrengthTag,()=>{
+					updateSensor(sensor) 
+			})
 			sensor._lastRSSI=-1*Infinity
 			sensor.on("RSSI",(()=>{
-				if (Date.now()-sensor._lastRSSI > 30000) { //only update RSSI on client every 30 seconds
+				if (Date.now()-sensor._lastRSSI > 10000) { //only update RSSI on client every 10 seconds
 
 					sensor._lastRSSI=Date.now()
 		
@@ -784,6 +787,14 @@ module.exports =   function (app) {
 					lastContactDelta=lc
 				if (lc > dt) { 
 					updateSensor(sensor)
+				}
+				if (sensor.noContactThreshhold && lc>sensor.noContactThreshold){
+					if (sensor.isActive())
+						sensor.notifyNoContact()
+				}
+				else{
+					if (sensor.isActive())
+						sensor.clearNoContact()
 				}
 			})
 			if (sensorMap.size && options.inactivityTimeout && lastContactDelta > options.inactivityTimeout)

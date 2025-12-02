@@ -319,7 +319,11 @@ class BTSensor extends EventEmitter {
                     type: "integer", default:30,
                     minimum: 10,
                     maximum: 600 },
-            
+                noContactThreshhold: {title: "If no contact (in seconds), raise warning. Set to 0 to disable", 
+                    type: "integer", 
+                    minimum: 0,
+                    maximum: 600,
+                    default: 2*(this?.discoveryTimeout??30) },
                 params:{
                     title:`Device parameters`,
                     type:"object",
@@ -1065,7 +1069,7 @@ class BTSensor extends EventEmitter {
                 this._app.handleMessage(id, 
                 {
                 updates: 
-                    [{ meta: [{path:  this.preparePath(path), value: { units: pathMeta?.unit, zones:pathMeta?.zones} }]}] 
+                    [{ meta: [{path:  this.preparePath(path), value: { units: pathMeta?.unit, zones:pathMeta?.zones } }]}] 
                 })
             }
         })
@@ -1167,6 +1171,45 @@ class BTSensor extends EventEmitter {
         
         );
   }
+ notifyNoContact(){
+    	this._app.handleMessage('bt-sensors-plugin-sk', 
+            {
+                updates: [{
+                    $source: this.getName(),
+                    timestamp: (new Date()).toISOString(),
+                    values: [{
+                            path: `notifications.sensors.${this.macAndName()}`,
+                            value: {
+                            state: "warn",
+                            message: `No contact with sensor for ${this.elapsedTimeSinceLastContact()} seconds`,
+                            method: ["visual", "sound"]
+                        }
+                        }]
+                }]
+            }
+        
+        );
+  }
+   clearNoContact(){
+    	this._app.handleMessage('bt-sensors-plugin-sk', 
+            {
+                updates: [{
+                    $source: this.getName(),
+                    timestamp: (new Date()).toISOString(),
+                    values: [{
+                            path: `notifications.sensors.${this.macAndName()}`,
+                            value: {
+                            state: "normal",
+                            message: `Communication with sensor normal`,
+                            method: []
+                        }
+                        }]
+                }]
+            }
+        
+        );
+  }
+
   getBatteryStrength(){
     return this.getCurrentValue(this.constructor.batteryStrengthTag)
   }

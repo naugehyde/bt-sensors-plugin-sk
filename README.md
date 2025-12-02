@@ -2,7 +2,13 @@
 
 ## WHAT'S NEW  
 
-# Verstion 1.3.5 
+# Version 1.3.6
+
+- New sensor parameter: no contact threshhold.
+- Notification if no contact threshhold exceeded for sensor
+- Smaller install footprint (moved rjsf dependencies to dev)
+
+# Version 1.3.5 
 
 - Battery strength notification for supported sensors
 - Battery strength value/icon displayed on config page

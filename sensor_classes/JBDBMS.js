@@ -1,4 +1,5 @@
 const BTSensor = require("../BTSensor");
+
 function sumByteArray(byteArray) {
   let sum = 0;
   for (let i = 0; i < byteArray.length; i++) {
@@ -42,13 +43,15 @@ class JBDBMS extends BTSensor {
   }
 
   async sendReadFunctionRequest(command) {
-    this.debug(`sending ${command}`);
+    this.debug(`${this.getName()}::sendReadFunctionRequest sending ${command}`);
     return await this.txChar.writeValueWithoutResponse(
       Buffer.from(this.jbdCommand(command))
     );
   }
 
   async initSchema() {
+    this.debug(`${this.getName()}::initSchema`);
+
     super.initSchema();
     this.addDefaultParam("batteryID");
 
@@ -127,22 +130,22 @@ class JBDBMS extends BTSensor {
       }
     ).default = "electrical.batteries.{batteryID}.FETStatus.discharging";
 
-    await this.deviceConnect();
-    const gattServer = await this.device.gatt();
-    const txRxService = await gattServer.getPrimaryService(
-      this.constructor.TX_RX_SERVICE
-    );
-    this.rxChar = await txRxService.getCharacteristic(
-      this.constructor.NOTIFY_CHAR_UUID
-    );
-    this.txChar = await txRxService.getCharacteristic(
-      this.constructor.WRITE_CHAR_UUID
-    );
-    await this.rxChar.startNotifications();
-
-    const cellsAndTemps = await this.getNumberOfCellsAndTemps();
-    this.numberOfCells = cellsAndTemps.cells;
-    this.numberOfTemps = cellsAndTemps.temps;
+    if (this.numberOfCells == undefined || this.numberOfTemps == undefined) {
+      try {
+        this.debug(
+          `${this.getName()}::initSchema Getting number of cells and temps...`
+        );
+        // NOTE gatt conn initiated here, in init
+        await this.initGATTConnection();
+        const cellsAndTemps = await this.getNumberOfCellsAndTemps();
+        this.numberOfCells = cellsAndTemps.cells;
+        this.numberOfTemps = cellsAndTemps.temps;
+      } catch (e) {
+        console.error(e);
+        this.numberOfCells = 4;
+        this.numberOfTemps = 2;
+      }
+    }
 
     for (let i = 0; i < this.numberOfTemps; i++) {
       this.addMetadatum(
@@ -173,36 +176,51 @@ class JBDBMS extends BTSensor {
   }
 
   hasGATT() {
+    this.debug(`${this.getName()}::hasGATT`);
     return true;
   }
+
   usingGATT() {
+    this.debug(`${this.getName()}::usingGATT`);
     return true;
   }
+  // FIXME not really needed:
   async initGATTNotifications() {
-    this.intervalID = setInterval(
-      async () => {
-        await this.emitGATT();
-      },
-      1000 * (this?.pollFreq ?? 60)
-    );
+    this.debug(`${this.getName()}::initGATTNotifications`);
   }
 
   async emitGATT() {
+    this.debug(`${this.getName()}::emitGATT`);
     try {
+      this.debug(`${this.getName()}::emitGATT calling getAndEmitBatteryInfo`);
       await this.getAndEmitBatteryInfo();
+      this.debug(
+        `${this.getName()}::emitGATT returned from getAndEmitBatteryInfo`
+      );
     } catch (e) {
-      this.debug(`Failed to emit battery info for ${this.getName()}: ${e}`);
+      console.error(e);
+      this.debug(
+        `${this.getName()}::emitGATT Failed to emit battery info for ${this.getName()}: ${e}`
+      );
     }
-    setTimeout(async () => {
-      try {
-        await this.getAndEmitCellVoltages();
-      } catch (e) {
-        this.debug(`Failed to emit Cell Voltages for ${this.getName()}: ${e}`);
-      }
-    }, 10000);
+    // setTimeout(async () => {
+    try {
+      this.debug(`${this.getName()}::emitGATT calling getAndEmitCellVoltages`);
+      await this.getAndEmitCellVoltages();
+      this.debug(
+        `${this.getName()}::emitGATT returned from getAndEmitCellVoltages`
+      );
+    } catch (e) {
+      console.error(e);
+      this.debug(
+        `${this.getName()}::emitGATT Failed to emit Cell Voltages for ${this.getName()}: ${e}`
+      );
+    }
+    // }, 10000);
   }
 
   async getNumberOfCellsAndTemps() {
+    this.debug(`${this.getName()}::getNumberOfCellsAndTemps`);
     const b = await this.getBuffer(0x3);
     return { cells: b[25], temps: b[26] };
   }
@@ -252,9 +270,47 @@ class JBDBMS extends BTSensor {
     });
   }
 
-  async initGATTConnection() {
-    this.setConnected(await this.device.isConnected());
-    return this;
+  async initGATTConnection(isReconnecting = false) {
+    this.debug(`${this.getName()}::initGATTConnection`);
+
+    if (this.rxChar)
+      try {
+        this.rxChar.removeAllListeners();
+        await this.rxChar.stopNotifications();
+      } catch (e) {
+        console.error(e);
+        this.debug(`error while stopping notifications`);
+        this.debug(e);
+      }
+
+    try {
+      await super.initGATTConnection(isReconnecting);
+      const gattServer = await this.getGATTServer();
+
+      this.txRxService = await gattServer.getPrimaryService(
+        this.constructor.TX_RX_SERVICE
+      );
+      this.rxChar = await this.txRxService.getCharacteristic(
+        this.constructor.NOTIFY_CHAR_UUID
+      );
+      this.txChar = await this.txRxService.getCharacteristic(
+        this.constructor.WRITE_CHAR_UUID
+      );
+      await this.rxChar.startNotifications();
+    } catch (e) {
+      console.error(e);
+      this.setError(e.message);
+    }
+
+    try {
+      // FIXME not really needed?
+      this.debug(`${this.getName()}::initGATTConnection sending a test poll`);
+      await this.getBuffer(0x03);
+    } catch (e) {
+      console.error(e);
+      this.debug(`Error encountered calling getBuffer(0x03)`);
+    }
+    //this.debug(`(${this.getName()}) Connections: ${this.connections++}`)
   }
 
   async getAndEmitBatteryInfo() {
@@ -298,11 +354,36 @@ class JBDBMS extends BTSensor {
   }
 
   async initGATTInterval() {
-    await this.emitGATT();
-    await this.initGATTNotifications();
+    this.debug(
+      `${this.getName()}::initGATTInterval pollFreq=${this?.pollFreq}`
+    );
+    this.intervalID = setInterval(
+      async () => {
+        this._error = false;
+        if (!(await this.device.isConnected())) {
+          await this.initGATTConnection(true);
+        }
+        await this.emitGATT();
+      },
+      (this?.pollFreq ?? 40) * 1000
+    );
+
+    try {
+      await this.emitGATT();
+    } catch (e) {
+      console.error(e);
+      this.setError(e.message);
+    }
   }
 
   async deactivateGATT() {
+    this.debug(`${this.getName()}::deactivateGATT`);
+
+    // FIXME added this. needed any more?
+    if (this.intervalID) {
+      clearInterval(this.intervalID);
+    }
+
     await this.stopGATTNotifications(this.rxChar);
     await super.deactivateGATT();
   }

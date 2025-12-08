@@ -272,11 +272,6 @@ class JBDBMS extends BTSensor {
       for (let i = 0; i < this.numberOfTemps; i++) {
         this.emitData(`temp${i}`, buffer);
       }
-      const balances = buffer.readUInt32BE(16);
-
-      for (let i = 0; i < this.numberOfCells; i++) {
-        this.emit(`cell${i}Balance`, (1 << i) & balances ? 1 : 0);
-      }
 
       // cells 0-15 - read bits right to left
       let balanceCells0to15 = buffer.readUInt16BE(16);

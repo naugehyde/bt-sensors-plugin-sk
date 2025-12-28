@@ -1071,7 +1071,7 @@ class BTSensor extends EventEmitter {
                 this._app.handleMessage(id, 
                 {
                 updates: 
-                    [{ meta: [{path:  this.preparePath(path), value: { units: pathMeta?.unit, zones:pathMeta?.zones } }]}] 
+                    [{ meta: [{path:  this.preparePath(path), value: { units: pathMeta?.unit, zones:pathMeta?.zones, renderer:pathMeta?.renderer } }]}] 
                 })
             }
         })

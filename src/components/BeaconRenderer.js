@@ -202,42 +202,48 @@ function getBearing(lat1, lon1, lat2, lon2) {
     return (bearing + 360) % 360;
 }
 
-const BeaconRenderer = ({value, centerOffset={x:0,y:0}, size}) => {
+const BeaconRenderer = ({value, centerOffset={x:0,y:0}, size=200}) => {
    const [index, setIndex] = useState(0);
-   const [distanceTo, setDistanceTo ] = useState(calculateNauticalDistance(value.latitude, value.longitude, value[index].latitude, value[index].longitude ))
+   const distanceTo = calculateNauticalDistance(value.currentPosition.latitude, value.currentPosition.longitude, value.log[index].latitude, value.log[index].longitude );
 
-  const latLonOffset = getLatLonOffset(  value.log[index].latitude, value.log[index].longitude, value.latitude, value.longitude )
+  const latLonOffset = getLatLonOffset(  value.log[index].latitude, value.log[index].longitude, value.currentPosition.latitude, value.currentPosition.longitude )
 
   const minSize=Math.max(Math.abs(latLonOffset.x*1.5),Math.abs(latLonOffset.y*1.5))
-  const spriteScale=minSize<beam?0.9:scale/2
-  const ptom = size/(loa/scale)
-  console.log(scale, value.loa/(1/scale), ptom, latLonOffset.x*ptom, latLonOffset.y*ptom)
-   return (
-    <div>
-  
-     <div style={{ width: size, height: size, background: '#42b9f5', border: '1px solid #ccc', position:'absolute'  }}>
+  const scale= value.loa/(Math.max(minSize,value.loa))
+
+  const spriteScale=scale/2
+  const ptom = size/(value.loa/scale)
+  const timeDiff = new Date()-new Date(value.log[index].timestamp).valueOf()
+  const t = 
+  function (threshold, val, defaultVal) {
+    return timeDiff/1000 <= threshold ? defaultVal : val
+  } 
+  return (
+   
+     <div style={{ width: size, height: size, background: '#42b9f5', border: '1px solid #ccc', position:'relative'  }}>
        <div style={{  transform: [
-                            `translateX(${latLonOffset.x*ptom/2}px) 
-                            translateY(${latLonOffset.y*ptom/2}px)`]
+                            `translateX(${t(10, latLonOffset.x*ptom/2,0)}px) 
+                            translateY(${t(10, latLonOffset.y*ptom/2,0)}px)`]
                     }}>
         <div style={{ zIndex:1, width: size, height: size, position: 'absolute',   
-                        transform: [`scale(${spriteScale})
+                        transform: [`scale(${t(10,spriteScale,.9)})
                     rotate(${value.heading}rad)`]}}>
           <Boat  lengthMeters={value.loa} widthMeters={value.beam} offset={centerOffset}   />
         </div>
        </div>
-        <div style={{  transform: [`scale(${spriteScale})`], width: size, height: size, position: 'absolute', zIndex:2}}>
-        <FuzzyDistance pulse={distanceTo*1852>(value.loa/2)} scale={(value.loa)} accuracy={value.log[index].distances.accuracy} distance={value.log[index].distances.avgDistance} centerOffset={centerOffset} size={size}/> 
+        <div style={{  transform: [`scale(${t(10,spriteScale,.9)})`], width: size, height: size, position: 'absolute', zIndex:2}}>
+        <FuzzyDistance pulse={timeDiff/1000>10} scale={(value.loa)} accuracy={value.log[index].distances.accuracy} distance={value.log[index].distances.avgDistance} centerOffset={centerOffset} size={size}/> 
         </div>
 
        <div style={{ color:"black",  fontSize: `${size/22}px`}}>
        <div style={{ position: 'absolute', top:10, left: 10}}>
        
        {value.log[0].latitude}, {value.log[0].longitude} <p/>
-          {formatMilliseconds(timeNow-new Date(value.log[index].timestamp).valueOf())}
+          {formatMilliseconds(timeDiff)}
        </div>
         <div style={{ position: 'absolute', bottom:10, left:10 }}>
-       {distanceTo>.25?distanceTo.toFixed(2)+'nm':(distanceTo*1852).toFixed(2)+'m'} {getBearing(value.latitude, value.longitude, value.log[index].latitude, value.log[index].longitude ).toFixed(2)}°
+       {t(10,distanceTo>.25?distanceTo.toFixed(2)+'nm':(distanceTo*1852).toFixed(2)+'m',"")} 
+        {t(10,getBearing(value.currentPosition.latitude, value.currentPosition.longitude, value.log[index].latitude, value.log[index].longitude ).toFixed(2)+'°',"")}
         </div>
      </div>
         <div style={{ color:"black", position: 'absolute', bottom:10, right:40 }}>
@@ -254,7 +260,6 @@ const BeaconRenderer = ({value, centerOffset={x:0,y:0}, size}) => {
        ►
       </button>
       </div>
-    </div>
     </div>
   );
 };

@@ -2,6 +2,12 @@
 
 ## WHAT'S NEW  
 
+# Version 1.3.6-beta4
+
+- https://github.com/naugehyde/bt-sensors-plugin-sk/issues/107
+- https://github.com/naugehyde/bt-sensors-plugin-sk/issues/106
+- https://github.com/naugehyde/bt-sensors-plugin-sk/issues/103
+
 # Version 1.3.6
 
 - New sensor parameter: no contact threshhold.

@@ -301,6 +301,16 @@ class GobiusCTankMeter extends BTSensor{
         this.addDefaultParam("id")
                 .default="1"
 
+        this.addParameter("capacity",
+            {
+                title:"capacity of tank in m3 (liters/1000)",
+                type:"number",
+                unit:"m3",
+                isRequired: true,
+                default:10000
+            }
+        )
+                
         this.addMetadatum("mst","","Device state",
             (buffer)=>{return GobiusState.get(buffer.readInt8(0))}
         )
@@ -321,6 +331,11 @@ class GobiusCTankMeter extends BTSensor{
             (buffer)=>{return buffer.readInt16BE(3)/1000}
         )
         .default='tanks.{type}.{id}.currentLevel'
+
+        this.addMetadatum("mfr","m3","Remaining volume",
+            (buffer)=>{return this.capacity*(buffer.readInt16BE(3)/1000)}
+        )
+        .default='tanks.{type}.{id}.remaining'
 
         this.addMetadatum("minc","rad","Sensor inclination",
             (buffer)=>{return buffer.readInt8(5) * Math.PI/180}

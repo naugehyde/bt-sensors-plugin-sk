@@ -975,6 +975,9 @@ class BTSensor extends EventEmitter {
 
     emit(tag, value){
         super.emit(tag, value)
+        if (this.usingGATT()) //update last contact time only for GATT devices 
+                              //which do not receive propertyChanged events when connected
+            this._lastContact=Date.now()
         this.setCurrentValue(tag,value)
     }
 
@@ -1091,8 +1094,10 @@ class BTSensor extends EventEmitter {
 		})
 	}
 	updatePath(path, val, id, source){
+
 		this._app.handleMessage(id, {updates: [ { $source: source, values: [ { path: path, value: val }] } ] })
   	}  
+
     elapsedTimeSinceLastContact(){
         if (this.device instanceof OutOfRangeDevice)
             return Infinity

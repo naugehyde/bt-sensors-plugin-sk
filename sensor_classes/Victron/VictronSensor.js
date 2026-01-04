@@ -16,19 +16,25 @@ const VictronIdentifier = require('./VictronIdentifier.js');
     }
 
     
-    static async getDataPacket(device, md){
+    static async getDataPacket(device, md, timeout=60000) {
         if (md && md[this.ManufacturerID]?.value[0]==0x10)
             return md[this.ManufacturerID].value
 
         device.helper._prepare()
 
         return new Promise((resolve, reject) => {
+            const timeoutID = setTimeout(() => {
+                device.helper.removeListeners()
+                reject(new Error("Timeout waiting for Victron Manufacturer Data"))
+            }, timeout);
+            
             device.helper.on("PropertiesChanged",
             (props)=> {
                 if (Object.hasOwn(props,'ManufacturerData')){
                     const md = props['ManufacturerData'].value
                     if(md[this.ManufacturerID].value[0]==0x10) {
                         device.helper.removeListeners()
+                        clearTimeout(timeoutID);
                         resolve(md[this.ManufacturerID].value)
                     }
                 }

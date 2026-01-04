@@ -5,7 +5,7 @@ function getDistances(distanceManager, mac, txPower, rssi ){
     const accuracy = (Math.min(1,+(txPower/rssi).toFixed(3)))
     return {
         avgDistance: +distanceManager.getDistance(mac, txPower, DistanceManager.METHOD_AVG, true).toFixed(2),
-        weightedAveDistance: +distanceManager.getDistance(mac, txPower, DistanceManager.METHOD_WEIGHTED_AVG, true).toFixed(2),
+        weightedAvgDistance: +distanceManager.getDistance(mac, txPower, DistanceManager.METHOD_WEIGHTED_AVG, true).toFixed(2),
         sampledDistance: +distanceManager.getDistance(mac, txPower, DistanceManager.METHOD_LAST_FEW_SAMPLES, true).toFixed(2),
         accuracy: accuracy
     }
@@ -20,7 +20,7 @@ class AbstractBeaconMixin  {
         this.propertiesChanged=this.propertiesChanged.bind(obj)
         this.activate=this.activate.bind(obj)
         this.stopListening=this.stopListening.bind(obj)
-        obj.GPSLog=[]
+        obj.GPSLog={log:[],beam:0,loa:0}
     }
 
     initListen() {
@@ -86,16 +86,17 @@ class AbstractBeaconMixin  {
                 this.emit("approxDistance", distances) 
                 this.emit("onBoard", distances.avgDistance<this?.presenceThreshold??20)
             }
-             if (this._position){
-                this.GPSLog.unshift(
+             if (his.GPSLog.currentPosition){
+                this.GPSLog.log.unshift(
                 {
                     timestamp: new Date().toISOString(),
-                    latitude: this._position.latitude,
-                    longitude: this._position.longitude,
+                    heading: this.GPSLog.heading,
                     distances: distances
                 })
-                if (this.GPSLog.length>AbstractBeaconMixin.logSize){
-                    this.GPSLog = this.GPSLog.slice(0,AbstractBeaconMixin.logSize)
+                Object.assign(this.GPSLog.log[0], this.GPSLog.currentPosition)
+                
+                if (this.GPSLog.log.length>AbstractBeaconMixin.logSize){
+                    this.GPSLog.log = this.GPSLog.log.slice(0,AbstractBeaconMixin.logSize)
                 }
                 this.emit("GPSLog", this.GPSLog)
             }
@@ -104,19 +105,36 @@ class AbstractBeaconMixin  {
 
       async activate(config,paths){
 
+        this.GPSLog.beam=this._app.getSelfPath('design.beam')
+        this.GPSLog.loa=this._app.getSelfPath('design.length.overall')
+        
         this._positionSub  = this._app.streambundle.getSelfStream('navigation.position')
             .onValue(
                 (pos) => { 
-                    this._position=pos 
+                    this.GPSLog.currentPosition=pos
+                    
+                    this.emit("GPSLog",this.GPSLog)
                 }
             );
 
+        this._headingSub  = this._app.streambundle.getSelfStream('navigation.headingTrue')
+            .onValue(
+                (pos) => { 
+                    this.GPSLog.heading=heading
+                    
+                    this.emit("GPSLog",this.GPSLog)
+                }
+            );
     }
 
      async stopListening(){
         if (this._positionSub){
             this._positionSub()
             this._positionSub = null
+        }
+        if (this._headingSub){
+            this._headingSub()
+            this._headingSub = null
         }
     }
 

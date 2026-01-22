@@ -1,3 +1,4 @@
+const { buffer } = require("stream/consumers");
 const BTSensor = require("../BTSensor");
 const crypto = require("crypto");
 
@@ -10,23 +11,23 @@ class BMBatteryMonitor extends BTSensor {
   static GATT_WRITE_UUID = "0000fff3-0000-1000-8000-00805f9b34fb";
   static cryptKeys = {
     2: Buffer.from([
-    0x6c,
-    0x65,
-    0x61,
-    0x67,
-    0x65,
-    0x6e,
-    0x64,
-    0xff,
-    0xfe,
-    0x31,
-    0x38,
-    0x38,
-    0x32,
-    0x34,
-    0x36,
-    0x36,
-  ]),
+      0x6c,
+      0x65,
+      0x61,
+      0x67,
+      0x65,
+      0x6e,
+      0x64,
+      0xff,
+      0xfe,
+      0x31,
+      0x38,
+      0x38,
+      0x32,
+      0x34,
+      0x36,
+      0x36,
+    ]),
     6: Buffer.from([
       0x6c,
       0x65,
@@ -62,15 +63,14 @@ class BMBatteryMonitor extends BTSensor {
       0x30,
       0x30,
       0x40,
-    ])
+    ]),
   };
-
 
   static BatteryState = {
     0: "Normal",
     1: "Low voltage",
-    2: "Charging"
-  }
+    2: "Charging",
+  };
   static COMMAND_HEX = "d1550700000000000000000000000000";
 
   static async identify(device) {
@@ -81,9 +81,11 @@ class BMBatteryMonitor extends BTSensor {
   }
   static ImageFile = "bm6.webp";
 
-  createCipher(encrypt=true) {
+  createCipher(encrypt = true) {
     const iv = Buffer.alloc(16, 0);
-    const cipher = encrypt?crypto.createCipheriv("aes-128-cbc", this._getCryptKey(), iv):crypto.createDecipheriv("aes-128-cbc", this._getCryptKey(), iv)  ;
+    const cipher = encrypt
+      ? crypto.createCipheriv("aes-128-cbc", this._getCryptKey(), iv)
+      : crypto.createDecipheriv("aes-128-cbc", this._getCryptKey(), iv);
     cipher.setAutoPadding(false);
     return cipher;
   }
@@ -107,17 +109,39 @@ class BMBatteryMonitor extends BTSensor {
     return true;
   }
 
-  emitGATT() {
+  async emitGATT() {
+    return new Promise(async (resolve, reject) => {
+       await this.read.startNotifications();
+       await this.write.writeValueWithResponse(
+         this.encryptCommand(this._getCryptKey())
+       );
+
+      const timer = setTimeout(() => {
+        this.read.removeAllListeners();
+        clearTimeout(timer);
+        reject(
+          new Error(
+            `Response timed out (+30s) getting results for command ${command} from BM device ${this.getName()}.`
+          )
+        );
+      }, 30000);
+
+
+      this.read.once("valuechanged", (buffer) => {
+        clearTimeout(timer); 
+        this.emitValuesFrom(this.decryptPayload(buffer));
+        resolve(this);
+      });
+  })
+}
+
+/*  async emitGATT() {
     //TBD: May not work needs testing
     this.read
       .readValue()
-      .then((buffer) =>
-        this.emitValuesFrom(
-          this.decryptPayload(buffer)
-        )
-      );
+      .then((buffer) => this.emitValuesFrom(this.decryptPayload(buffer)));
   }
-
+*/
   _getCryptKey() {
     return this.constructor.cryptKeys[this.monitorVersion];
   }
@@ -147,16 +171,15 @@ class BMBatteryMonitor extends BTSensor {
       return buffer.readUInt8(6) / 100;
     };
 
-     this.addMetadatum("batteryState", "", "battery state", (buff) => {
-       return this.constructor.BatteryState[buff.readUInt8(5)];
-     }).default = "electrical.batteries.{batteryID}.state";
-
+    this.addMetadatum("batteryState", "", "battery state", (buff) => {
+      return this.constructor.BatteryState[buff.readUInt8(5)];
+    }).default = "electrical.batteries.{batteryID}.state";
 
     this.addDefaultPath(
       "temperature",
       "electrical.batteries.temperature"
     ).read = (buffer) => {
-      return ((buffer.readUInt8(3)?-1:1)*buffer.readUInt8(4)) + 273.15
+      return (buffer.readUInt8(3) ? -1 : 1) * buffer.readUInt8(4) + 273.15;
     };
   }
 
@@ -174,6 +197,18 @@ class BMBatteryMonitor extends BTSensor {
     );
   }
 
+  emitValuesFrom(buffer) {
+    if (buffer.length < 16) {
+      this.debug(`Received invalid buffer ${JSON.stringify(buffer)}`);
+      return;
+    }
+    const b = this.decryptPayload(buffer);
+    if (Buffer.compare(b.subarray(0, 3), Buffer.from([0xd1, 0x55, 0x07])) == 0)
+      super.emitValuesFrom(b);
+    else
+      this.debug(`Received invalid decrypted buffer ${JSON.stringify(b)}`);
+  }
+
   async initGATTNotifications() {
     await this.read.startNotifications();
     await this.write.writeValueWithResponse(
@@ -181,13 +216,7 @@ class BMBatteryMonitor extends BTSensor {
     );
 
     this.read.on("valuechanged", (buffer) => {
-      if (buffer.length < 16) {
-        this.debug(`Received invalid buffer ${JSON.stringify(buffer)}`);
-        return;
-      }
-      const b = this.decryptPayload(buffer);
-      if (Buffer.compare(b.subarray(0, 3), Buffer.from([0xd1, 0x55, 0x07]))==0)
-        this.emitValuesFrom(b);
+        this.emitValuesFrom(buffer);
     });
   }
 

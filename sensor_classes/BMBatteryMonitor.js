@@ -9,7 +9,7 @@ class BMBatteryMonitor extends BTSensor {
   static GATT_READ_UUID = "0000fff4-0000-1000-8000-00805f9b34fb";
   static GATT_WRITE_UUID = "0000fff3-0000-1000-8000-00805f9b34fb";
   static cryptKeys = {
-    2: BMBatteryMonitor.Buffer.from([
+    2: Buffer.from([
     0x6c,
     0x65,
     0x61,
@@ -27,7 +27,7 @@ class BMBatteryMonitor extends BTSensor {
     0x36,
     0x36,
   ]),
-    6: BMBatteryMonitor.Buffer.from([
+    6: Buffer.from([
       0x6c,
       0x65,
       0x61,
@@ -81,9 +81,9 @@ class BMBatteryMonitor extends BTSensor {
   }
   static ImageFile = "bm6.webp";
 
-  createCipher() {
+  createCipher(encrypt=true) {
     const iv = Buffer.alloc(16, 0);
-    const cipher = crypto.createCipheriv("aes-128-cbc", this._getCryptKey(), iv);
+    const cipher = encrypt?crypto.createCipheriv("aes-128-cbc", this._getCryptKey(), iv):crypto.createDecipheriv("aes-128-cbc", this._getCryptKey(), iv)  ;
     cipher.setAutoPadding(false);
     return cipher;
   }
@@ -95,7 +95,7 @@ class BMBatteryMonitor extends BTSensor {
   }
 
   decryptPayload(payload) {
-    const cipher = this.createCipher();
+    const cipher = this.createCipher(false);
     const decrypted = Buffer.concat([cipher.update(payload), cipher.final()]);
     return decrypted;
   }
@@ -119,7 +119,7 @@ class BMBatteryMonitor extends BTSensor {
   }
 
   _getCryptKey() {
-    return this.cryptKeys[this.monitorVersion];
+    return this.constructor.cryptKeys[this.monitorVersion];
   }
   initSchema() {
     super.initSchema();
@@ -128,6 +128,7 @@ class BMBatteryMonitor extends BTSensor {
       title: "monitor version", //unclear if version 2 has same GATT characteristics and data format
       enum: [2, 6, 7],
       isRequired: true,
+      type: "number",
       default: 6,
     });
 
@@ -180,9 +181,11 @@ class BMBatteryMonitor extends BTSensor {
     );
 
     this.read.on("valuechanged", (buffer) => {
-      this.emitValuesFrom(
-        this.decryptPayload(buffer, this._getCryptKey())
-      );
+      if (
+        buffer.length > 3 &&
+        Buffer.compare(b.slice(0, 3), Buffer.from([0xd1, 0x55, 0x07]))==0
+      )
+        this.emitValuesFrom(this.decryptPayload(buffer, this._getCryptKey()));
     });
   }
 

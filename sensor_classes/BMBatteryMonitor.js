@@ -5,8 +5,10 @@ const crypto = require("crypto");
 
 class BMBatteryMonitor extends BTSensor {
   static Domain = BTSensor.SensorDomains.electrical;
-
-  cryptKeys = {
+  static GATT_SERVICE_UUID = "0000fff0-0000-1000-8000-00805f9b34fb";
+  static GATT_READ_UUID = "0000fff4-0000-1000-8000-00805f9b34fb";
+  static GATT_WRITE_UUID = "0000fff3-0000-1000-8000-00805f9b34fb";
+  static cryptKeys = {
     2: BMBatteryMonitor.Buffer.from([
     0x6c,
     0x65,
@@ -64,6 +66,11 @@ class BMBatteryMonitor extends BTSensor {
   };
 
 
+  static BatteryState = {
+    0: "Normal",
+    1: "Low voltage",
+    2: "Charging"
+  }
   static COMMAND_HEX = "d1550700000000000000000000000000";
 
   static async identify(device) {
@@ -74,21 +81,21 @@ class BMBatteryMonitor extends BTSensor {
   }
   static ImageFile = "bm6.webp";
 
-  createCipher(key) {
+  createCipher() {
     const iv = Buffer.alloc(16, 0);
-    const cipher = crypto.createCipheriv("aes-128-cbc", key, iv);
+    const cipher = crypto.createCipheriv("aes-128-cbc", this._getCryptKey(), iv);
     cipher.setAutoPadding(false);
     return cipher;
   }
 
-  encryptCommand(key) {
-    const cipher = this.createCipher(key);
+  encryptCommand() {
+    const cipher = this.createCipher();
     const plaintext = Buffer.from(this.constructor.COMMAND_HEX, "hex");
     return Buffer.concat([cipher.update(plaintext), cipher.final()]);
   }
 
-  decryptPayload(payload, key) {
-    const cipher = this.createCipher(key);
+  decryptPayload(payload) {
+    const cipher = this.createCipher();
     const decrypted = Buffer.concat([cipher.update(payload), cipher.final()]);
     return decrypted;
   }
@@ -100,22 +107,25 @@ class BMBatteryMonitor extends BTSensor {
     return true;
   }
 
-  // write <data=0xd1 0x55 0x07 00 00 00 00 00 00 00 00 00 00 00 00 00>
   emitGATT() {
+    //TBD: May not work needs testing
     this.read
       .readValue()
       .then((buffer) =>
         this.emitValuesFrom(
-          this.decryptPayload(buffer, this.cryptKeys[this.monitorVersion])
+          this.decryptPayload(buffer)
         )
       );
   }
 
+  _getCryptKey() {
+    return this.cryptKeys[this.monitorVersion];
+  }
   initSchema() {
     super.initSchema();
     this.getGATTParams()["useGATT"].default = true;
     this.addParameter("monitorVersion", {
-      title: "monitor version",
+      title: "monitor version", //unclear if version 2 has same GATT characteristics and data format
       enum: [2, 6, 7],
       isRequired: true,
       default: 6,
@@ -126,7 +136,7 @@ class BMBatteryMonitor extends BTSensor {
     this.addDefaultPath("voltage", "electrical.batteries.voltage").read = (
       buffer
     ) => {
-      return buffer.readUInt16BE(8) / 100;
+      return buffer.readUInt16BE(7) / 100;
     };
 
     this.addDefaultPath(
@@ -136,11 +146,10 @@ class BMBatteryMonitor extends BTSensor {
       return buffer.readUInt8(6) / 100;
     };
 
-    /*this.addDefaultPath("current", "electrical.batteries.current").read = (
-      buffer
-    ) => {
-      return buffer.readInt16BE(22) / 100;
-    };*/
+     this.addMetadatum("batteryState", "", "battery state", (buff) => {
+       return this.constructor.BatteryState[buff.readIntU8(5)];
+     }).default = "electrical.batteries.{id}.state";
+
 
     this.addDefaultPath(
       "temperature",
@@ -154,24 +163,25 @@ class BMBatteryMonitor extends BTSensor {
     await super.initGATTConnection(isReconnecting);
     const gattServer = await this.getGATTServer();
     const service = await gattServer.getPrimaryService(
-      "0000fff0-0000-1000-8000-00805f9b34fb"
+      this.constructor.GATT_SERVICE_UUID
     );
     this.write = await service.getCharacteristic(
-      "0000fff3-0000-1000-8000-00805f9b34fb"
+      this.constructor.GATT_WRITE_UUID
     );
     this.read = await service.getCharacteristic(
-      "0000fff4-0000-1000-8000-00805f9b34fb"
+      this.constructor.GATT_READ_UUID
     );
   }
+
   async initGATTNotifications() {
     await this.read.startNotifications();
     await this.write.writeValueWithResponse(
-      this.encryptCommand(this.cryptKeys[this.monitorVersion])
+      this.encryptCommand(this._getCryptKey())
     );
 
     this.read.on("valuechanged", (buffer) => {
       this.emitValuesFrom(
-        this.decryptPayload(buffer, this.cryptKeys[this.monitorVersion])
+        this.decryptPayload(buffer, this._getCryptKey())
       );
     });
   }

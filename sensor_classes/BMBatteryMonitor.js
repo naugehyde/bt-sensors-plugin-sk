@@ -148,7 +148,7 @@ class BMBatteryMonitor extends BTSensor {
     };
 
      this.addMetadatum("batteryState", "", "battery state", (buff) => {
-       return this.constructor.BatteryState[buff.readIntU8(5)];
+       return this.constructor.BatteryState[buff.readUInt8(5)];
      }).default = "electrical.batteries.{id}.state";
 
 

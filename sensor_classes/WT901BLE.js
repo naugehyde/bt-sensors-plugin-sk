@@ -14,6 +14,7 @@ class WT901BLE extends   WT901Sensor {
     static TX_RX_SERVICE = "0000ffe5-0000-1000-8000-00805f9a34fb";
     static NOTIFY_CHAR_UUID = "0000ffe4-0000-1000-8000-00805f9a34fb";
     static WRITE_CHAR_UUID = "0000ffe9-0000-1000-8000-00805f9a34fb";
+    pollFreq = 0;
 
     // comands and data format
     // from https://wit-motion.gitbook.io/witmotion-sdk/ble-5.0-protocol/bluetooth-5.0-communication-protocol
@@ -45,13 +46,13 @@ class WT901BLE extends   WT901Sensor {
         const sensor = new WT901BLE()
         sensor.getName=()=>{return "WT901BLE fake"}
         sensor.initSchema()
-        sensor.on("pitch", (t)=>{console.log(`pitch => ${t}`)})
-        sensor.on("roll", (t)=>{console.log(`roll => ${t}`)})
-        sensor.on("yaw", (t)=>{console.log(`yaw => ${t}`)})
-        console.log("starting tests")
+        sensor.on("pitch", (t)=>{this.debug(`pitch => ${t}`)})
+        sensor.on("roll", (t)=>{this.debug(`roll => ${t}`)})
+        sensor.on("yaw", (t)=>{this.debug(`yaw => ${t}`)})
+        this.debug("starting tests")
         var match = {AccX: -0.015, AccY: -0.054, AccZ: 1.0, AsX: 0.0, AsY: 0.0, AsZ: 0.0, AngX: -2.939, AngY: 1.099, AngZ: 82.639 };
         sensor.emitValuesFrom(Buffer.from([0x55, 0x61, 0xe1, 0xff, 0x91, 0xff, 0x00, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xe9, 0xfd, 0xc8, 0x00, 0xc4, 0x3a, ]))
-        console.log(sensor.data)
+        this.debug(sensor.data)
         this.shallowEqual(sensor.data, match)
         match = {'AccX': -0.025, 'AccY': -0.054, 'AccZ': 1.0, 'AsX': 0.0, 'AsY': 0.0, 'AsZ': 0.0, 'AngX': -2.939, 'AngY': 1.099, 'AngZ': 82.639}
         sensor.emitValuesFrom(Buffer.from([0x55, 0x71, 0x3a, 0x00, 0xab, 0x0b, 0x48, 0x02, 0x68, 0x0d, 0xe9, 0xfd, 0xc8, 0x00, 0xc4, 0x3a, 0x94, 0x07, 0x00, 0x00, ]))
@@ -62,9 +63,12 @@ class WT901BLE extends   WT901Sensor {
         sensor.emitValuesFrom(Buffer.from([0x55, 0x61, 0xdf, 0xff, 0x91, 0xff, 0xff, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xe6, 0xfd, 0xc4, 0x00, 0xc4, 0x3a, ]))
         match = {'AccX': -0.016, 'AccY': -0.054, 'AccZ': 1.0, 'AsX': 0.0, 'AsY': 0.0, 'AsZ': 0.0, 'AngX': -2.955, 'AngY': 1.077, 'AngZ': 82.639, 'HX': 24.892, 'HY': 4.867, 'HZ': 28.6, 'Q0': -0.75052, 'Q1': 0.0256, 'Q2': 0.00995, 'Q3': -0.66019}
         this.shallowEqual(sensor.data, match)
-        console.log("Tests passed")
+        this.debug("Tests passed")
     }
-    static ImageFile = "wt901ble.webp"
+    static ImageFile = "wt901ble.jpg"
+    static Description = "WT901BLE 9 axis accelerometer"
+    static Manufacturer = "WitMotion"
+
 
     emitValuesFrom(buffer){
         this.processData(buffer)
@@ -173,11 +177,10 @@ class WT901BLE extends   WT901Sensor {
         // now process notifications from device
         await this.rxChar.startNotifications();
         this.rxChar.on("valuechanged", (buffer)=>{
-            this.debug('rx notify: ${buffer}')
+            //this.debug(`rx notify: ${buffer}`)
             this.processData(buffer)
             })
 
-            // polling... not used for now
         //this.intervalID = setInterval( async ()=>{
         //    await this.emitGATT()
         //}, 1000*(this?.pollFreq??60) )
@@ -211,7 +214,7 @@ class WT901BLE extends   WT901Sensor {
       }
 
       async emitGATT(){
-        this.debug('in emitGATT, pollfreq: ${pollfreq}')
+        this.debug(`in emitGATT, pollfreq: ${pollfreq}`)
         //await this.emitGATT2()
       }
       async emitGATT2(){

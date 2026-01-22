@@ -129,7 +129,10 @@ class BMBatteryMonitor extends BTSensor {
 
       this.read.once("valuechanged", (buffer) => {
         clearTimeout(timer); 
-        this.emitValuesFrom(this.decryptPayload(buffer));
+        this.debug(JSON.stringify(buffer))
+        const b = this.decryptPayload(buffer);
+        this.debug(JSON.stringify(b))
+        this.emitValuesFrom(this.decryptPayload(b));
         resolve(this);
       });
   })

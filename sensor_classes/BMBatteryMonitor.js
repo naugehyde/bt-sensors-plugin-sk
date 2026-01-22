@@ -181,11 +181,13 @@ class BMBatteryMonitor extends BTSensor {
     );
 
     this.read.on("valuechanged", (buffer) => {
-      if (
-        buffer.length > 3 &&
-        Buffer.compare(b.slice(0, 3), Buffer.from([0xd1, 0x55, 0x07]))==0
-      )
-        this.emitValuesFrom(this.decryptPayload(buffer, this._getCryptKey()));
+      if (buffer.length < 16) {
+        this.debug(`Received invalid buffer ${JSON.stringify(buffer)}`);
+        return;
+      }
+      const b = this.decryptPayload(buffer);
+      if (Buffer.compare(b.subarray(0, 3), Buffer.from([0xd1, 0x55, 0x07]))==0)
+        this.emitValuesFrom(b);
     });
   }
 

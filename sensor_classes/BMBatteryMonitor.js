@@ -213,6 +213,7 @@ class BMBatteryMonitor extends BTSensor {
   }
 
   async initGATTNotifications() {
+    this.debug("::initGATTNotifications");
     await this.read.startNotifications();
     await this.write.writeValueWithResponse(
       this.encryptCommand(this._getCryptKey())

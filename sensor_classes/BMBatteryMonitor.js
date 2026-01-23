@@ -110,6 +110,7 @@ class BMBatteryMonitor extends BTSensor {
   }
 
   async emitGATT() {
+    this.debug("::emitGATT");
     return new Promise(async (resolve, reject) => {
        await this.read.startNotifications();
        await this.write.writeValueWithResponse(

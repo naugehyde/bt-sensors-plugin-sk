@@ -2,8 +2,9 @@
 
 ## WHAT'S NEW  
 
-# Version 1.3.6-beta4
+# Version 1.3.6-beta5
 
+- https://github.com/naugehyde/bt-sensors-plugin-sk/issues/108
 - https://github.com/naugehyde/bt-sensors-plugin-sk/issues/107
 - https://github.com/naugehyde/bt-sensors-plugin-sk/issues/106
 - https://github.com/naugehyde/bt-sensors-plugin-sk/issues/103

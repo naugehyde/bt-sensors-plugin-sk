@@ -111,12 +111,15 @@ class WT901Sensor extends  BTSensor {
         return [roll, pitch, yaw];
     }
 
+    degreesToRadians(deg) {
+        return deg * (Math.PI / 180);
+    }
 
     emitAttitude(packedValue, tempIsNegative ){
         //const att = this.quaternionToEuler(this.data.Q0,this.data.Q1,this.data.Q2,this.data.Q3)
-        this.emit("roll", this.data.AngX)
-        this.emit("pitch", this.data.AngY)
-        this.emit("yaw", this.data.AngZ)
+        this.emit("roll", this.degreesToRadians(this.data.AngX))
+        this.emit("pitch", this.degreesToRadians(this.data.AngY))
+        this.emit("yaw", this.degreesToRadians(this.data.AngZ))
     }
 
     async propertiesChanged(props){

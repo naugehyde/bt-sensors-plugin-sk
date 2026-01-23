@@ -700,23 +700,24 @@ class BTSensor extends EventEmitter {
      */
 
     async initGATTInterval(){
-        await this.deviceDisconnect()
-
+        async function _emitGATT() {
+        try {
+           await this.initGATTConnection(true);
+           await this.emitGATT();
+         } catch (error) {
+           this.debug(error);
+           this.setError(`Unable to emit values for device: ${error.message}`);
+         } finally {
+           await this.deactivateGATT().catch((e) => {
+             this.debug(`Error deactivating GATT Connection: ${e.message}`);
+           });
+           this.setState("WAITING");
+        }
+        }
+        _emitGATT = _emitGATT.bind(this);
+        _emitGATT()
         this.intervalID = setInterval( async () => {
-            try {
-                await this.initGATTConnection(true)
-                await this.emitGATT()
-            }
-            catch(error) {
-                this.debug(error)
-                this.setError(`Unable to emit values for device: ${error.message}`)
-            }
-            finally{ 
-                await this.deactivateGATT().catch( (e)=>{
-                    this.debug(`Error deactivating GATT Connection: ${e.message}`)
-                })
-                this.setState("WAITING")
-            }
+            await _emitGATT()
         }
         , this.pollFreq*1000)
     }

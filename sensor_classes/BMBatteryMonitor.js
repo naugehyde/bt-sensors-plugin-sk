@@ -129,6 +129,7 @@ class BMBatteryMonitor extends BTSensor {
 
 
       this.read.once("valuechanged", (buffer) => {
+        this.debug("::emitGATT:valuechanged");
         this.read.stopNotifications();
         clearTimeout(timer); 
         this.emitValuesFrom(this.decryptPayload(buffer));

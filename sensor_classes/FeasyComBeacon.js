@@ -19,7 +19,7 @@ class FeasyComBeacon extends BTSensor {
                 title:"type of beacon",
                 enum: ["Eddystone", "iBeacon"],
                 isRequired: true,
-                default:"EddyStone"
+                default:"Eddystone"
             }
         )
         this.beacon.initSchema()

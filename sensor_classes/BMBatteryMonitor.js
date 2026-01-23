@@ -128,11 +128,9 @@ class BMBatteryMonitor extends BTSensor {
 
 
       this.read.once("valuechanged", (buffer) => {
+        this.read.stopNotifications();
         clearTimeout(timer); 
-        this.debug(JSON.stringify(buffer))
-        const b = this.decryptPayload(buffer);
-        this.debug(JSON.stringify(b))
-        this.emitValuesFrom(this.decryptPayload(b));
+        this.emitValuesFrom(this.decryptPayload(buffer));
         resolve(this);
       });
   })
@@ -213,7 +211,6 @@ class BMBatteryMonitor extends BTSensor {
   }
 
   async initGATTNotifications() {
-    this.debug("::initGATTNotifications");
     await this.read.startNotifications();
     await this.write.writeValueWithResponse(
       this.encryptCommand(this._getCryptKey())

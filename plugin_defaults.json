@@ -24,7 +24,7 @@
         }
     },
     "environment":{
-        "temperature": 
+        "temperature":
             {
                 "title": "Temperature",
                 "description":"Current zone's temperature",
@@ -51,6 +51,29 @@
                 "default":"environment.{zone}.pressure"
             }
     },
+    "navigation": {
+        "attitude": {
+            "pitch":
+            {
+                "description":"Current pitch",
+                "unit":"rad",
+                "default":"navigation.attitude.pitch"
+            },
+            "roll":
+            {
+                "description":"Current pitch",
+                "unit":"rad",
+                "default":"navigation.attitude.roll"
+            },
+            "yaw":
+            {
+                "description":"Current pitch",
+                "unit":"rad",
+                "default":"navigation.attitude.yaw"
+            }
+
+        }
+    },
     "electrical":{
         "inverters":{
             "ac":{
@@ -59,17 +82,17 @@
                     "default":"electrical.inverters.{id}.ac.current"
                 },
                 "voltage":
-                { 
+                {
                     "unit": "V",
                     "default":"electrical.inverters.{id}.ac.voltage"
                 },
                 "power":
-                { 
+                {
                     "unit": "W",
                     "default":"electrical.inverters.{id}.ac.power"
                 }
-         
-         
+
+
             },
             "dc":{
                 "current":{
@@ -77,7 +100,7 @@
                     "default":"electrical.inverters.{id}.dc.current"
                 },
                 "voltage":
-                { 
+                {
                     "unit": "V",
                     "default":"electrical.inverters.{id}.dc.voltage"
                 }
@@ -91,19 +114,19 @@
                 "default":"electrical.batteries.{batteryID}.current"
             },
             "voltage":
-            { 
+            {
                 "unit": "V",
                 "default": "electrical.batteries.{batteryID}.voltage"
             },
-            
+
             "power":
-            { 
+            {
                 "unit": "W",
                 "default": "electrical.batteries.{batteryID}.power"
             },
-                        
+
             "impedance":
-            { 
+            {
                 "unit": "Ohm",
                 "default": "electrical.batteries.{batteryID}.impedance"
             },
@@ -136,23 +159,23 @@
                 "stateOfCharge":{
                     "description": "Battery's state of charge as ratio",
                     "unit":"ratio",
-                    "default": "electrical.batteries.{batteryID}.capacity.stateOfCharge" 
+                    "default": "electrical.batteries.{batteryID}.capacity.stateOfCharge"
                 },
                 "stateOfHealth":{
                     "description": "Battery's state of health as ratio",
                     "unit":"ratio",
-                    "default": "electrical.batteries.{batteryID}.capacity.stateOfHealth" 
+                    "default": "electrical.batteries.{batteryID}.capacity.stateOfHealth"
                 },
-                
+
                 "timeRemaining":{
                     "description": "Time in seconds until battery reaches its discharge floor at current usage",
 
                     "unit":"s",
-                    "default": "electrical.batteries.{batteryID}.capacity.timeRemaining" 
-     
+                    "default": "electrical.batteries.{batteryID}.capacity.timeRemaining"
+
                 }
             }
-            
+
         }
     },
     "sensors":{
@@ -178,11 +201,11 @@
                   "lower": 0,
                   "state": "warn",
                   "message": "Battery very low -  change now"
-                }      
+                }
             ],
-            "description":"Sensor battery strength" 
+            "description":"Sensor battery strength"
         },
-    
+
         "batteryVoltage":
         {
             "title":"Battery Voltage",

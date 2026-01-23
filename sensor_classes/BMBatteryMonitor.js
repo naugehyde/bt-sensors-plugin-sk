@@ -110,7 +110,6 @@ class BMBatteryMonitor extends BTSensor {
   }
 
   async emitGATT() {
-    this.debug("::emitGATT");
     return new Promise(async (resolve, reject) => {
        await this.read.startNotifications();
        await this.write.writeValueWithResponse(
@@ -129,22 +128,13 @@ class BMBatteryMonitor extends BTSensor {
 
 
       this.read.once("valuechanged", (buffer) => {
-        this.debug("::emitGATT:valuechanged");
         this.read.stopNotifications();
         clearTimeout(timer); 
-        this.emitValuesFrom(this.decryptPayload(buffer));
+        this.emitValuesFrom(buffer);
         resolve(this);
       });
   })
 }
-
-/*  async emitGATT() {
-    //TBD: May not work needs testing
-    this.read
-      .readValue()
-      .then((buffer) => this.emitValuesFrom(this.decryptPayload(buffer)));
-  }
-*/
   _getCryptKey() {
     return this.constructor.cryptKeys[this.monitorVersion];
   }

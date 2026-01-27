@@ -769,7 +769,7 @@ class BTSensor extends EventEmitter {
     //Sensor description functions
 
     getMacAddress(){
-        return this.currentProperties.Address
+        return this.currentProperties?.Address??"Unknown MAC"
     }
 
     static ImageFile = "bluetooth-logo.png" 

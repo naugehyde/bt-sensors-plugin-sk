@@ -369,9 +369,8 @@ class BTSensor extends EventEmitter {
 
     }
     async init(){
-        this.setState("INITIALIZING")
-
         this.currentProperties = await this.constructor.getDeviceProps(this.device)
+        this.setState("INITIALIZING");
         await this.initSchema()
 
         this.initListen()

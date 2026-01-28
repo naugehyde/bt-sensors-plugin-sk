@@ -117,19 +117,19 @@ class BMBatteryMonitor extends BTSensor {
        );
 
       const timer = setTimeout(() => {
-        this.read.removeAllListeners();
         clearTimeout(timer);
+        this.stopNotifications(this.read);
         reject(
           new Error(
-            `Response timed out (+30s) getting results for command ${command} from BM device ${this.getName()}.`
+            `Response timed out (+30s) getting results from BM device ${this.getName()}.`
           )
         );
       }, 30000);
 
 
       this.read.once("valuechanged", (buffer) => {
-        this.read.stopNotifications();
         clearTimeout(timer); 
+        this.stopNotifications(this.read);
         this.emitValuesFrom(buffer);
         resolve(this);
       });

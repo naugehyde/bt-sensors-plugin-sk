@@ -2,13 +2,22 @@
 
 ## WHAT'S NEW  
 
-# Version 1.3.6-beta7
+# Version 1.3.7
+
+### Issues Addressed
 
 - https://github.com/naugehyde/bt-sensors-plugin-sk/issues/113
 - https://github.com/naugehyde/bt-sensors-plugin-sk/issues/108
 - https://github.com/naugehyde/bt-sensors-plugin-sk/issues/107
 - https://github.com/naugehyde/bt-sensors-plugin-sk/issues/106
 - https://github.com/naugehyde/bt-sensors-plugin-sk/issues/103
+
+### Pull Requests included
+
+- https://github.com/naugehyde/bt-sensors-plugin-sk/pull/97
+- https://github.com/naugehyde/bt-sensors-plugin-sk/pull/104
+- https://github.com/naugehyde/bt-sensors-plugin-sk/pull/111
+- https://github.com/naugehyde/bt-sensors-plugin-sk/pull/114
 
 # Version 1.3.6
 

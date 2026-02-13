@@ -155,7 +155,7 @@ class BTSensor extends EventEmitter {
     static _test(data, key, config={}){
         var b = Buffer.from(data.replaceAll(" ",""),"hex")
         const d = new this(null,config)
-        d.initMetadata() 
+        d.initSchema() 
         Object.keys(d.getPaths()).forEach((tag)=>{
                 d.on(tag,(v)=>console.log(`${tag}=${v}`))
         })

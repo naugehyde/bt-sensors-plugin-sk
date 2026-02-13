@@ -851,7 +851,7 @@ class BTSensor extends EventEmitter {
     }
 
     getManufacturerData(key=null){
-        if (this.currentProperties.ManufacturerData)
+        if (this.currentProperties?.ManufacturerData)
             if (key)
                 return this.valueIfVariant (this.currentProperties.ManufacturerData[key])
             else

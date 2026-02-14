@@ -176,12 +176,10 @@ class JBDBMS extends BTSensor {
   }
 
   hasGATT() {
-    this.debug(`${this.getName()}::hasGATT`);
     return true;
   }
 
   usingGATT() {
-    this.debug(`${this.getName()}::usingGATT`);
     return true;
   }
   // FIXME not really needed:

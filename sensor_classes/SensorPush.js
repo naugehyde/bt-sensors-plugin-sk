@@ -100,10 +100,10 @@ class SensorPush extends BTSensor{
     async initGATTConnection(isReconnecting){ 
         await super.initGATTConnection(isReconnecting)
         const gattServer = await this.getGATTServer() 
-        const service = await gattServer.getPrimaryService(this.constructor.ServiceUUID) 
+        const service = await gattServer.getPrimaryService(this.constructor.ServiceUUID.toLowerCase()) 
         this.characteristics={}
         for (const c in this.constructor.Characteristics) {
-            this.characteristics[c] = await service.getCharacteristic(this.constructor.Characteristics[c])
+            this.characteristics[c] = await service.getCharacteristic(this.constructor.Characteristics[c].toLowerCase())
         }
         if (this.tx) this.characteristics.tx.writeValueWithoutResponse(this.tx)
         if (this.LED) this.characteristics.LED.writeValueWithoutResponse(this.LED)

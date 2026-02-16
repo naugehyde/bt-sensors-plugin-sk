@@ -337,12 +337,7 @@ class BTSensor extends EventEmitter {
                         type: "integer", 
                         minimum: 0,
                         maximum: 600,
-                        default: 2*(this?.discoveryTimeout??30) },
-                        
-                        minUpdateInterval: {title: "Minimum update interval in milliseconds (0 to disable rate limiting).", 
-                        type: "integer", 
-                        minimum: 0,
-                        default: 0 }
+                        default: 2*(this?.discoveryTimeout??30) }
                     }
                 },
                 paths:{
@@ -365,7 +360,13 @@ class BTSensor extends EventEmitter {
                     pollFreq: { type: "number", title: "Polling frequency in seconds"}
                 }
 			}
-		}
+		} else{
+            this._schema.properties.params.properties.minUpdateInterval=                        
+                {title: "Minimum update interval in milliseconds (0 to disable rate limiting).", 
+                type: "integer", 
+                minimum: 0,
+                default: 0 }
+        }
 
 
         //create the 'name' parameter

@@ -4,6 +4,7 @@ const EventEmitter = require('node:events');
 const AutoQueue =  require("./Queue.js")
 const DistanceManager = require("./DistanceManager")
 const OutOfRangeDevice = require("./OutOfRangeDevice.js")
+const RateLimiter = require("simple-rate-limiter")
 /** 
  * @author Andrew Gerngross <oh.that.andy@gmail.com>
 */
@@ -105,7 +106,15 @@ class BTSensor extends EventEmitter {
 
         Object.assign(this,config)
         Object.assign(this,gattConfig)
-    
+
+        if (this.minUpdateInterval){
+            this._propertiesChanged=RateLimiter((props)=>{
+                this.__propertiesChanged(props)
+            }
+            ).to(1).per(this.minUpdateInterval)
+            this._propertiesChanged.bind(this)
+
+        }
         this._state = "UNKNOWN"
     }
     /**
@@ -329,6 +338,11 @@ class BTSensor extends EventEmitter {
                         minimum: 0,
                         maximum: 600,
                         default: 2*(this?.discoveryTimeout??30) },
+                        
+                        minUpdateInterval: {title: "Minimum update interval in milliseconds (0 to disable rate limiting).", 
+                        type: "integer", 
+                        minimum: 0,
+                        default: 0 }
                     }
                 },
                 paths:{
@@ -937,7 +951,7 @@ class BTSensor extends EventEmitter {
      * @param {*} props which contains ManufacturerData and ServiceData (where the sensor's data resides)
      * set up by BTSensor::initPropertiesChanged()
      */
-    _propertiesChanged(props){
+    __propertiesChanged(props){
         this._lastContact=Date.now()
             
         if (props.RSSI) {
@@ -951,8 +965,11 @@ class BTSensor extends EventEmitter {
             this.currentProperties.ManufacturerData=this.valueIfVariant(props.ManufacturerData)
         if (this.isActive())
             this.propertiesChanged(props)
-
     }
+    _propertiesChanged(props){
+        this.__propertiesChanged(props)
+    }
+
     propertiesChanged(props){
         //implemented by subclass
     }
@@ -973,7 +990,7 @@ class BTSensor extends EventEmitter {
         this._currentValues[tag]=value
     }
 
-    emit(tag, value){
+    _emit(tag, value){
         super.emit(tag, value)
         if (this.usingGATT()) //update last contact time only for GATT devices 
                               //which do not receive propertyChanged events when connected

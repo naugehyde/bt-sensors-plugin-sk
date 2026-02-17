@@ -105,8 +105,8 @@ class AbstractBeaconMixin  {
 
       async activate(config,paths){
 
-        this.GPSLog.beam=this._app.getSelfPath('design.beam')
-        this.GPSLog.loa=this._app.getSelfPath('design.length.overall')
+        this.GPSLog.beam=this._app.getSelfPath('design.beam').value
+        this.GPSLog.loa=this._app.getSelfPath('design.length').value.overall
         
         this._positionSub  = this._app.streambundle.getSelfStream('navigation.position')
             .onValue(

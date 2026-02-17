@@ -589,7 +589,9 @@ module.exports =   function (app) {
 			}
 
 		}	
-		
+		function activeDevices(){
+			return Array.from(sensorMap.values()).filter(s=>s.isActive()).length
+		}
 		function initConfiguredDevice(deviceConfig){
 			const startNumber=starts
 			plugin.setStatusText(`Initializing ${deviceNameAndAddress(deviceConfig)}`);
@@ -600,9 +602,10 @@ module.exports =   function (app) {
 						return
 				}	
 				if (deviceConfig.active && !(sensor.device instanceof OutOfRangeDevice) ) {
-					plugin.setStatusText(`Listening to ${++foundConfiguredDevices} sensors.`);
 					try {
 						await sensor.activate(deviceConfig, plugin)
+						plugin.setStatusText(`Listening to ${activeDevices()} sensors.`);
+
 					} catch (e){
 						sensor.setError(`Unable to activate sensor. Reason: ${e.message}`)
 					}

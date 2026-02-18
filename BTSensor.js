@@ -4,7 +4,6 @@ const EventEmitter = require('node:events');
 const AutoQueue =  require("./Queue.js")
 const DistanceManager = require("./DistanceManager")
 const OutOfRangeDevice = require("./OutOfRangeDevice.js")
-const RateLimiter = require("simple-rate-limiter")
 /** 
  * @author Andrew Gerngross <oh.that.andy@gmail.com>
 */

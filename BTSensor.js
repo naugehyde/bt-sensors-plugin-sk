@@ -107,14 +107,6 @@ class BTSensor extends EventEmitter {
         Object.assign(this,config)
         Object.assign(this,gattConfig)
 
-        if (this.minUpdateInterval){
-            this._propertiesChanged=RateLimiter((props)=>{
-                this.__propertiesChanged(props)
-            }
-            ).to(1).per(this.minUpdateInterval)
-            this._propertiesChanged.bind(this)
-
-        }
         this._state = "UNKNOWN"
     }
     /**
@@ -743,13 +735,20 @@ class BTSensor extends EventEmitter {
      * DBUS connection stays alive, doesn't tax resources and doesn't spit out spurious errors.
      */
     initPropertiesChanged(){
-
+        let lastPropsChanged = -1
         this._propertiesChanged.bind(this)
         this.device.helper._prepare()
         this.device.helper.on("PropertiesChanged",
             ((props)=> {
+                if ( this.minUpdateInterval && 
+                     lastPropsChanged>0 && 
+                     (Date.now() - lastPropsChanged) < this.minUpdateInterval) {
+                        this.debug(`Ignoring properties changed. Last update was ${Date.now() - lastPropsChanged} ms ago.`)
+                    return
+                }
                 try{
                     this._propertiesChanged(props)
+                    lastPropsChanged = Date.now()
                 }
                 catch(error){
                     this.debug(`Error occured on ${this.getNameAndAddress()}: ${error?.message??error}`)

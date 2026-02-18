@@ -950,7 +950,7 @@ class BTSensor extends EventEmitter {
      * @param {*} props which contains ManufacturerData and ServiceData (where the sensor's data resides)
      * set up by BTSensor::initPropertiesChanged()
      */
-    __propertiesChanged(props){
+    _propertiesChanged(props){
         this._lastContact=Date.now()
             
         if (props.RSSI) {
@@ -965,10 +965,7 @@ class BTSensor extends EventEmitter {
         if (this.isActive())
             this.propertiesChanged(props)
     }
-    _propertiesChanged(props){
-        this.__propertiesChanged(props)
-    }
-
+    
     propertiesChanged(props){
         //implemented by subclass
     }

@@ -587,7 +587,7 @@ class BTSensor extends EventEmitter {
     isError(){
         return this._error
     }
-    deviceConnect(isReconnecting=false, autoReconnect=false) {
+    deviceConnect(isReconnecting=false, autoReconnect=false, timeout=30000) {
      
         return connectQueue.enqueue( async ()=>{
             this.debug(`Connecting... ${this.getName()}`)
@@ -602,10 +602,27 @@ class BTSensor extends EventEmitter {
                     this.setConnected(true)
                 })    
             }
-            await this.device.helper.callMethod('Connect')
+            const connectTimeoutID = setTimeout(
+                ()=>{
+                    const e = `Connect timed out. Unable to connect after ${timeout}ms.`
+                    this.setError(e)
+                    throw new Error(e)
+                }
+                ,timeout
+            ) 
+            try {
+                await this.device.helper.callMethod('Connect')
+            } catch (e) {
+                this.debug(e)
+                throw new Error(e.message)
+            }
+            finally {
+                clearTimeout(connectTimeoutID)
+            }
             this.setConnected(true)
-
+            this._lastContact = Date.now()
             this.debug(`Connected to ${this.getName()}`)
+            
             if (!isReconnecting) {
               this.device.helper.on(
                     "PropertiesChanged",

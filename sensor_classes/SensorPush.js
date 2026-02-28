@@ -32,15 +32,19 @@ class SensorPush extends BTSensor{
         return true
     }
     
-
     async emitGATT(){
-        this.characteristics.temp.writeValue(0x01000000).then(async ()=>{
+        await this.characteristics.temp.writeValue(Buffer.from([1,0,0,0]))
             this.emitData("temp", await this.characteristics.temp.readValue())
-            this.emitData("hum", await this.characteristics.temp.readValue())
-        })
-        this.characteristics.bar.writeValue(0x01000000).then(async ()=>{
-            this.emitData("bar", await this.characteristics.bar.readValue())
-        })
+        
+        await this.characteristics.hum.writeValue(Buffer.from([1,0,0,0]))
+            this.emitData("humidity", await this.characteristics.hum.readValue())
+        
+        this.emitData("batt", await this.characteristics.batt.readValue())
+        
+        await this.characteristics.bar.writeValue(Buffer.from([1,0,0,0]))
+            this.emitData("pressure", await this.characteristics.bar.readValue())
+        
+        
     }
 
      initSchema(){
@@ -52,7 +56,7 @@ class SensorPush extends BTSensor{
         this.addParameter(
         "tx",
             {
-                title:'transmission rate in db',
+                title:'transmission strength in db',
                 type: 'number',
                 enum: [-21, -18, -15, -12, -9, -6, -3, 0, 1, 2, 3, 4, 5],
                 default: -3,
@@ -84,20 +88,38 @@ class SensorPush extends BTSensor{
       )
 
         this.addDefaultPath("batt","sensors.batteryVoltage")
-        .read=(buffer)=>{ return buffer.readUInt16LE()/100}
+        .read=(buffer)=>{ return buffer.readUInt16LE()/1000}
 
         this.addDefaultPath("temp","environment.temperature") 
-        .read=(buffer)=>{ return buffer.readInt32E()/100}
+        .read=(buffer)=>{ return buffer.readInt32LE()/100}
        
         this.addDefaultPath("humidity","environment.humidity") 
-        .read=(buffer)=>{ return buffer.readInt32E()/10000}
+        .read=(buffer)=>{ return buffer.readInt32LE()/10000}
 
         this.addDefaultPath("pressure","environment.pressure") 
-        .read=(buffer)=>{ return buffer.readInt32E()/100}
+        .read=(buffer)=>{ return buffer.readInt32LE()/100}
 
     }
 
+    
     async initGATTConnection(isReconnecting){ 
+        async function writeUInt8(characteristic, val ){
+            const buffer = Buffer.alloc(1)
+            buffer.writeUInt8(val)
+            characteristic.writeValueWithoutResponse(buffer)
+        }
+
+        async function writeInt8(characteristic, val ){
+            const buffer = Buffer.alloc(1)
+            buffer.writeInt8(val)
+            characteristic.writeValueWithoutResponse(buffer)
+        }
+        async function writeUInt16LE(characteristic, val ){
+            const buffer = Buffer.alloc(2)
+            buffer.writeUInt16LE(val)
+            characteristic.writeValueWithoutResponse(buffer)
+        }
+
         await super.initGATTConnection(isReconnecting)
         const gattServer = await this.getGATTServer() 
         const service = await gattServer.getPrimaryService(this.constructor.ServiceUUID.toLowerCase()) 
@@ -105,18 +127,19 @@ class SensorPush extends BTSensor{
         for (const c in this.constructor.Characteristics) {
             this.characteristics[c] = await service.getCharacteristic(this.constructor.Characteristics[c].toLowerCase())
         }
-        if (this.tx) this.characteristics.tx.writeValueWithoutResponse(this.tx)
-        if (this.LED) this.characteristics.LED.writeValueWithoutResponse(this.LED)
-        if (this.adv) this.characteristics.tx.writeValueWithoutResponse(Math.round((this.adv/625)*1000))
+        if (this.tx) 
+            await writeInt8(this.characteristics.tx,this.tx)
+        if (this.LED) 
+            await writeUInt8(this.characteristics.LED,this.LED)
+        if (this.adv) 
+            await writeUInt16LE(this.characteristics.adv,Math.round((this.adv/625)*1000))
     }
     async initGATTNotifications() { 
 
     }
   
     async deactivateGATT(){
-        for (const c in this.characteristics) {
-            await this.stopGATTNotifications(this.characteristics[c])
-        }
+      
         await super.deactivateGATT()
     }
 }

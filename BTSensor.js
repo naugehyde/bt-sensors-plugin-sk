@@ -346,6 +346,7 @@ class BTSensor extends EventEmitter {
 				title:`GATT Specific device parameters`,
 				description: this.getGATTDescription(),
 				type:"object",
+                required:[],
 				properties:{
                     useGATT: {title: "Use GATT connection", type: "boolean", default: true },
                     pollFreq: { type: "number", title: "Polling frequency in seconds"}

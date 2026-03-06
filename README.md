@@ -1,6 +1,9 @@
 # Bluetooth Sensors for [Signal K](http://www.signalk.org) 
 
 ## WHAT'S NEW  
+# Version 1.3.8-beta2
+
+- SensorPush fixes
 
 # Version 1.3.8-beta1
 

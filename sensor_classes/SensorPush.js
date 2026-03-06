@@ -24,7 +24,6 @@ class SensorPush extends BTSensor{
             hum:  "EF090081-11D6-42BA-93B8-9DD7EC090AA9",
             bar:  "EF090082-11D6-42BA-93B8-9DD7EC090AA9"
         }
-    pollFreq=30
     hasGATT(){
         return true
     }
@@ -33,23 +32,17 @@ class SensorPush extends BTSensor{
     }
     
     async emitGATT(){
-        await this.characteristics.temp.writeValue(Buffer.from([1,0,0,0]))
-            this.emitData("temp", await this.characteristics.temp.readValue())
-        
-        await this.characteristics.hum.writeValue(Buffer.from([1,0,0,0]))
-            this.emitData("humidity", await this.characteristics.hum.readValue())
-        
+        this.emitData("temp", await this.characteristics.temp.readValue())
+        this.emitData("humidity", await this.characteristics.hum.readValue())
         this.emitData("batt", await this.characteristics.batt.readValue())
-        
-        await this.characteristics.bar.writeValue(Buffer.from([1,0,0,0]))
-            this.emitData("pressure", await this.characteristics.bar.readValue())
-        
-        
+        this.emitData("pressure", await this.characteristics.bar.readValue())
     }
 
      initSchema(){
         super.initSchema()
         this.getGATTParams()["useGATT"].default=true
+        this.getGATTParams()["pollFreq"].default=30
+        this._schema.properties.gattParams.required.push("pollFreq")
         
         this.addDefaultParam("zone")
 
@@ -136,11 +129,6 @@ class SensorPush extends BTSensor{
     }
     async initGATTNotifications() { 
 
-    }
-  
-    async deactivateGATT(){
-      
-        await super.deactivateGATT()
-    }
+    } 
 }
 module.exports=SensorPush

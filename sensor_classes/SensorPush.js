@@ -16,6 +16,7 @@ class SensorPush extends BTSensor{
     static ServiceUUID = "EF090000-11D6-42BA-93B8-9DD7EC090AB0"
     static Characteristics = 
         {
+
             tx:   "EF090003-11D6-42BA-93B8-9DD7EC090AA9",
             adv:  "EF090005-11D6-42BA-93B8-9DD7EC090AA9",
             batt: "EF090007-11D6-42BA-93B8-9DD7EC090AA9",
@@ -32,10 +33,19 @@ class SensorPush extends BTSensor{
     }
     
     async emitGATT(){
+        await this.characteristics.temp.writeValue(Buffer.from([1,0,0,0]))
+
         this.emitData("temp", await this.characteristics.temp.readValue())
+        
+        await this.characteristics.hum.writeValue(Buffer.from([1,0,0,0]))
         this.emitData("humidity", await this.characteristics.hum.readValue())
+        
         this.emitData("batt", await this.characteristics.batt.readValue())
-        this.emitData("pressure", await this.characteristics.bar.readValue())
+        
+        if (this.characteristics.bar){
+            await this.characteristics.bar.writeValue(Buffer.from([1,0,0,0]))
+            this.emitData("pressure", await this.characteristics.bar.readValue())
+        }
     }
 
      initSchema(){
@@ -84,7 +94,7 @@ class SensorPush extends BTSensor{
         .read=(buffer)=>{ return buffer.readUInt16LE()/1000}
 
         this.addDefaultPath("temp","environment.temperature") 
-        .read=(buffer)=>{ return buffer.readInt32LE()/100}
+        .read=(buffer)=>{ return 273.15+(buffer.readInt32LE()/100)}
        
         this.addDefaultPath("humidity","environment.humidity") 
         .read=(buffer)=>{ return buffer.readInt32LE()/10000}
@@ -118,13 +128,20 @@ class SensorPush extends BTSensor{
         const service = await gattServer.getPrimaryService(this.constructor.ServiceUUID.toLowerCase()) 
         this.characteristics={}
         for (const c in this.constructor.Characteristics) {
-            this.characteristics[c] = await service.getCharacteristic(this.constructor.Characteristics[c].toLowerCase())
+            const uuid = this.constructor.Characteristics[c].toLowerCase()
+            try{
+                this.characteristics[c] = await service.getCharacteristic(uuid)
+            } catch (e) {
+                this.debug(`characteristic ${c} with uuid ${uuid} not available.`)
+            }
         }
-        if (this.tx) 
+        if (this.tx && this.characteristics.tx) 
             await writeInt8(this.characteristics.tx,this.tx)
-        if (this.LED) 
+        
+        if (this.LED && this.characteristics.LED) 
             await writeUInt8(this.characteristics.LED,this.LED)
-        if (this.adv) 
+        
+        if (this.adv && this.characteristics.adv) 
             await writeUInt16LE(this.characteristics.adv,Math.round((this.adv/625)*1000))
     }
     async initGATTNotifications() { 

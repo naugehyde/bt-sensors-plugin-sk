@@ -31,8 +31,8 @@ class JikongBMS extends BTSensor {
   static validAcknowledgeHeader = 0xaa5590eb;
 
   static commandResponse = {
-    0x96: 0x02,
-    0x97: 0x03,
+    0x96: [0x02],
+    0x97: [0x01, 0x03],
   };
 
   static async test(datafile) {
@@ -350,57 +350,150 @@ class JikongBMS extends BTSensor {
 
   getBuffer(command) {
     return new Promise(async (resolve, reject) => {
-      const r = await this.sendReadFunctionRequest(command);
-      let datasize = 300;
-      let result = Buffer.alloc(datasize);
-      let offset = 0;
+      const datasize = 300;
+      const expectedResponses = []
+        .concat(this.constructor.commandResponse[command] ?? [])
+        .filter((frameType) => frameType !== undefined);
+      let stream = Buffer.alloc(0);
+      let timer;
+      let settled = false;
 
-      const timer = setTimeout(() => {
-        this.rxChar.removeAllListeners();
+      const removeValueChangedListener = () => {
+        if (typeof this.rxChar?.off === "function") {
+          this.rxChar.off("valuechanged", valChanged);
+        } else if (typeof this.rxChar?.removeListener === "function") {
+          this.rxChar.removeListener("valuechanged", valChanged);
+        }
+      };
+
+      const cleanup = () => {
+        removeValueChangedListener();
         clearTimeout(timer);
-        reject(
+      };
+
+      const resolveBuffer = (buffer) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        cleanup();
+        resolve(buffer);
+      };
+
+      const rejectBuffer = (error) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        cleanup();
+        reject(error);
+      };
+
+      const findHeader = (buffer, start = 0) => {
+        for (let i = start; i <= buffer.length - 4; i++) {
+          const header = buffer.readUInt32BE(i);
+          if (header === this.constructor.validResponseHeader) {
+            return { index: i, header };
+          }
+          if (header === this.constructor.validAcknowledgeHeader) {
+            return { index: i, header };
+          }
+        }
+        return null;
+      };
+
+      const parseStream = () => {
+        while (stream.length >= 4) {
+          const headerMatch = findHeader(stream);
+
+          if (!headerMatch) {
+            // Preserve a possible partial 4-byte header between notifications.
+            stream = stream.slice(-3);
+            return;
+          }
+
+          if (headerMatch.index > 0) {
+            this.debug(
+              `Discarding ${headerMatch.index} leading byte(s) before JK header for ${this.getName()}`
+            );
+            stream = stream.slice(headerMatch.index);
+          }
+
+          if (
+            stream.length >= 4 &&
+            stream.readUInt32BE(0) === this.constructor.validAcknowledgeHeader
+          ) {
+            // Old/new JK modules often append a short ack after the data frame.
+            if (stream.length <= 4) {
+              return;
+            }
+            stream = stream.slice(4);
+            continue;
+          }
+
+          if (stream.length < datasize) {
+            return;
+          }
+
+          const candidate = stream.slice(0, datasize);
+          const computedCRC =
+            sumByteArray(candidate.subarray(0, datasize - 1)) & 0xff;
+          const remoteCRC = candidate[datasize - 1];
+
+          if (computedCRC !== remoteCRC) {
+            const nextHeader = findHeader(stream, 1);
+            const bytesToDrop = nextHeader ? nextHeader.index : 1;
+            this.debug(
+              `CRC mismatch for ${this.getName()} (${computedCRC} != ${remoteCRC}), dropping ${bytesToDrop} byte(s)`
+            );
+            stream = stream.slice(bytesToDrop);
+            continue;
+          }
+
+          if (
+            expectedResponses.length === 0 ||
+            expectedResponses.includes(candidate[4])
+          ) {
+            this.debug(
+              `Rec'd command in buffer ${JSON.stringify(
+                candidate
+              )} for ${this.getName()}`
+            );
+            resolveBuffer(candidate);
+            return;
+          }
+
+          this.debug(
+            `Ignoring JK frame type ${candidate[4]} while waiting for ${expectedResponses.join(
+              ", "
+            )} from ${this.getName()}`
+          );
+          stream = stream.slice(datasize);
+        }
+      };
+
+      const valChanged = async (buffer) => {
+        if (settled) {
+          return;
+        }
+        if (!Buffer.isBuffer(buffer)) {
+          buffer = Buffer.from(buffer);
+        }
+        stream = Buffer.concat([stream, buffer]);
+        parseStream();
+      };
+
+      timer = setTimeout(() => {
+        rejectBuffer(
           new Error(
             `Response timed out (+30s) getting results for command ${command} from JikongBMS device ${this.getName()}.`
           )
         );
       }, 30000);
 
-      const valChanged = async (buffer) => {
-        if (
-          offset == 0 && //first packet
-          (buffer.length < 5 ||
-            buffer.readUInt32BE(0) !== this.constructor.validResponseHeader)
-        ) {
-          if (
-            buffer.readUInt32BE(0) !== this.constructor.validAcknowledgeHeader
-          )
-            this.debug(
-              `Invalid buffer ${JSON.stringify(
-                buffer
-              )}from ${this.getName()}, not processing.`
-            );
-        } else {
-          buffer.copy(result, offset);
-          if (offset + buffer.length == datasize) {
-            if (result[4] == this.constructor.commandResponse[command]) {
-              this.rxChar.removeAllListeners();
-              clearTimeout(timer);
-              this.debug(
-                `Rec'd command in buffer ${JSON.stringify(
-                  result
-                )} for ${this.getName()}`
-              );
-              resolve(result);
-            } else {
-              offset = 0;
-              result = Buffer.alloc(datasize);
-            }
-          } else {
-            offset += buffer.length;
-          }
-        }
-      };
+      // Listen before writing so the first JK notification chunk is not lost.
       this.rxChar.on("valuechanged", valChanged);
+      await this.sendReadFunctionRequest(command);
     });
   }
 

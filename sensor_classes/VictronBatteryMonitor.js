@@ -195,7 +195,7 @@ class VictronBatteryMonitor extends VictronSensor{
     }
 
     hasGATT(){
-        return true
+        return false
     }
     
     getGATTDescription(){

@@ -105,7 +105,7 @@ class BTSensor extends EventEmitter {
 
         Object.assign(this,config)
         Object.assign(this,gattConfig)
-    
+
         this._state = "UNKNOWN"
     }
     /**
@@ -328,7 +328,7 @@ class BTSensor extends EventEmitter {
                         type: "integer", 
                         minimum: 0,
                         maximum: 600,
-                        default: 2*(this?.discoveryTimeout??30) },
+                        default: 2*(this?.discoveryTimeout??30) }
                     }
                 },
                 paths:{
@@ -346,12 +346,19 @@ class BTSensor extends EventEmitter {
 				title:`GATT Specific device parameters`,
 				description: this.getGATTDescription(),
 				type:"object",
+                required:[],
 				properties:{
                     useGATT: {title: "Use GATT connection", type: "boolean", default: true },
                     pollFreq: { type: "number", title: "Polling frequency in seconds"}
                 }
 			}
-		}
+		} else{
+            this._schema.properties.params.properties.minUpdateInterval=                        
+                {title: "Minimum update interval in milliseconds (0 to disable rate limiting).", 
+                type: "integer", 
+                minimum: 0,
+                default: 0 }
+        }
 
 
         //create the 'name' parameter
@@ -581,7 +588,7 @@ class BTSensor extends EventEmitter {
     isError(){
         return this._error
     }
-    deviceConnect(isReconnecting=false, autoReconnect=false) {
+    deviceConnect(isReconnecting=false, autoReconnect=false, timeout=30000) {
      
         return connectQueue.enqueue( async ()=>{
             this.debug(`Connecting... ${this.getName()}`)
@@ -596,10 +603,27 @@ class BTSensor extends EventEmitter {
                     this.setConnected(true)
                 })    
             }
-            await this.device.helper.callMethod('Connect')
+            const connectTimeoutID = setTimeout(
+                ()=>{
+                    const e = `Connect timed out. Unable to connect after ${timeout}ms.`
+                    this.setError(e)
+                    throw new Error(e)
+                }
+                ,timeout
+            ) 
+            try {
+                await this.device.helper.callMethod('Connect')
+            } catch (e) {
+                this.debug(e)
+                throw new Error(e.message)
+            }
+            finally {
+                clearTimeout(connectTimeoutID)
+            }
             this.setConnected(true)
-
+            this._lastContact = Date.now()
             this.debug(`Connected to ${this.getName()}`)
+            
             if (!isReconnecting) {
               this.device.helper.on(
                     "PropertiesChanged",
@@ -728,13 +752,20 @@ class BTSensor extends EventEmitter {
      * DBUS connection stays alive, doesn't tax resources and doesn't spit out spurious errors.
      */
     initPropertiesChanged(){
-
+        let lastPropsChanged = -1
         this._propertiesChanged.bind(this)
         this.device.helper._prepare()
         this.device.helper.on("PropertiesChanged",
             ((props)=> {
+                if ( this.minUpdateInterval && 
+                     lastPropsChanged>0 && 
+                     (Date.now() - lastPropsChanged) < this.minUpdateInterval) {
+                        this.debug(`Ignoring properties changed. Last update was ${Date.now() - lastPropsChanged} ms ago.`)
+                    return
+                }
                 try{
                     this._propertiesChanged(props)
+                    lastPropsChanged = Date.now()
                 }
                 catch(error){
                     this.debug(`Error occured on ${this.getNameAndAddress()}: ${error?.message??error}`)
@@ -951,8 +982,8 @@ class BTSensor extends EventEmitter {
             this.currentProperties.ManufacturerData=this.valueIfVariant(props.ManufacturerData)
         if (this.isActive())
             this.propertiesChanged(props)
-
     }
+    
     propertiesChanged(props){
         //implemented by subclass
     }
@@ -973,7 +1004,7 @@ class BTSensor extends EventEmitter {
         this._currentValues[tag]=value
     }
 
-    emit(tag, value){
+    _emit(tag, value){
         super.emit(tag, value)
         if (this.usingGATT()) //update last contact time only for GATT devices 
                               //which do not receive propertyChanged events when connected

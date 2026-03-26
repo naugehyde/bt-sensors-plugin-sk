@@ -190,11 +190,7 @@ class JBDBMS extends BTSensor {
   async emitGATT() {
     this.debug(`${this.getName()}::emitGATT`);
     try {
-      this.debug(`${this.getName()}::emitGATT calling getAndEmitBatteryInfo`);
       await this.getAndEmitBatteryInfo();
-      this.debug(
-        `${this.getName()}::emitGATT returned from getAndEmitBatteryInfo`
-      );
     } catch (e) {
       console.error(e);
       this.debug(
@@ -203,11 +199,7 @@ class JBDBMS extends BTSensor {
     }
     // setTimeout(async () => {
     try {
-      this.debug(`${this.getName()}::emitGATT calling getAndEmitCellVoltages`);
       await this.getAndEmitCellVoltages();
-      this.debug(
-        `${this.getName()}::emitGATT returned from getAndEmitCellVoltages`
-      );
     } catch (e) {
       console.error(e);
       this.debug(
@@ -218,7 +210,6 @@ class JBDBMS extends BTSensor {
   }
 
   async getNumberOfCellsAndTemps() {
-    this.debug(`${this.getName()}::getNumberOfCellsAndTemps`);
     const b = await this.getBuffer(0x3);
     return { cells: b[25], temps: b[26] };
   }
@@ -269,7 +260,6 @@ class JBDBMS extends BTSensor {
   }
 
   async initGATTConnection(isReconnecting = false) {
-    this.debug(`${this.getName()}::initGATTConnection`);
 
     if (this.rxChar)
       try {
@@ -302,7 +292,6 @@ class JBDBMS extends BTSensor {
 
     try {
       // FIXME not really needed?
-      this.debug(`${this.getName()}::initGATTConnection sending a test poll`);
       await this.getBuffer(0x03);
     } catch (e) {
       console.error(e);

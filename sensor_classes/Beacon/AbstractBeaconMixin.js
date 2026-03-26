@@ -20,7 +20,7 @@ class AbstractBeaconMixin  {
         this.propertiesChanged=this.propertiesChanged.bind(obj)
         this.activate=this.activate.bind(obj)
         this.stopListening=this.stopListening.bind(obj)
-        obj.GPSLog={log:[],beam:0,loa:0}
+        obj.GPSLog={log:[],beam:0,loa:0, currentPosition:null, heading:null}
     }
 
     initListen() {
@@ -86,11 +86,11 @@ class AbstractBeaconMixin  {
                 this.emit("approxDistance", distances) 
                 this.emit("onBoard", distances.avgDistance<this?.presenceThreshold??20)
             }
-             if (his.GPSLog.currentPosition){
+             if (this.GPSLog.currentPosition){
                 this.GPSLog.log.unshift(
                 {
                     timestamp: new Date().toISOString(),
-                    heading: this.GPSLog.heading,
+                    heading: this.GPSLog?.heading,
                     distances: distances
                 })
                 Object.assign(this.GPSLog.log[0], this.GPSLog.currentPosition)
@@ -105,8 +105,8 @@ class AbstractBeaconMixin  {
 
       async activate(config,paths){
 
-        this.GPSLog.beam=this._app.getSelfPath('design.beam')
-        this.GPSLog.loa=this._app.getSelfPath('design.length.overall')
+        this.GPSLog.beam=this._app.getSelfPath('design.beam').value
+        this.GPSLog.loa=this._app.getSelfPath('design.length').value.overall
         
         this._positionSub  = this._app.streambundle.getSelfStream('navigation.position')
             .onValue(
@@ -119,7 +119,7 @@ class AbstractBeaconMixin  {
 
         this._headingSub  = this._app.streambundle.getSelfStream('navigation.headingTrue')
             .onValue(
-                (pos) => { 
+                (heading) => { 
                     this.GPSLog.heading=heading
                     
                     this.emit("GPSLog",this.GPSLog)

@@ -613,6 +613,7 @@ class BTSensor extends EventEmitter {
             ) 
             try {
                 await this.device.helper.callMethod('Connect')
+                await new Promise(resolve => setTimeout(resolve, 3000));
             } catch (e) {
                 this.debug(e)
                 throw new Error(e.message)

@@ -11,11 +11,11 @@ class VictronInverter extends VictronSensor{
         this.addDefaultParam("id")
 
         this.addMetadatum('deviceState','', 'inverter device state', 
-            (buff)=>{return VC.OperationMode.get(buff.readIntU8(0))})
+            (buff)=>{return VC.OperationMode.get(buff.readUInt8(0))})
             .default="electrical.inverters.{id}.state"
 
         const md = this.addMetadatum('alarmReason','', 'reason for alarm',
-            (buff)=>{return buff.readIntU16LE(1)})
+            (buff)=>{return buff.readUInt16LE(1)})
         .default="electrical.inverters.{id}.alarm"
 
         this.addDefaultPath('dcVoltage','electrical.inverters.dc.voltage') 

@@ -12,11 +12,11 @@ class VictronInverterRS extends VictronSensor{
         super.initSchema()
         this.addDefaultParam("id")
         this.addMetadatum('deviceState','', 'inverter device state', 
-            (buff)=>{return VC.OperationMode.get(buff.readIntU8(0))})
+            (buff)=>{return VC.OperationMode.get(buff.readUInt8(0))})
             .default='electrical.inverters.{id}.state'    
 
         const md = this.addMetadatum('chargerError','', 'charger error',
-            (buff)=>{return VC.ChargerError(buff.readIntU8(1))})
+            (buff)=>{return VC.ChargerError(buff.readUInt8(1))})
             md.default='electrical.inverters.{id}.error'
 
         this.addMetadatum('batteryVoltage','V', 'battery voltage', 

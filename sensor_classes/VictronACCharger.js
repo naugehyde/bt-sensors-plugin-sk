@@ -29,10 +29,12 @@ class VictronACCharger extends VictronSensor{
         this.addDefaultParam("id")
 
         this.addMetadatum('state','', 'device state', 
-            (buff)=>{return VC.OperationMode.get(buff.readUInt8(0))})
-            .default= "electrical.chargers.{id}.state"
+            (buff)=>{return this._getOperationMode(buff)})
+        .default= "electrical.chargers.{id}.state"
+
         this.addMetadatum('chargerError','', 'charger error code', 
-            (buff)=>{return VC.ChargerError.get(buff.readUInt8(1))})
+            (buff)=>{return this._getChargerError(buff)}
+        )
             .default= "electrical.chargers.{id}.error"
 
         this.addMetadatum('batt1','V', 'battery 1 voltage')

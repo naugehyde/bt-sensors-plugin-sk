@@ -8,13 +8,13 @@ class VictronDCDCConverter extends VictronSensor{
     initSchema(){
         super.initSchema()
         this.addDefaultParam("id")
+        this.addMetadatum('state','', 'device state', 
+                (buff)=>{return this._getOperationMode(buff)})
+        .default= "electrical.chargers.{id}.state"
 
-        this.addMetadatum('deviceState','', 'device state', 
-                (buff)=>{return VC.OperationMode.get(buff.readUInt8(0))})
-        .default="electrical.chargers.{id}.state"
-        this.addMetadatum('chargerError','', 'charger error',
-                (buff)=>{return VC.ChargerError.get(buff.readUInt8(1))})
-        .default="electrical.chargers.{id}.error"
+        this.addMetadatum('chargerError','', 'charger error code', 
+                (buff)=>{return this._getChargerError(buff)})
+        .default= "electrical.chargers.{id}.error"
 
         this.addMetadatum('inputVoltage','V', 'input voltage', 
                 (buff)=>{return this.NaNif(buff.readUInt16LE(2),0xFFFF)/100})

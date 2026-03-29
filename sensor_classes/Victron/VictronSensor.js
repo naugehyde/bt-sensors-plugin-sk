@@ -83,6 +83,22 @@ const VictronIdentifier = require('./VictronIdentifier.js');
               alarm: `0x${alarm.toString(16).padStart(8,"0")}`,
               alarmstate: 'alert'})
     }
+
+    _getOperationMode(buff, offset=0){
+        const code = buff.readUInt8(offset)
+        return {
+            code: code,
+            message: VC.OperationMode.get(code)
+        }
+    }
+
+    _getChargerError(buff, offset=1){
+        const code = buff.readUInt8(offset)
+        return {
+            code: code,
+            message: VC.ChargerError.get(code)
+        }
+    }
    async init(){
         await super.init()
         this.addParameter(

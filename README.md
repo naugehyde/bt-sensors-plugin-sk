@@ -1,9 +1,16 @@
 # Bluetooth Sensors for [Signal K](http://www.signalk.org) 
 
 ## WHAT'S NEW  
-# Version 1.3.8-beta2/3
+# Version 1.3.8-beta2/3/4
+- SensorPush fixes 
+- Error/state code and description for Victron devices per issue #124
+- More descriptive notifications per issue #126
+- V19 Jikong BMS support 
 
-- SensorPush fixes
+## New sensors
+
+- Shelly/Ecowitt WS90 weather station
+
 
 # Version 1.3.8-beta1
 

@@ -9,7 +9,7 @@ class VictronVEBus extends VictronSensor{
     initSchema(){
         super.initSchema()
         this.addMetadatum('chargeState','', 'charge state', 
-            (buff)=>{return VC.OperationMode.get(buff.readUInt8(0))})
+            (buff)=>{ return this._getOperationMode(buff)})
             
         this.addMetadatum('veBusError','', 'VE bus error',
             (buff)=>{return buff.readUInt8(1)}) //TODO

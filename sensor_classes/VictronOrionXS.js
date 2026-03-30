@@ -10,11 +10,11 @@ class VictronOrionXS extends VictronSensor{
         super.initSchema()
         this.addDefaultParam("id")
         this.addMetadatum('deviceState','', 'device state', 
-            (buff)=>{return VC.OperationMode.get(buff.readUInt8(0))})
+            (buff)=>{return this._getOperationMode(buff)})
             .default="electrical.chargers.{id}.state"
-
-        this.addMetadatum('chargerError','', 'charger error',
-            (buff)=>{return VC.ChargerError.get(buff.readUInt8(1))})
+    
+        this.addMetadatum('chargerError','', 'charger error code', 
+            (buff)=>{return this._getChargerError(buff)})
             .default="electrical.chargers.{id}.error"
 
         this.addMetadatum('outputVoltage','V', 'output voltage', 

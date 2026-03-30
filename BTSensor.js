@@ -613,6 +613,7 @@ class BTSensor extends EventEmitter {
             ) 
             try {
                 await this.device.helper.callMethod('Connect')
+                await new Promise(resolve => setTimeout(resolve, 2000));
             } catch (e) {
                 this.debug(e)
                 throw new Error(e.message)
@@ -1184,7 +1185,7 @@ class BTSensor extends EventEmitter {
                             path: `notifications.sensors.${this.macAndName()}`,
                             value: {
                             state: "warn",
-                            message: "Unable to communicate with sensor",
+                            message: `Unable to communicate with BT sensor: ${this.macAndName()}` ,
                             method: ["visual", "sound"]
                         }
                         }]
@@ -1219,7 +1220,7 @@ class BTSensor extends EventEmitter {
                             path: `notifications.sensors.${this.macAndName()}`,
                             value: {
                             state: "warn",
-                            message: `No contact with sensor for ${this.elapsedTimeSinceLastContact()} seconds`,
+                            message: `No contact with BT sensor ${this.macAndName()} for ${this.elapsedTimeSinceLastContact()} seconds`,
                             method: ["visual", "sound"]
                         }
                         }]
@@ -1238,7 +1239,7 @@ class BTSensor extends EventEmitter {
                             path: `notifications.sensors.${this.macAndName()}`,
                             value: {
                             state: "normal",
-                            message: `Communication with sensor normal`,
+                            message: `Normal communication with BT sensor ${this.macAndName()}`,
                             method: []
                         }
                         }]

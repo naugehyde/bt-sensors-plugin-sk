@@ -51,7 +51,7 @@ class SensorPush extends BTSensor{
      initSchema(){
         super.initSchema()
         this.getGATTParams()["useGATT"].default=true
-        this.getGATTParams()["pollFreq"].default=30
+        this.getGATTParams()["pollFreq"].default=60
         this._schema.properties.gattParams.required.push("pollFreq")
         
         this.addDefaultParam("zone")

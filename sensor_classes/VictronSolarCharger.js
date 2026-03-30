@@ -9,11 +9,17 @@ class VictronSolarCharger extends VictronSensor{
         this.addDefaultParam("id")
     
         this.addMetadatum('chargeState','', 'charge state', 
-        (buff)=>{return VC.OperationMode.get(buff.readUInt8(0))})
+            (buff)=>{
+                const code = buff.readUInt8(0)
+                return {
+                    code: code,
+                    message: VC.OperationMode.get(code)
+                }
+            })
         .default="electrical.solar.{id}.state"
     
         this.addMetadatum('chargerError','', 'charger error',
-            (buff)=>{return VC.ChargerError.get(buff.readUInt8(1))})
+            (buff)=>{return this._getChargerError(buff)})
             .default="electrical.solar.{id}.error"
 
         this.addMetadatum('voltage','V', 'charger battery voltage', 

@@ -278,6 +278,7 @@ class BTSensor extends EventEmitter {
         else
             console.log(`(${this.getName()} ${this.getMacAddress()})) ${message}`)
         this._debugLog.push({timestamp:Date.now(), message:message})
+        this._debugLog = this._debugLog.slice(-100);
     }
 
     unsetError(){
@@ -295,6 +296,7 @@ class BTSensor extends EventEmitter {
             console.log(`(${this.getName()} ${this.getMacAddress()}) ${message}`)
 
         this._errorLog.push({timestamp:Date.now(), message:message})
+        this._errorLog = this._errorLog.slice(-100);
         this._error=true
         this.emit("errorDetected", true)
     }
@@ -761,7 +763,8 @@ class BTSensor extends EventEmitter {
                 if ( this.minUpdateInterval && 
                      lastPropsChanged>0 && 
                      (Date.now() - lastPropsChanged) < this.minUpdateInterval) {
-                        this.debug(`Ignoring properties changed. Last update was ${Date.now() - lastPropsChanged} ms ago.`)
+                        // NOTE remove this debug statement to reduce workload - eg when over 100 dupes/s may need to be dropped
+                        // this.debug(`Ignoring properties changed. Last update was ${Date.now() - lastPropsChanged} ms ago.`)
                     return
                 }
                 try{

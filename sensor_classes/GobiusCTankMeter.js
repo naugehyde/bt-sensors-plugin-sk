@@ -312,38 +312,41 @@ class GobiusCTankMeter extends BTSensor{
         )
                 
         this.addMetadatum("mst","","Device state",
-            (buffer)=>{return GobiusState.get(buffer.readInt8(0))}
+            (buffer)=>{
+                const state = buffer.readUInt8(0)
+                return GobiusState.get(state)??`Unknown state: ${state}`
+        }
         )
         .default='tanks.{type}.{id}.deviceState'
 
         this.addMetadatum("msb","","Device status",
-            (buffer)=>{return buffer.readInt8(1)}
+            (buffer)=>{return buffer.readUInt8(1)}
         )
         .default='tanks.{type}.{id}.deviceStatus'
 
 
         this.addMetadatum("mvd","","Measurement validity 0=invalid 1=valid",
-            (buffer)=>{return buffer.readInt8(2)}
+            (buffer)=>{return buffer.readUInt8(2)}
         )
         .default='tanks.{type}.{id}.measurementValidity'
 
         this.addMetadatum("mfl","ratio","Current level",
-            (buffer)=>{return buffer.readInt16BE(3)/1000}
+            (buffer)=>{return buffer.readUInt16BE(3)/1000}
         )
         .default='tanks.{type}.{id}.currentLevel'
 
         this.addMetadatum("mfr","m3","Remaining volume",
-            (buffer)=>{return this.capacity*(buffer.readInt16BE(3)/1000)}
+            (buffer)=>{return this.capacity*(buffer.readUInt16BE(3)/1000)}
         )
         .default='tanks.{type}.{id}.remaining'
 
         this.addMetadatum("minc","rad","Sensor inclination",
-            (buffer)=>{return buffer.readInt8(5) * Math.PI/180}
+            (buffer)=>{return buffer.readUInt8(5) * Math.PI/180}
         )
         .default='tanks.{type}.{id}.inclination'
 
         this.addMetadatum("mdist","mm","Distance from sensor enclosure interface [mm]",
-            (buffer)=>{return buffer.readInt16BE(6) }
+            (buffer)=>{return buffer.readUInt16BE(6) }
         )
         .default='tanks.{type}.{id}.distanceFromEnclosure'
         this.getJSONSchema().properties.params.required=["type" ]

@@ -671,16 +671,17 @@ class BTSensor extends EventEmitter {
                 }
             }
 
+            if (this._adapter?.helper?.callMethod) {
             try {
 
-               /* CAUTION: HACK AHEAD 
+               /* CAUTION: HACK AHEAD
 
-                    Bluez for some cockamamie reason (It's 2025 for chrissake. 
+                    Bluez for some cockamamie reason (It's 2025 for chrissake.
                     BLUETOOTH ISN'T JUST FOR DESKTOPS ANYMORE, BLUEZ DEVS!)
                     SUSPENDS scanning while connected to a device.
 
-                    The next line of code gives the scanner a kick in the arse, 
-                    starting it up again so, I dunno, another device might be able 
+                    The next line of code gives the scanner a kick in the arse,
+                    starting it up again so, I dunno, another device might be able
                     to connect and sensor classes could maybe get beacon updates.
 
                     You know, the little things.
@@ -690,11 +691,12 @@ class BTSensor extends EventEmitter {
                 //await this._adapter.helper.callMethod('SetDiscoveryFilter', {
                 //    Transport: new Variant('s', this._adapter?._transport??"le")
                 //})
-                await this._adapter.helper.callMethod('StartDiscovery')   
-                
+                await this._adapter.helper.callMethod('StartDiscovery')
+
             } catch (e){
                 //probably ignorable error. probably.
                 console.log(e)
+            }
             }
               /* END HACK*/
                  

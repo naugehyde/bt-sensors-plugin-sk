@@ -217,7 +217,7 @@ class JikongBMS extends BTSensor {
       buffer
     ) => {
       this.currentProperties._current =
-        buffer.readInt16LE(126 + this.offset * 2) / 1000;
+        buffer.readInt32LE(126 + this.offset * 2) / 1000;
       return this.currentProperties._current;
     };
 

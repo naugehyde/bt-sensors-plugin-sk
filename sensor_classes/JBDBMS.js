@@ -216,12 +216,25 @@ class JBDBMS extends BTSensor {
 
   getBuffer(command) {
     return new Promise(async (resolve, reject) => {
-      const r = await this.sendReadFunctionRequest(command);
+      if (!this.rxChar) {
+        reject(new Error(`${this.getName()}::getBuffer(0x${command.toString(16)}) rxChar not available`));
+        return;
+      }
       let result = Buffer.alloc(256);
       let offset = 0;
       let datasize = -1;
-      const timer = setTimeout(() => {
+      let settled = false;
+      let lastBufferHex = null;
+
+      const cleanup = () => {
+        if (this.rxChar) this.rxChar.removeListener("valuechanged", valChanged);
         clearTimeout(timer);
+      };
+
+      const timer = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        cleanup();
         reject(
           new Error(
             `Response timed out (+30s) from JBDBMS device ${this.getName()}. `
@@ -230,10 +243,18 @@ class JBDBMS extends BTSensor {
       }, 30000);
 
       const valChanged = async (buffer) => {
+        if (settled) return;
+
+        // Deduplicate: BlueZ may send duplicate PropertiesChanged signals
+        const hex = buffer.toString('hex');
+        if (hex === lastBufferHex) return;
+        lastBufferHex = hex;
+
         if (offset == 0) {
-          //first packet
-          if (buffer[0] !== 0xdd || buffer.length < 5 || buffer[1] !== command)
-            reject(`Invalid buffer from ${this.getName()}, not processing.`);
+          //first packet - skip stale/mismatched notifications instead of failing
+          if (buffer[0] !== 0xdd || buffer.length < 5 || buffer[1] !== command) {
+            return;
+          }
           else datasize = buffer[3];
         }
         buffer.copy(result, offset);
@@ -246,16 +267,22 @@ class JBDBMS extends BTSensor {
             0,
             offset + buffer.length
           );
-          this.rxChar.removeAllListeners();
-          clearTimeout(timer);
-          if (!checkSum(result))
+          settled = true;
+          cleanup();
+          if (!checkSum(result)) {
             reject(`Invalid checksum from ${this.getName()}, not processing.`);
+            return;
+          }
 
           resolve(result);
+          return;
         }
         offset += buffer.length;
       };
+
+      // Register listener BEFORE sending command to avoid missing fast responses
       this.rxChar.on("valuechanged", valChanged);
+      await this.sendReadFunctionRequest(command);
     });
   }
 

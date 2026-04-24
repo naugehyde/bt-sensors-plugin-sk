@@ -1,13 +1,12 @@
 import Form from '@rjsf/core' ;
 import validator from '@rjsf/validator-ajv8';
-import ReactHtmlParser from 'react-html-parser';
+import parse from 'html-react-parser';
 import React from 'react'
 import {useEffect, useState} from 'react'
 
-import {Button, Grid, Snackbar } from '@material-ui/core';
-import { makeStyles } from '@material-ui/core/styles';
+import {Button, Grid2 as Grid, Snackbar } from '@mui/material';
 
-import { BluetoothConnected, SignalCellular1Bar, SignalCellular2Bar, SignalCellular3Bar, SignalCellular4Bar, SignalCellular0Bar, SignalCellularConnectedNoInternet0Bar    } from '@material-ui/icons';
+import { BluetoothConnected, SignalCellular1Bar, SignalCellular2Bar, SignalCellular3Bar, SignalCellular4Bar, SignalCellular0Bar, SignalCellularConnectedNoInternet0Bar    } from '@mui/icons-material';
 import BatteryGauge from 'react-battery-gauge';
 const log = (type) => console.log.bind(console, type);
 
@@ -57,13 +56,7 @@ export function BTConfig (props)  {
     }
   }
 
-const useStyles = makeStyles((theme) => ({
-  root: {
-    '& > *': {
-      margin: theme.spacing(1),
-    },
-  },
-}));
+const rootStyle = { display: 'flex', gap: '8px' };
 
   const [baseSchema, setBaseSchema] = useState({})
 
@@ -88,7 +81,6 @@ const useStyles = makeStyles((theme) => ({
   const [error, setError ] = useState()
   const [snackbarOpen, setSnackbarOpen] = useState(false)
   const [snackbarMessage, setSnackbarMessage] = useState("")
-  const classes = useStyles();
 
   
  
@@ -150,7 +142,7 @@ async function fetchJSONData(path, data = {}) {
       throw new Error(`Unable to get base data: ${response.statusText} (${response.status}) `)
     }
     const json = await response.json()
-    json.schema.htmlDescription=<div>{ReactHtmlParser(json.schema.htmlDescription)}<p></p></div>
+    json.schema.htmlDescription=<div>{parse(json.schema.htmlDescription)}<p></p></div>
     return json
   }
 
@@ -504,7 +496,7 @@ function devicesInDomain(domain){
         message={snackbarMessage}
         key={"snackbar"}
       />  
-       <div className={classes.root}>
+       <div style={rootStyle}>
           
           <Button  variant="contained" onClick={()=>{openInNewTab("https://github.com/naugehyde/bt-sensors-plugin-sk/tree/1.2.0-beta#configuration")}}>Documentation</Button>
           <Button variant="contained"  onClick={()=>{openInNewTab("https://github.com/naugehyde/bt-sensors-plugin-sk/issues/new/choose")}}>Report Issue</Button>
@@ -543,9 +535,9 @@ function devicesInDomain(domain){
       {getTabs()}
       </Tabs>
       <div style= {{ paddingLeft: 10, paddingTop: 10, display: (Object.keys(schema).length==0)? "none" :""  }}>
-      <Grid container direction="column" style={{spacing:5}}>
-      <Grid item><h2>{schema?.title}</h2><p></p></Grid>
-      <Grid item>{ReactHtmlParser(schema?.htmlDescription)}</Grid>
+      <Grid container direction="column" spacing={1}>
+      <Grid><h2>{schema?.title}</h2><p></p></Grid>
+      <Grid>{schema?.htmlDescription ? parse(schema.htmlDescription) : null}</Grid>
       </Grid>
      <fieldset disabled={!enableSchema}>
     <Form
@@ -572,7 +564,7 @@ function devicesInDomain(domain){
       }}
       onError={log('errors')}
       formData={sensorData}>
-      <div className={classes.root}>
+      <div style={rootStyle}>
         <Button type='submit' color="primary" variant="contained">Save</Button>
         <Button variant="contained" onClick={()=>{undoChanges(sensorData.mac_address)}}>Undo</Button>
         <Button variant="contained" color="secondary" onClick={(e)=>confirmDelete(sensorData.mac_address)}>Delete</Button>

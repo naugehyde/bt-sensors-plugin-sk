@@ -1,10 +1,5 @@
 const packageInfo = require("./package.json")
 
-
-const {createBluetooth} = require('@naugehyde/node-ble')
-const {Variant} = require('@jellybrick/dbus-next')
-const {bluetooth, destroy} = createBluetooth()
-
 const BTSensor = require('./BTSensor.js')
 const BLACKLISTED = require('./sensor_classes/BlackListedDevice.js')
 const OutOfRangeDevice = require("./OutOfRangeDevice.js")
@@ -169,25 +164,28 @@ module.exports =   function (app) {
 		htmlDescription: 
 `<h2><a href="https://github.com/naugehyde/bt-sensors-plugin-sk/tree/1.2.0-beta#configuration" target="_blank">Plugin Documenation</a><p/><a href="https://github.com/naugehyde/bt-sensors-plugin-sk/issues/new/choose" target="_blank">Report an issue</a><p/><a href="https://discord.com/channels/1170433917761892493/1295425963466952725" target="_blank">Discord thread</a></h2>
  `,
-		required:["adapter","discoveryTimeout", "discoveryInterval"],
+		required:["discoveryTimeout", "discoveryInterval"],
 		properties: {
-			adapter: {title: "Bluetooth adapter",
+			bleSource: {title: "BLE Source",
+				type: "string", enum: ["auto","local","api"], default: "auto",
+				enumNames:["Auto (prefer SignalK BLE API if available)", "Local USB adapter (D-Bus/BlueZ)", "SignalK BLE Gateway API"]},
+			adapter: {title: "Bluetooth adapter (local mode only)",
 				type: "string", default: "hci0"},
-			transport: {title: "Transport ",
+			transport: {title: "Transport (local mode only)",
 				type: "string", enum: ["auto","le","bredr"], default: "le", enumNames:["Auto", "LE-Bluetooth Low Energy", "BR/EDR Bluetooth basic rate/enhanced data rate"]},
-			duplicateData: {title: "Set scanner to report duplicate data", type: "boolean", default: false, },
-			discoveryTimeout: {title: "Default device discovery timeout (in seconds)", 
+			duplicateData: {title: "Set scanner to report duplicate data (local mode only)", type: "boolean", default: false, },
+			discoveryTimeout: {title: "Default device discovery timeout (in seconds)",
 				type: "integer", default: 30,
 				minimum: 10,
-				maximum: 3600 
+				maximum: 3600
 			},
-			inactivityTimeout: {title: "Inactivity timeout in seconds -- set to 0 to disable. (If no contact with any sensors for this period, the plugin will attempt to power cycle the Bluetooth adapter.)", 
+			inactivityTimeout: {title: "Inactivity timeout in seconds -- set to 0 to disable. (If no contact with any sensors for this period, the plugin will attempt to power cycle the Bluetooth adapter.)",
 				type: "integer", default: 0,
 				minimum: 0,
-				maximum: 3600 
+				maximum: 3600
 			},
-			discoveryInterval: {title: "Scan for new devices interval (in seconds-- 0 for no new device scanning)", 
-				type: "integer", 
+			discoveryInterval: {title: "Scan for new devices interval (in seconds-- 0 for no new device scanning)",
+				type: "integer",
 				default: 10,
 				minimum: 0
 			 },
@@ -196,9 +194,12 @@ module.exports =   function (app) {
 
 	
 	plugin.started=false
-	
+
 	var discoveryIntervalID, progressID, progressTimeoutID, deviceHealthID
-	var adapter 
+	var adapter
+	var bleApiDiscovery
+	var useApi = false
+	var bluetooth, destroy
 	const channel = createChannel()
 	
 	plugin.debug(`Loading plugin ${packageInfo.version}`)
@@ -212,7 +213,7 @@ module.exports =   function (app) {
 		var adapterID=options.adapter
 		var foundConfiguredDevices=0
 
-		if (Object.keys(options).length==0){ //empty config means initial startup. save defaults and enabled=true. 
+		if (Object.keys(options).length==0){ //empty config means initial startup. save defaults and enabled=true.
 			let json = {configuration:{adapter:"hci0", transport:"le", discoveryTimeout:30, discoveryInterval:10}, enabled:true, enableDebug:false}
 			let appDataDirPath = app.getDataDirPath()
 			let jsonFile = appDataDirPath+'.json'
@@ -224,8 +225,20 @@ module.exports =   function (app) {
 				console.log(`Error writing initial config: ${err.message} `)
 				console.log(err)
 			}
-		
+
 		}
+
+		// Determine BLE source mode
+		const bleApiAvailable = app.bleApi && typeof app.bleApi.onAdvertisement === 'function'
+		const bleSource = options.bleSource || 'auto'
+		useApi = bleSource === 'api' || (bleSource === 'auto' && bleApiAvailable)
+
+		if (useApi && !bleApiAvailable) {
+			plugin.setFatalError('BLE source set to "api" but SignalK BLE API is not available.')
+			return
+		}
+
+		plugin.debug(`BLE source mode: ${bleSource} (using ${useApi ? 'SignalK BLE API' : 'local D-Bus/BlueZ'})`)
 
 		plugin.registerWithRouter = function(router) {
 			router.get('/getSensorInfo', async (req, res) => {
@@ -409,15 +422,16 @@ module.exports =   function (app) {
 		}
 
 		async function startScanner(options) {
-		
+
 			const transport = options?.transport??"le"
 			const duplicateData = options?.duplicateData??false
 			plugin.debug("Starting scan...");
 			//Use adapter.helper directly to get around Adapter::startDiscovery()
-			//filter options which can cause issues with Device::Connect() 
+			//filter options which can cause issues with Device::Connect()
 			//turning off Discovery
 			//try {await adapter.startDiscovery()}
-			try{ 
+			const {Variant} = require('@jellybrick/dbus-next')
+			try{
 				if (transport) {
 					plugin.debug(`Setting Bluetooth transport option to ${transport}. DuplicateData to ${duplicateData}`)
 					await adapter.helper.callMethod('SetDiscoveryFilter', {
@@ -425,9 +439,9 @@ module.exports =   function (app) {
 						DuplicateData: new Variant('b', duplicateData)
 					  })
 					}
-				await adapter.helper.callMethod('StartDiscovery') 
-			} 
-			catch (error){	
+				await adapter.helper.callMethod('StartDiscovery')
+			}
+			catch (error){
 				plugin.debug(error)
 			}
 			
@@ -573,7 +587,7 @@ module.exports =   function (app) {
 				const sensor = new c(device, config?.params, config?.gattParams)
 				sensor._paths=config.paths //this might be a good candidate for refactoring
 				sensor._app=app
-				sensor._adapter=adapter //HACK!
+				sensor._adapter=useApi ? bleApiDiscovery : adapter //HACK!
 				await sensor.init()				
 				return sensor
 			}
@@ -597,7 +611,7 @@ module.exports =   function (app) {
 			plugin.setStatusText(`Initializing ${deviceNameAndAddress(deviceConfig)}`);
 			if (!deviceConfig.discoveryTimeout)
 				deviceConfig.discoveryTimeout = options.discoveryTimeout
-			createSensor(adapter, deviceConfig).then(async (sensor)=>{
+			createSensor(useApi ? bleApiDiscovery : adapter, deviceConfig).then(async (sensor)=>{
 				if (startNumber != starts ) {
 						return
 				}	
@@ -633,8 +647,8 @@ module.exports =   function (app) {
 		function findDevices (discoveryTimeout) {
 			const startNumber = starts
 			plugin.setStatusText("Scanning for new Bluetooth devices...");
-
-			adapter.devices().then( (macs)=>{
+			const discovery = useApi ? bleApiDiscovery : adapter
+			Promise.resolve(discovery.devices()).then( (macs)=>{
 				if (startNumber != starts ) {
 					return
 				}
@@ -669,46 +683,84 @@ module.exports =   function (app) {
 
 		channel.broadcast({state:"started"},"pluginstate")
 
-
-		if (!adapterID || adapterID=="")
-			adapterID = "hci0"
-		//Check if Adapter has changed since last start()
-		if (adapter) {
-			if (adapter.adapter!=adapterID) {
-				adapter.helper._propsProxy.removeAllListeners()
-				adapter=null
+		if (useApi) {
+			// BLE API mode: use SignalK server's BLE API for discovery
+			const BleApiDiscovery = require('./BleApiDiscovery')
+			bleApiDiscovery = new BleApiDiscovery(app, plugin.id)
+			bleApiDiscovery.start()
+			plugin.debug('BLE API discovery started')
+		} else {
+			// Local mode: connect to D-Bus/BlueZ adapter
+			if (!bluetooth) {
+				const {createBluetooth} = require('@naugehyde/node-ble')
+				const bt = createBluetooth()
+				bluetooth = bt.bluetooth
+				destroy = bt.destroy
 			}
-		}
-		//Connect to adapter
 
-		if (!adapter){
-			plugin.debug(`Connecting to bluetooth adapter ${adapterID}`);
-
-			adapter = await bluetooth.getAdapter(adapterID)
-
-			//Set up DBUS listener to monitor Powered status of current adapter
-
-			await adapter.helper._prepare()
-			adapter.helper._propsProxy.on('PropertiesChanged', async (iface,changedProps,invalidated) => {
-				if (Object.hasOwn(changedProps,"Powered")){
-					if (changedProps.Powered.value==false) {
-						if (plugin.started){ //only call stop() if plugin is started
-							plugin.setStatusText(`Bluetooth Adapter ${adapterID} turned off. Plugin disabled.`)
-							await plugin.stop()
-						}
-					} else { 				
-						await restartPlugin(options)
-					}
+			if (!adapterID || adapterID=="")
+				adapterID = "hci0"
+			//Check if Adapter has changed since last start()
+			if (adapter) {
+				if (adapter.adapter!=adapterID) {
+					adapter.helper._propsProxy.removeAllListeners()
+					adapter=null
 				}
-			})
-			if (!await adapter.isPowered()) {
-				plugin.debug(`Bluetooth Adapter ${adapterID} not powered on.`)
-				plugin.setError(`Bluetooth Adapter ${adapterID} not powered on.`)
-				await plugin.stop()
-				return
+			}
+			//Connect to adapter
+
+			if (!adapter){
+				plugin.debug(`Connecting to bluetooth adapter ${adapterID}`);
+
+				adapter = await bluetooth.getAdapter(adapterID)
+
+				//Set up DBUS listener to monitor Powered status of current adapter
+
+				await adapter.helper._prepare()
+				adapter.helper._propsProxy.on('PropertiesChanged', async (iface,changedProps,invalidated) => {
+					if (Object.hasOwn(changedProps,"Powered")){
+						if (changedProps.Powered.value==false) {
+							if (plugin.started){ //only call stop() if plugin is started
+								plugin.setStatusText(`Bluetooth Adapter ${adapterID} turned off. Plugin disabled.`)
+								await plugin.stop()
+							}
+						} else {
+							await restartPlugin(options)
+						}
+					}
+				})
+				if (!await adapter.isPowered()) {
+					plugin.debug(`Bluetooth Adapter ${adapterID} not powered on.`)
+					plugin.setError(`Bluetooth Adapter ${adapterID} not powered on.`)
+					await plugin.stop()
+					return
+				}
+			}
+
+			try{
+				const activeAdapters = await bluetooth.activeAdapters()
+				if (activeAdapters.length==0){
+					plugin.setError("No active Bluetooth adapters found.")
+				}
+				plugin.schema.properties.adapter.enum=[]
+				plugin.schema.properties.adapter.enumNames=[]
+				for (a of activeAdapters){
+					plugin.schema.properties.adapter.enum.push(a.adapter)
+					plugin.schema.properties.adapter.enumNames.push(`${a.adapter} @ ${ await a.getAddress()} (${await a.getName()})`)
+				}}
+			catch(e){
+				plugin.setError(`Unable to get adapters: ${e.message}`)
+			}
+
+			await startScanner(options)
+			if (!await adapter.isDiscovering())
+				try{
+					await startScanner(options)
+				} catch (e){
+					plugin.setError(`Error starting scan: ${e.message}`)
 			}
 		}
-	
+
 		sensorMap.clear()
 		if (channel){
 			channel.broadcast({state:"started"},"pluginstate")
@@ -719,35 +771,12 @@ module.exports =   function (app) {
 			plugin.stopped=false
 		}
 
-		try{
-			const activeAdapters = await bluetooth.activeAdapters()
-			if (activeAdapters.length==0){
-				plugin.setError("No active Bluetooth adapters found.")
-			}
-			plugin.schema.properties.adapter.enum=[]
-			plugin.schema.properties.adapter.enumNames=[]
-			for (a of activeAdapters){
-				plugin.schema.properties.adapter.enum.push(a.adapter)
-				plugin.schema.properties.adapter.enumNames.push(`${a.adapter} @ ${ await a.getAddress()} (${await a.getName()})`)
-			}}
-		catch(e){
-			plugin.setError(`Unable to get adapters: ${e.message}`)
-		}
-		
-		await startScanner(options)
 		if (starts>0){
 			plugin.debug(`Plugin ${packageInfo.version} restarting...`);
 		} else {
 			plugin.debug(`Plugin ${packageInfo.version} started` )
-			
 		}
 		starts++
-		if (!await adapter.isDiscovering())
-			try{
-				await startScanner(options)
-			} catch (e){
-				plugin.setError(`Error starting scan: ${e.message}`)
-		}
 		if (!(deviceConfigs===undefined)){
 			const maxTimeout=Math.max(...deviceConfigs.map((dc)=>dc?.discoveryTimeout??options.discoveryTimeout))
 			const totalDevices = deviceConfigs.filter((dc)=>dc.active).length
@@ -800,10 +829,10 @@ module.exports =   function (app) {
 						sensor.clearNoContact()
 				}
 			})
-			if (sensorMap.size && options.inactivityTimeout && lastContactDelta > options.inactivityTimeout)
+			if (!useApi && sensorMap.size && options.inactivityTimeout && lastContactDelta > options.inactivityTimeout)
 			{
-				
-				plugin.debug(`No contact with any sensors for ${lastContactDelta} seconds. Recycling Bluetooth adapter.`)	
+
+				plugin.debug(`No contact with any sensors for ${lastContactDelta} seconds. Recycling Bluetooth adapter.`)
 				await adapter.setPowered(false)
 				await adapter.setPowered(true)
 			}
@@ -852,6 +881,12 @@ module.exports =   function (app) {
 			}
 		}
 		sensorMap.clear()
+
+		if (bleApiDiscovery) {
+			bleApiDiscovery.stop()
+			bleApiDiscovery = null
+			plugin.debug('BLE API discovery stopped')
+		}
 
 		if (adapter) {
 			adapter.helper._propsProxy.removeAllListeners()

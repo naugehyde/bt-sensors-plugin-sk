@@ -1,6 +1,13 @@
 # Bluetooth Sensors for [Signal K](http://www.signalk.org) 
 
 ## WHAT'S NEW  
+
+# Version.1.3.8.beta5
+- Jikong fixes (https://github.com/naugehyde/bt-sensors-plugin-sk/pull/138)
+- JBDBMS fixes (https://github.com/naugehyde/bt-sensors-plugin-sk/pull/130)
+- HumsienkBMS fixes (https://github.com/naugehyde/bt-sensors-plugin-sk/pull/131)
+- Generic BTSensor state decoupled from Victron and other device's with state events 
+
 # Version 1.3.8-beta2/3/4
 - SensorPush fixes 
 - Error/state code and description for Victron devices per issue #124

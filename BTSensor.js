@@ -920,7 +920,7 @@ class BTSensor extends EventEmitter {
     }
     setState(state){
         this._state = state
-        this.emit("state",this._state)
+        this.emit("_state",this._state)
     }
 
     getDomain(){

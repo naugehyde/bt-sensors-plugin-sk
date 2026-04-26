@@ -437,7 +437,7 @@ module.exports =   function (app) {
 		}
 
 		function removeSensorFromList(sensor){
-			sensor.removeAllListeners("state")
+			sensor.removeAllListeners("_state")
 			sensor.removeAllListeners("connected")
 			sensor.removeAllListeners("error")
 			sensor.removeAllListeners("debug")
@@ -449,7 +449,7 @@ module.exports =   function (app) {
 		
 		function addSensorToList(sensor){
 			sensorMap.set(sensor.getMacAddress(),sensor)
-			sensor.on("state", (state)=>{
+			sensor.on("_state", (state)=>{
 				updateSensor(sensor)
 			})
 			sensor.on("connected", (state)=>{

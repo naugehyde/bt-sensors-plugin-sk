@@ -124,7 +124,13 @@ function dump(label, obj) {
 async function getAdapter(bluetooth) {
   if (ADAPTER_NAME) {
     log(`using adapter ${ADAPTER_NAME}`);
-    return bluetooth.adapter(ADAPTER_NAME);
+    if (typeof bluetooth.getAdapter === "function") {
+      return bluetooth.getAdapter(ADAPTER_NAME);
+    }
+    if (typeof bluetooth.adapter === "function") {
+      return bluetooth.adapter(ADAPTER_NAME);
+    }
+    log(`adapter() not in this node-ble version; falling back to defaultAdapter()`);
   }
   return bluetooth.defaultAdapter();
 }

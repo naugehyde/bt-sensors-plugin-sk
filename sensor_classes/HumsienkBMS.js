@@ -39,6 +39,9 @@ class HumsienkBMS extends BTSensor {
   static ImageFile = "JBDBMS.webp"; // Using similar BMS image for now
   static Manufacturer = "BMC (HumsiENK)";
   static Description = "HSC14F LiFePO4 Battery Management System";
+  
+  // Default polling frequency in seconds (similar to other BMS sensors)
+  pollFreq = 30;
 
   /**
    * Create HSC14F command
@@ -79,6 +82,16 @@ class HumsienkBMS extends BTSensor {
       multipleOf: 1
     });
 
+    // Battery capacity parameter (optional) - HSC14F doesn't report this in protocol
+    this.addParameter("batteryCapacityAh", {
+      title: "Battery Capacity (Ah)",
+      description: "Total battery capacity in Amp-hours (optional). If provided, remaining and actual capacity will be calculated from SOC.",
+      type: "number",
+      isRequired: false,
+      minimum: 1,
+      maximum: 1000
+    });
+
     // Voltage
     this.addDefaultPath("voltage", "electrical.batteries.voltage").read = (
       buffer
@@ -103,6 +116,33 @@ class HumsienkBMS extends BTSensor {
     ).read = (buffer) => {
       // Byte 11: SOC percentage (0-100)
       return buffer.readUInt8(11) / 100;
+    };
+
+    // Remaining Capacity - calculated from SOC (only if batteryCapacityAh is configured)
+    this.addDefaultPath(
+      "remainingCapacity",
+      "electrical.batteries.capacity.remaining"
+    ).read = (buffer) => {
+      // Only calculate if batteryCapacityAh is configured
+      if (this.batteryCapacityAh === undefined || this.batteryCapacityAh <= 0) {
+        return null;
+      }
+      const soc = buffer.readUInt8(11) / 100;
+      // Convert Ah to Coulombs (Ah * 3600), round to integer
+      return Math.round((this.batteryCapacityAh * soc) * 3600);
+    };
+
+    // Total Capacity - from configuration (only if batteryCapacityAh is configured)
+    this.addDefaultPath(
+      "capacity",
+      "electrical.batteries.capacity.actual"
+    ).read = (buffer) => {
+      // Only return value if batteryCapacityAh is configured
+      if (this.batteryCapacityAh === undefined || this.batteryCapacityAh <= 0) {
+        return null;
+      }
+      // Convert Ah to Coulombs (Ah * 3600)
+      return this.batteryCapacityAh * 3600;
     };
 
     // Temperature 1 (ENV temperature) - CORRECTED byte position
@@ -171,8 +211,9 @@ class HumsienkBMS extends BTSensor {
   }
 
   async initGATTNotifications() {
-    // Don't use notifications for polling mode
-    // The parent class initGATTInterval will handle periodic connections
+    this.intervalID = setInterval(async () => {
+      await this.emitGATT();
+    }, 1000 * (this?.pollFreq ?? 30));
   }
 
   async emitGATT() {
@@ -180,18 +221,14 @@ class HumsienkBMS extends BTSensor {
       await this.getAndEmitBatteryInfo();
     } catch (e) {
       this.debug(`Failed to emit battery info for ${this.getName()}: ${e}`);
-      throw e; // Re-throw so parent can handle reconnection
     }
-
-    // Get cell voltages after a short delay
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    try {
-      await this.getAndEmitCellVoltages();
-    } catch (e) {
-      this.debug(`Failed to emit cell voltages for ${this.getName()}: ${e}`);
-      throw e; // Re-throw so parent can handle reconnection
-    }
+    setTimeout(async () => {
+      try {
+        await this.getAndEmitCellVoltages();
+      } catch (e) {
+        this.debug(`Failed to emit cell voltages for ${this.getName()}: ${e}`);
+      }
+    }, 10000);
   }
 
   /**
@@ -276,16 +313,6 @@ class HumsienkBMS extends BTSensor {
   }
 
   async initGATTConnection(isReconnecting = false) {
-    // Clean up old listeners before reconnecting to prevent accumulation
-    if (this.rxChar) {
-      try {
-        this.rxChar.helper.removeListeners();
-        this.rxChar.removeAllListeners();
-        await this.rxChar.stopNotifications();
-      } catch (e) {
-        this.debug(`Error cleaning up old notifications: ${e.message}`);
-      }
-    }
 
     await super.initGATTConnection(isReconnecting);
 
@@ -314,7 +341,8 @@ class HumsienkBMS extends BTSensor {
       // Debug logging to verify buffer received
       this.debug(`Command 0x21 response: ${buffer.length} bytes, hex: ${buffer.slice(0, 30).toString('hex')}`);
       
-      ["voltage", "current", "SOC", "temp1", "temp2", "temp3"].forEach((tag) => {
+      // Always emit all registered paths - those with null values won't be emitted to SignalK
+      ["voltage", "current", "SOC", "remainingCapacity", "capacity", "temp1", "temp2", "temp3"].forEach((tag) => {
         this.emitData(tag, buffer);
       });
     });
@@ -336,65 +364,31 @@ class HumsienkBMS extends BTSensor {
   }
 
   async initGATTInterval() {
-    // Get static info once (manufacturer, model) at first connection
+    // Setup GATT connection during initialization (like JBDBMS)
+    await this.deviceConnect();
+    const gattServer = await this.device.gatt();
+    const txRxService = await gattServer.getPrimaryService(
+      this.constructor.TX_RX_SERVICE
+    );
+    this.rxChar = await txRxService.getCharacteristic(
+      this.constructor.NOTIFY_CHAR_UUID
+    );
+    this.txChar = await txRxService.getCharacteristic(
+      this.constructor.WRITE_CHAR_UUID
+    );
+    await this.rxChar.startNotifications();
+
+    // Send handshake command (0x00) to wake battery and prevent sleep
     try {
-      const mfgBuffer = await this.getBuffer(0x10);
-      this.emitData("manufacturer", mfgBuffer);
-      
-      const modelBuffer = await this.getBuffer(0x11);
-      this.emitData("model", modelBuffer);
+      this.debug(`Sending initial handshake (wake) command to ${this.getName()}`);
+      await this.sendCommand(0x00);
+      await new Promise(resolve => setTimeout(resolve, 300));
     } catch (e) {
-      this.debug(`Failed to get device info: ${e.message}`);
+      this.debug(`Handshake failed: ${e.message}`);
     }
 
-    // Get first poll data before disconnecting
-    try {
-      await this.emitGATT();
-    } catch (error) {
-      this.debug(`Initial poll failed: ${error.message}`);
-    }
-
-    // Disconnect after initial data collection
-    await this.deactivateGATT().catch((e) => {
-      this.debug(`Error deactivating GATT Connection: ${e.message}`);
-    });
-    this.setState("WAITING");
-
-    // Set up polling interval - reconnect, poll, disconnect
-    this.intervalID = setInterval(async () => {
-      try {
-        this.setState("CONNECTING");
-        await this.initGATTConnection(true);
-        await this.emitGATT();
-      } catch (error) {
-        // Check if device has been removed from BlueZ cache
-        if (error.message && error.message.includes("interface not found in proxy object")) {
-          this.debug(`Device removed from BlueZ cache. Clearing stale connection state.`);
-          this.setError(`Device out of range or removed from Bluetooth cache. Waiting for rediscovery...`);
-          
-          // Clear the interval to stop futile reconnection attempts
-          if (this.intervalID) {
-            clearInterval(this.intervalID);
-            this.intervalID = null;
-          }
-          
-          // Set state to indicate waiting for rediscovery
-          this.setState("OUT_OF_RANGE");
-          return;
-        }
-        
-        this.debug(error);
-        this.setError(`Unable to emit values for device: ${error.message}`);
-      } finally {
-        await this.deactivateGATT().catch((e) => {
-          // Suppress errors when device is already removed from BlueZ
-          if (!e.message || !e.message.includes("interface not found")) {
-            this.debug(`Error deactivating GATT Connection: ${e.message}`);
-          }
-        });
-        this.setState("WAITING");
-      }
-    }, this.pollFreq * 1000);
+    await this.emitGATT();
+    await this.initGATTNotifications();
   }
 
   async deactivateGATT() {

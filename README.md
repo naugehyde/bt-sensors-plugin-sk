@@ -2,8 +2,10 @@
 
 ## WHAT'S NEW  
 
-# Version.1.3.8.beta5
-- Jikong fixes (https://github.com/naugehyde/bt-sensors-plugin-sk/pull/138)
+# Version.1.3.8.beta6
+- regression error in VictronDCDCConverter fixed
+
+# Jikong fixes (https://github.com/naugehyde/bt-sensors-plugin-sk/pull/138)
 - JBDBMS fixes (https://github.com/naugehyde/bt-sensors-plugin-sk/pull/130)
 - HumsienkBMS fixes (https://github.com/naugehyde/bt-sensors-plugin-sk/pull/131)
 - Generic BTSensor state decoupled from Victron and other device's with state events 

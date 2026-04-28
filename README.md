@@ -1,6 +1,15 @@
 # Bluetooth Sensors for [Signal K](http://www.signalk.org) 
 
 ## WHAT'S NEW  
+
+# Version.1.3.8.beta6
+- regression error in VictronDCDCConverter fixed
+
+# Jikong fixes (https://github.com/naugehyde/bt-sensors-plugin-sk/pull/138)
+- JBDBMS fixes (https://github.com/naugehyde/bt-sensors-plugin-sk/pull/130)
+- HumsienkBMS fixes (https://github.com/naugehyde/bt-sensors-plugin-sk/pull/131)
+- Generic BTSensor state decoupled from Victron and other device's with state events 
+
 # Version 1.3.8-beta2/3/4
 - SensorPush fixes 
 - Error/state code and description for Victron devices per issue #124
@@ -192,6 +201,7 @@ It's pretty easy to write and deploy your own sensor class for any currently uns
 |[AC DC Systems](https://marinedcac.com) | [Bank Manager](https://marinedcac.com/pages/bankmanager) hybrid (Pb and Li) charger|
 |[Ective](https://ective.de/)| Also Topband(?), Skanbatt and others |
 |[Leagend](https://leagend.com)| BM 2/6/7 Battery Monitors aka Alcel BM200 and others. See: https://leagend.com/products/bm6|
+|[WattCycle](https://wattcycle.com/) / XDZN | LiFePO4 smart batteries (XDZN/WT-prefixed BLE name, BMS service `0xFFF0`). Reverse-engineered from `com.gz.wattcycle` Android APK via [wattcycle_ble](https://github.com/qume/wattcycle_ble). |
 
 
 ### Environmental 

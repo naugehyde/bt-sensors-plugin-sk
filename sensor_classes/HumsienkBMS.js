@@ -236,19 +236,29 @@ class HumsienkBMS extends BTSensor {
    * HSC14F sends multi-part responses for some commands
    */
   async getBuffer(command) {
+    if (!this.rxChar) {
+      throw new Error(`${this.getName()}::getBuffer(0x${command.toString(16)}) rxChar not available`);
+    }
+
     let result = Buffer.alloc(256);
     let offset = 0;
-    let lastPacketTime = Date.now();
+    let settled = false;
+    let lastBufferHex = null;
 
-    // Set up listener first
     const responsePromise = new Promise((resolve, reject) => {
-      const timer = setTimeout(() => {
+      const cleanup = () => {
+        if (this.rxChar) this.rxChar.removeListener("valuechanged", valChanged);
         clearTimeout(timer);
         if (completionTimer) clearTimeout(completionTimer);
-        this.rxChar.removeAllListeners("valuechanged");
+      };
+
+      const timer = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        cleanup();
         reject(
           new Error(
-            `Response timed out (+10s) from HSC14F device ${this.getName()}.`
+            `Response timed out (+10s) from HumsienkBMS device ${this.getName()}.`
           )
         );
       }, 10000);
@@ -256,29 +266,30 @@ class HumsienkBMS extends BTSensor {
       let completionTimer = null;
 
       const valChanged = (buffer) => {
+        if (settled) return;
+
+        // Deduplicate: BlueZ may send duplicate PropertiesChanged signals
+        const hex = buffer.toString('hex');
+        if (hex === lastBufferHex) return;
+        lastBufferHex = hex;
+
         // HSC14F responses start with 0xaa followed by command byte
         if (offset === 0 && (buffer[0] !== 0xaa || buffer[1] !== command)) {
-          this.debug(
-            `Invalid buffer from ${this.getName()}, expected command 0x${command.toString(
-              16
-            )}, got 0x${buffer[0].toString(16)} 0x${buffer[1].toString(16)}`
-          );
           return;
         }
 
         buffer.copy(result, offset);
         offset += buffer.length;
-        lastPacketTime = Date.now();
 
         // Clear any existing completion timer
         if (completionTimer) clearTimeout(completionTimer);
 
         // Wait 200ms after last packet to consider response complete
-        // This allows multi-packet responses to assemble properly
         completionTimer = setTimeout(() => {
+          if (settled) return;
+          settled = true;
           result = Uint8Array.prototype.slice.call(result, 0, offset);
-          this.rxChar.removeAllListeners("valuechanged");
-          clearTimeout(timer);
+          cleanup();
           resolve(result);
         }, 200);
       };
@@ -287,23 +298,37 @@ class HumsienkBMS extends BTSensor {
       this.rxChar.on("valuechanged", valChanged);
     });
 
-    // Small delay to ensure listener is attached
-    await new Promise(r => setTimeout(r, 100));
-    
     // Send the command
     try {
       await this.sendCommand(command);
     } catch (err) {
-      this.rxChar.removeAllListeners("valuechanged");
+      if (!settled) {
+        settled = true;
+        if (this.rxChar) this.rxChar.removeAllListeners("valuechanged");
+      }
       throw err;
     }
 
-    // Wait for response
     return responsePromise;
   }
 
-  async initGATTConnection() {
-    this.setConnected(await this.device.isConnected());
+  async initGATTConnection(isReconnecting = false) {
+
+    await super.initGATTConnection(isReconnecting);
+
+    // Set up GATT characteristics
+    const gattServer = await this.device.gatt();
+    const txRxService = await gattServer.getPrimaryService(
+      this.constructor.TX_RX_SERVICE
+    );
+    this.rxChar = await txRxService.getCharacteristic(
+      this.constructor.NOTIFY_CHAR_UUID
+    );
+    this.txChar = await txRxService.getCharacteristic(
+      this.constructor.WRITE_CHAR_UUID
+    );
+    await this.rxChar.startNotifications();
+
     return this;
   }
 

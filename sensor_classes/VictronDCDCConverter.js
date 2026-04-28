@@ -8,7 +8,7 @@ class VictronDCDCConverter extends VictronSensor{
     initSchema(){
         super.initSchema()
         this.addDefaultParam("id")
-        this.addMetadatum('state','', 'device state', 
+        this.addMetadatum('deviceState','', 'device state', 
                 (buff)=>{return this._getOperationMode(buff)})
         .default= "electrical.chargers.{id}.state"
 

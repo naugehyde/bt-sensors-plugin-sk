@@ -672,6 +672,26 @@ module.exports =   function (app) {
 
 		if (!adapterID || adapterID=="")
 			adapterID = "hci0"
+
+		// On Victron devices adapter names are not consistent.
+		// If adapterID looks like a MAC address, resolve it to hciX name
+		if (/^([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}$/.test(adapterID)) {
+			const wantMac = adapterID.toLowerCase()
+			const adapterNames = await bluetooth.adapters()
+			let resolved = null
+			for (const name of adapterNames) {
+				const a = await bluetooth.getAdapter(name)
+				const mac = await a.getAddress()
+				if (mac.toLowerCase() === wantMac) {
+					resolved = name
+					break
+				}
+			}
+			if (!resolved) throw new Error(`No adapter found with MAC address ${adapterID}`)
+			plugin.debug(`Resolved adapter MAC ${adapterID} to ${resolved}`)
+			adapterID = resolved
+		}
+
 		//Check if Adapter has changed since last start()
 		if (adapter) {
 			if (adapter.adapter!=adapterID) {
@@ -727,8 +747,12 @@ module.exports =   function (app) {
 			plugin.schema.properties.adapter.enum=[]
 			plugin.schema.properties.adapter.enumNames=[]
 			for (a of activeAdapters){
+				const addr = await a.getAddress()
+				const name = await a.getName()
 				plugin.schema.properties.adapter.enum.push(a.adapter)
-				plugin.schema.properties.adapter.enumNames.push(`${a.adapter} @ ${ await a.getAddress()} (${await a.getName()})`)
+				plugin.schema.properties.adapter.enumNames.push(`${a.adapter} @ ${addr} (${name})`)
+				plugin.schema.properties.adapter.enum.push(addr)
+				plugin.schema.properties.adapter.enumNames.push(`${a.adapter} @ ${addr} (${name}) [by MAC]`)
 			}}
 		catch(e){
 			plugin.setError(`Unable to get adapters: ${e.message}`)

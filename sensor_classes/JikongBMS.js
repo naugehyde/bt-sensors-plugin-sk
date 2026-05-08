@@ -532,7 +532,11 @@ class JikongBMS extends BTSensor {
   }
 
   async deactivateGATT() {
-    await this.stopGATTNotifications(this.rxChar) 
+    if (this.intervalID) {
+      clearInterval(this.intervalID);
+      this.intervalID = null;
+    }
+    await this.stopGATTNotifications(this.rxChar)
 
     await super.deactivateGATT();
   }

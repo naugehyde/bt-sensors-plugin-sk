@@ -193,8 +193,12 @@ class ShenzhenLiONBMS extends BTSensor{
     }
   
     async deactivateGATT(){
+        if (this.intervalID) {
+            clearInterval(this.intervalID)
+            this.intervalID = null
+        }
         await this.stopGATTNotifications(this.rxCharacteristic)
-        await super.deactivateGATT() 
+        await super.deactivateGATT()
     }
 }
 module.exports=ShenzhenLiONBMS

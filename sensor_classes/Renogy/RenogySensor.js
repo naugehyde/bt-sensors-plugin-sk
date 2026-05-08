@@ -118,6 +118,10 @@ class RenogySensor extends BTSensor{
         return true
     }
     async deactivateGATT(){
+        if (this.intervalID) {
+            clearInterval(this.intervalID)
+            this.intervalID = null
+        }
         await this.stopGATTNotifications(this.readChar)
         await super.deactivateGATT()
     }

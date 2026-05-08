@@ -390,6 +390,10 @@ class HumsienkBMS extends BTSensor {
   }
 
   async deactivateGATT() {
+    if (this.intervalID) {
+      clearInterval(this.intervalID);
+      this.intervalID = null;
+    }
     await this.stopGATTNotifications(this.rxChar);
     await super.deactivateGATT();
   }

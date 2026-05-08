@@ -131,7 +131,13 @@ class ShenzhenLiONBMS extends BTSensor{
             .default="electrical.batteries.{batteryID}.balanceMemoryActive"
 
         this.addMetadatum('protectionState','', 'protection state',
-                (buff)=>{return ProtectionStatus[buff.readUInt16LE(76)]??"Normal"})
+                (buff)=>{
+                    const bits = buff.readUInt16LE(76)
+                    const states = new Set()
+                    for (const [mask, label] of Object.entries(ProtectionStatus))
+                        if (bits & Number(mask)) states.add(label)
+                    return states.size === 0 ? "Normal" : [...states].join(", ")
+                })
             .default="electrical.batteries.{batteryID}.protectionState"
 
         this.addMetadatum('failureState','', 'failure state',

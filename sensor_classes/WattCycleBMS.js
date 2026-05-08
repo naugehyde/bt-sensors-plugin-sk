@@ -119,11 +119,23 @@ class WattCycleBMS extends BTSensor {
       "protectionStatus",
       "",
       "Active protections",
-      (wi) => ({
-        protections: wi.protections,
-        faults: wi.faults,
-        warnings: wi.warnings,
-      })
+      (wi) => {
+        const status = {
+          protections: wi.protections,
+          faults: wi.faults,
+          warnings: wi.warnings,
+        };
+        const path = this.notificationPathFor("protectionStatus");
+        if (path) {
+          const active = [...wi.protections, ...wi.faults, ...wi.warnings];
+          if (active.length === 0) {
+            this.emitNotification(path, null);
+          } else {
+            this.emitNotification(path, "alert", active.join(", "));
+          }
+        }
+        return status;
+      }
     ).default = "electrical.batteries.{batteryID}.protectionStatus";
   }
 

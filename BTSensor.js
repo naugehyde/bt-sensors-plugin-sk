@@ -1255,6 +1255,26 @@ class BTSensor extends EventEmitter {
   getBatteryStrength(){
     return this.getCurrentValue(this.constructor.batteryStrengthTag)
   }
+
+  emitNotification(path, state, message, method = ["visual", "sound"]){
+    if (!this._app) return
+    const value = state == null
+        ? null
+        : { state, method, message }
+    this._app.handleMessage('bt-sensors-plugin-sk', {
+        updates: [{
+            $source: this.getName(),
+            timestamp: (new Date()).toISOString(),
+            values: [{ path, value }]
+        }]
+    })
+  }
+
+  notificationPathFor(tag){
+    const meta = this.getPath?.(tag)
+    if (!meta?.default) return null
+    return `notifications.${this.preparePath(meta.default)}`
+  }
 }
 
 module.exports = BTSensor   

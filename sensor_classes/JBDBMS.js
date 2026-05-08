@@ -96,8 +96,9 @@ class JBDBMS extends BTSensor {
     };
 
     this.addMetadatum("protectionStatus", "", "Protection Status", (buffer) => {
-      const bits = buffer.readUInt16BE(20).toString(2);
-      return {
+      const word = buffer.readUInt16BE(20);
+      const bits = word.toString(2);
+      const status = {
         singleCellOvervolt: bits[0] == "1",
         singleCellUndervolt: bits[1] == "1",
         packOvervolt: bits[2] == "1",
@@ -112,6 +113,19 @@ class JBDBMS extends BTSensor {
         frontEndDetectionICError: bits[11] == "1",
         softwareLockMOS: bits[12] == "1",
       };
+      const path = this.notificationPathFor("protectionStatus");
+      if (path) {
+        if (word === 0) {
+          this.emitNotification(path, null);
+        } else {
+          const active = Object.entries(status)
+            .filter(([, v]) => v)
+            .map(([k]) => k)
+            .join(", ");
+          this.emitNotification(path, "alert", active || `protectionStatus=0x${word.toString(16)}`);
+        }
+      }
+      return status;
     }).default = "electrical.batteries.{batteryID}.protectionStatus";
 
     this.addDefaultPath(

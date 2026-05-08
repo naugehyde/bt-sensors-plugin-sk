@@ -77,11 +77,20 @@ const VictronIdentifier = require('./VictronIdentifier.js');
         return reasons.join("|");
     }
     emitAlarm(tag="alarm", alarm){
-        this.emit(
-             tag,
-            { message:this.alarmReasonText(alarm), 
-              alarm: `0x${alarm.toString(16).padStart(8,"0")}`,
-              alarmstate: 'alert'})
+        if (alarm > 0) {
+            this.emit(
+                 tag,
+                { message:this.alarmReasonText(alarm),
+                  alarm: `0x${alarm.toString(16).padStart(8,"0")}`,
+                  alarmstate: 'alert'})
+        }
+        const path = this.notificationPathFor(tag)
+        if (path) {
+            if (alarm > 0)
+                this.emitNotification(path, "alert", this.alarmReasonText(alarm))
+            else
+                this.emitNotification(path, null)
+        }
     }
 
     _getOperationMode(buff, offset=0){

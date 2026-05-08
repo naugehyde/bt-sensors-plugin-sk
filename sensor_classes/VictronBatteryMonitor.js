@@ -123,8 +123,7 @@ class VictronBatteryMonitor extends VictronSensor{
         this.emitData("ttg",decData,0)
         this.emitData("voltage",decData,2);
         const alarm = this.getPath("alarm").read(decData,4)
-        if (alarm>0)
-            this.emitAlarm("alarm",alarm)
+        this.emitAlarm("alarm",alarm)
         
         switch(this.auxMode){
         case VC.AuxMode.STARTER_VOLTAGE:

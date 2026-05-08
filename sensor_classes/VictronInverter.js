@@ -39,9 +39,7 @@ class VictronInverter extends VictronSensor{
         this.emit('acCurrent',
             this.NaNif(br.read_unsigned_int(11),0x7FF)/10)
         const alarm = this.getPath("alarmReason").read(decData)
-        if (alarm>0){
-            this.emitAlarm("alarmReason",alarm)
-        }
+        this.emitAlarm("alarmReason",alarm)
     }
     
 

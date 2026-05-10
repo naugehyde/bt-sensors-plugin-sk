@@ -687,7 +687,12 @@ module.exports =   function (app) {
 					break
 				}
 			}
-			if (!resolved) throw new Error(`No adapter found with MAC address ${adapterID}`)
+			if (!resolved) {
+				plugin.debug(`No adapter found with MAC address ${adapterID}.`)
+				plugin.setError(`No adapter found with MAC address ${adapterID}.`)
+				await plugin.stop()
+				return
+			}
 			plugin.debug(`Resolved adapter MAC ${adapterID} to ${resolved}`)
 			adapterID = resolved
 		}

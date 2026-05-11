@@ -790,16 +790,18 @@ module.exports =   function (app) {
 				if (lc > dt) { 
 					updateSensor(sensor)
 				}
-				if (sensor.noContactThreshold && lc>sensor.noContactThreshold){
-					if (sensor.isActive())
-						sensor.notifyNoContact()
-				}
-				else{
-					if (sensor.isActive())
-						sensor.clearNoContact()
+				if (sensor.noContactThreshold && Number.isFinite(lc)){
+					if (lc > sensor.noContactThreshold){
+						if (sensor.isActive())
+							sensor.notifyNoContact()
+					}
+					else{
+						if (sensor.isActive())
+							sensor.clearNoContact()
+					}
 				}
 			})
-			if (sensorMap.size && options.inactivityTimeout && lastContactDelta > options.inactivityTimeout)
+			if (sensorMap.size && options.inactivityTimeout && Number.isFinite(lastContactDelta) && lastContactDelta > options.inactivityTimeout)
 			{
 				
 				plugin.debug(`No contact with any sensors for ${lastContactDelta} seconds. Recycling Bluetooth adapter.`)	

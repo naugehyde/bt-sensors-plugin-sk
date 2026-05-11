@@ -415,7 +415,7 @@ class BTSensor extends EventEmitter {
         this._active = true
         this._error = false
 
-        this._propertiesChanged(this.currentProperties)
+        this._propertiesChanged(this.currentProperties, false)
 
     }
 
@@ -972,9 +972,10 @@ class BTSensor extends EventEmitter {
      * @param {*} props which contains ManufacturerData and ServiceData (where the sensor's data resides)
      * set up by BTSensor::initPropertiesChanged()
      */
-    _propertiesChanged(props){
-        this._lastContact=Date.now()
-            
+    _propertiesChanged(props, live=true){
+        if (live)
+            this._lastContact=Date.now()
+
         if (props.RSSI) {
             this.currentProperties.RSSI=this.valueIfVariant(props.RSSI)
             this.emit("RSSI", this.currentProperties.RSSI) //tell any RSSI listeners of the new value
@@ -1046,7 +1047,7 @@ class BTSensor extends EventEmitter {
             }
         }
         this.setState("ACTIVE")
-        this._propertiesChanged(this.currentProperties)
+        this._propertiesChanged(this.currentProperties, false)
     }
 
   /**
@@ -1136,8 +1137,9 @@ class BTSensor extends EventEmitter {
     elapsedTimeSinceLastContact(){
         if (this.device instanceof OutOfRangeDevice)
             return Infinity
-        else 
-            return (Date.now()-this?._lastContact??Date.now())/1000
+        if (this._lastContact === undefined)
+            return Infinity
+        return (Date.now() - this._lastContact) / 1000
     }
 
     prepareConfig(config){

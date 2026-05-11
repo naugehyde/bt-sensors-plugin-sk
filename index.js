@@ -174,7 +174,7 @@ module.exports =   function (app) {
 				type: "string", default: "hci0"},
 			transport: {title: "Transport ",
 				type: "string", enum: ["auto","le","bredr"], default: "le", enumNames:["Auto", "LE-Bluetooth Low Energy", "BR/EDR Bluetooth basic rate/enhanced data rate"]},
-			duplicateData: {title: "Set scanner to report duplicate data", type: "boolean", default: false, },
+			duplicateData: {title: "Set scanner to report duplicate data", type: "boolean", default: true, },
 			discoveryTimeout: {title: "Default device discovery timeout (in seconds)", 
 				type: "integer", default: 30,
 				minimum: 10,
@@ -411,7 +411,7 @@ module.exports =   function (app) {
 		async function startScanner(options) {
 		
 			const transport = options?.transport??"le"
-			const duplicateData = options?.duplicateData??false
+			const duplicateData = options?.duplicateData??true
 			plugin.debug("Starting scan...");
 			//Use adapter.helper directly to get around Adapter::startDiscovery()
 			//filter options which can cause issues with Device::Connect() 

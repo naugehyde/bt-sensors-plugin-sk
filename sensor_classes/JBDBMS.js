@@ -96,21 +96,21 @@ class JBDBMS extends BTSensor {
     };
 
     this.addMetadatum("protectionStatus", "", "Protection Status", (buffer) => {
-      const bits = buffer.readUInt16BE(20).toString(2);
+      const word = buffer.readUInt16BE(20);
       return {
-        singleCellOvervolt: bits[0] == "1",
-        singleCellUndervolt: bits[1] == "1",
-        packOvervolt: bits[2] == "1",
-        packUndervolt: bits[3] == "1",
-        chargeOvertemp: bits[4] == "1",
-        chargeUndertemp: bits[5] == "1",
-        dischargeOvertemp: bits[6] == "1",
-        dischargeUndertemp: bits[7] == "1",
-        chargeOvercurrent: bits[8] == "1",
-        dischargeOvercurrent: bits[9] == "1",
-        shortCircut: bits[10] == "1",
-        frontEndDetectionICError: bits[11] == "1",
-        softwareLockMOS: bits[12] == "1",
+        singleCellOvervolt:       (word & 0x0001) !== 0,
+        singleCellUndervolt:      (word & 0x0002) !== 0,
+        packOvervolt:             (word & 0x0004) !== 0,
+        packUndervolt:            (word & 0x0008) !== 0,
+        chargeOvertemp:           (word & 0x0010) !== 0,
+        chargeUndertemp:          (word & 0x0020) !== 0,
+        dischargeOvertemp:        (word & 0x0040) !== 0,
+        dischargeUndertemp:       (word & 0x0080) !== 0,
+        chargeOvercurrent:        (word & 0x0100) !== 0,
+        dischargeOvercurrent:     (word & 0x0200) !== 0,
+        shortCircut:              (word & 0x0400) !== 0,
+        frontEndDetectionICError: (word & 0x0800) !== 0,
+        softwareLockMOS:          (word & 0x1000) !== 0,
       };
     }).default = "electrical.batteries.{batteryID}.protectionStatus";
 

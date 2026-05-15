@@ -8,6 +8,7 @@ const {bluetooth, destroy} = createBluetooth()
 const BTSensor = require('./BTSensor.js')
 const BLACKLISTED = require('./sensor_classes/BlackListedDevice.js')
 const OutOfRangeDevice = require("./OutOfRangeDevice.js")
+const MissingAdapter = require("./MissingAdapter.js")
 const { createChannel, createSession } = require("better-sse");
 const { clearTimeout } = require('timers')
 const loadClassMap = require('./classLoader.js')
@@ -672,9 +673,70 @@ module.exports =   function (app) {
 
 		if (!adapterID || adapterID=="")
 			adapterID = "hci0"
-		//Check if Adapter has changed since last start()
+
+		// Populate adapter dropdown first so the admin UI can show current hardware
+		// even when the configured adapter can't be resolved (missing or unknown hci).
+		try{
+			const activeAdapters = await bluetooth.activeAdapters()
+			if (activeAdapters.length==0){
+				plugin.setError("No active Bluetooth adapters found.")
+			}
+			const adapterInfo = await Promise.all(activeAdapters.map(async (a) => {
+				const [addr, name] = await Promise.all([a.getAddress(), a.getName()])
+				return { hci: a.adapter, addr, name }
+			}))
+			plugin.schema.properties.adapter.enum=[]
+			plugin.schema.properties.adapter.enumNames=[]
+			for (const { hci, addr, name } of adapterInfo) {
+				plugin.schema.properties.adapter.enum.push(hci)
+				plugin.schema.properties.adapter.enumNames.push(`${hci} @ ${addr} (${name})`)
+				plugin.schema.properties.adapter.enum.push(addr)
+				plugin.schema.properties.adapter.enumNames.push(`${hci} @ ${addr} (${name}) [by MAC]`)
+			}
+		}
+		catch(e){
+			plugin.setError(`Unable to get adapters: ${e.message}`)
+		}
+
+		function installMissingAdapter(message){
+			plugin.debug(message)
+			plugin.setError(message)
+			if (adapter)
+				adapter.helper._propsProxy.removeAllListeners()
+			adapter = new MissingAdapter(adapterID)
+		}
+
+		// On Victron devices adapter names are not consistent.
+		// If adapterID looks like a MAC address, resolve it to hciX name
+		if (/^([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}$/.test(adapterID)) {
+			const wantMac = adapterID.toLowerCase()
+			let resolved = null
+			try {
+				const adapterNames = await bluetooth.adapters()
+				for (const name of adapterNames) {
+					const a = await bluetooth.getAdapter(name)
+					const mac = await a.getAddress()
+					if (mac.toLowerCase() === wantMac) {
+						resolved = name
+						break
+					}
+				}
+			} catch (e) {
+				installMissingAdapter(`Unable to enumerate adapters while resolving MAC ${adapterID}: ${e.message}`)
+				return
+			}
+			if (!resolved) {
+				installMissingAdapter(`No adapter found with MAC address ${adapterID}.`)
+				return
+			}
+			plugin.debug(`Resolved adapter MAC ${adapterID} to ${resolved}`)
+			adapterID = resolved
+		}
+
+		//Check if Adapter has changed since last start(), or if the previous
+		//start left a placeholder MissingAdapter that should be re-acquired.
 		if (adapter) {
-			if (adapter.adapter!=adapterID) {
+			if (adapter.adapter!=adapterID || adapter instanceof MissingAdapter) {
 				adapter.helper._propsProxy.removeAllListeners()
 				adapter=null
 			}
@@ -684,7 +746,12 @@ module.exports =   function (app) {
 		if (!adapter){
 			plugin.debug(`Connecting to bluetooth adapter ${adapterID}`);
 
-			adapter = await bluetooth.getAdapter(adapterID)
+			try {
+				adapter = await bluetooth.getAdapter(adapterID)
+			} catch (e) {
+				installMissingAdapter(`Bluetooth Adapter ${adapterID} not found: ${e.message}`)
+				return
+			}
 
 			//Set up DBUS listener to monitor Powered status of current adapter
 
@@ -696,7 +763,7 @@ module.exports =   function (app) {
 							plugin.setStatusText(`Bluetooth Adapter ${adapterID} turned off. Plugin disabled.`)
 							await plugin.stop()
 						}
-					} else { 				
+					} else {
 						await restartPlugin(options)
 					}
 				}
@@ -708,7 +775,7 @@ module.exports =   function (app) {
 				return
 			}
 		}
-	
+
 		sensorMap.clear()
 		if (channel){
 			channel.broadcast({state:"started"},"pluginstate")
@@ -719,21 +786,7 @@ module.exports =   function (app) {
 			plugin.stopped=false
 		}
 
-		try{
-			const activeAdapters = await bluetooth.activeAdapters()
-			if (activeAdapters.length==0){
-				plugin.setError("No active Bluetooth adapters found.")
-			}
-			plugin.schema.properties.adapter.enum=[]
-			plugin.schema.properties.adapter.enumNames=[]
-			for (a of activeAdapters){
-				plugin.schema.properties.adapter.enum.push(a.adapter)
-				plugin.schema.properties.adapter.enumNames.push(`${a.adapter} @ ${ await a.getAddress()} (${await a.getName()})`)
-			}}
-		catch(e){
-			plugin.setError(`Unable to get adapters: ${e.message}`)
-		}
-		
+
 		if (starts>0){
 			plugin.debug(`Plugin ${packageInfo.version} restarting...`);
 		} else {

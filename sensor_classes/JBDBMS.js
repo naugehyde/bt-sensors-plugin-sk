@@ -89,6 +89,18 @@ class JBDBMS extends BTSensor {
       }
     ).default = "electrical.batteries.capacity.actual";
 
+    // JBD has no native time-to-go field; derive it from remaining charge
+    // and discharge current. Only meaningful while discharging.
+    this.addDefaultPath(
+      "timeRemaining",
+      "electrical.batteries.capacity.timeRemaining"
+    ).read = (buffer) => {
+      const current = buffer.readInt16BE(6) / 100;      // A, -ve = discharging
+      const remainingAh = buffer.readUInt16BE(8) / 100; // Ah
+      if (current >= 0) return null;
+      return (remainingAh / -current) * 3600;           // s
+    };
+
     this.addDefaultPath("cycles", "electrical.batteries.cycles").read = (
       buffer
     ) => {
@@ -342,6 +354,7 @@ class JBDBMS extends BTSensor {
         "voltage",
         "remainingCapacity",
         "capacity",
+        "timeRemaining",
         "cycles",
         "protectionStatus",
         "SOC",

@@ -4,6 +4,7 @@ const EventEmitter = require('node:events');
 const AutoQueue =  require("./Queue.js")
 const DistanceManager = require("./DistanceManager")
 const OutOfRangeDevice = require("./OutOfRangeDevice.js")
+const BLEApiDevice = require("./BLEApiDevice.js")
 /** 
  * @author Andrew Gerngross <oh.that.andy@gmail.com>
 */
@@ -427,8 +428,20 @@ class BTSensor extends EventEmitter {
             try {
                 await this.activateGATT()
             } catch (e) {
-                this.setError(`GATT services unavailable.`)
-                throw new Error(`GATT services unavailable for ${this.getName()}. Reason: ${e}`)
+                this.debug(`GATT activate failed, retrying in 5s: ${e.message}`)
+                //release anything the failed attempt left behind (e.g. a
+                //server-side GATT claim from a partial raw connection)
+                await this.deactivateGATT().catch((err)=>
+                    this.debug(`Error cleaning up after failed GATT activate: ${err.message}`))
+                await new Promise(r => setTimeout(r, 5000))
+                try {
+                    //isReconnecting=true: the first attempt already attached
+                    //the device's connect/disconnect listeners
+                    await this.activateGATT(true)
+                } catch (lastError) {
+                    this.setError(`GATT services unavailable.`)
+                    throw new Error(`GATT services unavailable for ${this.getName()}. Reason: ${lastError}`)
+                }
             }
         } else {
             this.setState("ACTIVE")
@@ -447,12 +460,109 @@ class BTSensor extends EventEmitter {
     }
     async activateGATT(isReconnecting=false){
         this.setState("ACTIVATING GATT")
+
+        //Devices discovered through the server's BLE API have no BlueZ
+        //object behind them -- GATT must go through the BLE API as well.
+        //Locally discovered devices keep using direct node-ble GATT even
+        //when the server API is present (hybrid mode).
+        if (this.device instanceof BLEApiDevice) {
+            const descriptor = this.getGATTDescriptor()
+            if (descriptor) {
+                this._gattHandle = await this._app.bleApi.subscribeGATT(
+                    descriptor,
+                    'bt-sensors-plugin-sk',
+                    (charUuid, data) => this.handleGATTData(charUuid, data)
+                )
+                this._gattHandle.onConnect(() => {
+                    this.setConnected(true)
+                    this.setState("ACTIVE")
+                })
+                this._gattHandle.onDisconnect(() => {
+                    this.setConnected(false)
+                    this.setState("RECONNECTING")
+                    if (!this.isActive()) return
+                    if (this._gattReconnectTimer) return //re-subscribe already scheduled
+                    // Schedule re-subscribe after a short delay so the server
+                    // can finish cleaning up the stale GATT claim before we try again.
+                    // The handle is tracked so deactivateGATT() can cancel it --
+                    // otherwise a stopped sensor would re-subscribe 3s later.
+                    this._gattReconnectTimer = setTimeout(async () => {
+                        this._gattReconnectTimer = null
+                        if (!this.isActive()) return
+                        this.debug(`GATT disconnected — attempting re-subscribe for ${this.getName()}`)
+                        try {
+                            await this.deactivateGATT()
+                            await this.activateGATT(true)
+                            this.debug(`GATT re-subscribed for ${this.getName()}`)
+                        } catch (e) {
+                            this.debug(`GATT re-subscribe failed for ${this.getName()}: ${e.message}`)
+                            this.setError(`GATT reconnect failed: ${e.message}`)
+                        }
+                    }, 3000)
+                })
+                if (this._gattHandle.connected) {
+                    this.setConnected(true)
+                }
+                this.setState("ACTIVE")
+                return
+            } else if (this.needsRawGATT()) {
+                const conn = await this._app.bleApi.connectGATT(
+                    this.getMacAddress(),
+                    'bt-sensors-plugin-sk'
+                )
+                //track the connection before subclass init so a partial
+                //failure can still release the server-side claim
+                this._rawConn = conn
+                await this.initRawGATTConnection(conn)
+                this.setState("ACTIVE")
+                return
+            }
+            //neither descriptor nor raw support: this sensor class has not
+            //been ported to the server BLE API yet -- fail with a clear
+            //message instead of fake-connecting through the legacy path
+            throw new Error(
+                `${this.constructor.name} does not support GATT via the server BLE API yet -- ` +
+                `disable the server's Local Bluetooth Adapter setting to use direct GATT`
+            )
+        }
+
+        // Legacy: direct node-ble GATT
         await this.initGATTConnection(isReconnecting)
-        if (this.pollFreq) 
+        if (this.pollFreq)
             await this.initGATTInterval()
-        else 
+        else
             await this.initGATTNotifications()
-        
+
+    }
+
+    /**
+     * Override in subclass to return a GATTSubscriptionDescriptor.
+     * Return null if the sensor cannot use descriptor mode.
+     * @returns {Object|null}
+     */
+    getGATTDescriptor() { return null }
+
+    /**
+     * Override in subclass to dispatch GATT data from the BLE API callback.
+     * @param {string} charUuid - characteristic UUID
+     * @param {Buffer} data - notification/poll data
+     */
+    handleGATTData(charUuid, data) {
+        // Default: no-op — subclasses dispatch by charUuid
+    }
+
+    /**
+     * Override in subclass to return true if raw GATT is needed
+     * (complex protocols like BMS request-response).
+     */
+    needsRawGATT() { return false }
+
+    /**
+     * Override in subclass for raw GATT connection initialization.
+     * @param {Object} conn - BLEGattConnection from the BLE API
+     */
+    async initRawGATTConnection(conn) {
+        // Default: no-op — subclasses implement
     }
 
     async stopAllGATTNotifications(){
@@ -469,9 +579,38 @@ class BTSensor extends EventEmitter {
         }
     }
     async deactivateGATT(){
+        if (this._gattReconnectTimer) {
+            clearTimeout(this._gattReconnectTimer)
+            this._gattReconnectTimer = null
+        }
+        // BLE API raw connection: release the server-side GATT claim
+        if (this._rawConn) {
+            this.debug(`Releasing raw GATT connection...`)
+            try {
+                await this._app.bleApi.releaseGATTDevice(this.getMacAddress(), 'bt-sensors-plugin-sk')
+            } catch (e) {
+                this.debug(`Error releasing raw GATT connection: ${e.message}`)
+            }
+            this._rawConn = null
+            this.setConnected(false)
+            return
+        }
+        // BLE API subscription: close the handle (releases the claim server-side)
+        if (this._gattHandle) {
+            this.debug(`Closing GATT subscription handle...`)
+            try {
+                await this._gattHandle.close()
+            } catch (e) {
+                this.debug(`Error closing GATT handle: ${e.message}`)
+            }
+            this._gattHandle = null
+            this.setConnected(false)
+            return
+        }
+        // Legacy: direct device disconnect
         if (this.device) {
             this.debug(`Disconnecting from GATT server...`)
-            await this.deviceDisconnect()  
+            await this.deviceDisconnect()
         }
     }
 

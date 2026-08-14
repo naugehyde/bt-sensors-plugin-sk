@@ -178,7 +178,27 @@ const BTSensor = require("../BTSensor");
     }
 
  
-     async initGATTConnection(isReconnecting){ 
+    // BLE API descriptor mode
+    getGATTDescriptor() {
+        return {
+            mac: this.getMacAddress(),
+            service: this.serviceUUID,
+            notify: [this.info1CharUUID, this.info2CharUUID, this.eventUUID]
+        }
+    }
+
+    handleGATTData(charUuid, data) {
+        const uuid = charUuid.toLowerCase()
+        if (uuid === this.info1CharUUID.toLowerCase()) {
+            this.emitInfo1Data(data)
+        } else if (uuid === this.info2CharUUID.toLowerCase()) {
+            this.emitInfo2Data(data)
+        } else if (uuid === this.eventUUID.toLowerCase()) {
+            this.emitEventData(data)
+        }
+    }
+
+     async initGATTConnection(isReconnecting){
         await super.initGATTConnection(isReconnecting)
         const gattServer = await this.getGATTServer()
         const service = await gattServer.getPrimaryService(this.serviceUUID) 

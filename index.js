@@ -1,14 +1,23 @@
 const packageInfo = require("./package.json")
 
 
-const {createBluetooth} = require('@naugehyde/node-ble')
-const {Variant} = require('@jellybrick/dbus-next')
-const {bluetooth, destroy} = createBluetooth()
+let bluetooth, destroy, Variant, bleLoadError
+try {
+	//dbus-next first: node-ble depends on it, so a partial load can only
+	//leave Variant set with bluetooth undefined -- never the reverse
+	;({Variant} = require('@jellybrick/dbus-next'))
+	const {createBluetooth} = require('@naugehyde/node-ble')
+	;({bluetooth, destroy} = createBluetooth())
+} catch (e) {
+	//BlueZ/D-Bus unavailable -- the plugin can still run as a BLE API consumer
+	bleLoadError = e?.message ?? String(e)
+}
 
 const BTSensor = require('./BTSensor.js')
 const BLACKLISTED = require('./sensor_classes/BlackListedDevice.js')
 const OutOfRangeDevice = require("./OutOfRangeDevice.js")
 const MissingAdapter = require("./MissingAdapter.js")
+const BLEApiDevice = require("./BLEApiDevice.js")
 const { createChannel, createSession } = require("better-sse");
 const { clearTimeout } = require('timers')
 const loadClassMap = require('./classLoader.js')
@@ -119,6 +128,9 @@ class MissingSensor  {
 	}
 
 }
+
+const { resolveBleMode } = require('./bleMode.js')
+
 module.exports =   function (app) {
 	var deviceConfigs=[]
 	var starts=0
@@ -197,8 +209,11 @@ module.exports =   function (app) {
 	
 	plugin.started=false
 	
-	var discoveryIntervalID, progressID, progressTimeoutID, deviceHealthID
-	var adapter 
+	var discoveryIntervalID, progressID, progressTimeoutID, deviceHealthID, bleSettingsWatchID
+	var adapter
+	var useBleApi=false      //consume the server's BLE API advertisement stream
+	var useLocalAdapter=true //run our own BlueZ scan on the local adapter
+	var bleApiUnsubscribe=null
 	const channel = createChannel()
 	
 	plugin.debug(`Loading plugin ${packageInfo.version}`)
@@ -224,12 +239,30 @@ module.exports =   function (app) {
 				console.log(`Error writing initial config: ${err.message} `)
 				console.log(err)
 			}
-		
+
+		}
+
+		//Mirror the server's Bluetooth settings (see resolveBleMode above)
+		const bleMode = resolveBleMode(app)
+		useBleApi = bleMode.useBleApi
+		useLocalAdapter = bleMode.useLocalAdapter
+		plugin.debug(`BLE source: ${bleMode.reason}`)
+
+		//The Local Bluetooth Adapter toggle applies live on the server, so
+		//watch it and restart into the matching mode when it changes.
+		if (app.bleApi && !bleSettingsWatchID){
+			const localManagedAtStart = app.bleApi.localBluetoothManaged
+			bleSettingsWatchID = setInterval(()=>{
+				if (app.bleApi.localBluetoothManaged != localManagedAtStart){
+					plugin.debug("Server Bluetooth settings changed -- restarting plugin to apply the new BLE source")
+					restartPlugin(options)
+				}
+			}, 30000)
 		}
 
 		plugin.registerWithRouter = function(router) {
 			router.get('/getSensorInfo', async (req, res) => {
-				const _sensor = sensorMap.get(req.query?.mac_address)
+				const _sensor = sensorMap.get(normMac(req.query?.mac_address))
 				const _class = classMap.get(req.query?.class)
 				let _tempSensor = null
 				if (_sensor &&_class && _sensor instanceof classMap.get("UNKNOWN")){
@@ -238,7 +271,7 @@ module.exports =   function (app) {
 						_tempSensor = new _class ( _sensor.device )
 						_tempSensor.currentProperties=_sensor.currentProperties
 						_tempSensor._app = app
-						_tempSensor._adapter=adapter
+						_tempSensor._adapter=(_sensor.device instanceof BLEApiDevice)?null:adapter
 						await _tempSensor.init()
 						const _json = sensorToJSON(_tempSensor)
 						res.status(200).json(_json)
@@ -256,14 +289,19 @@ module.exports =   function (app) {
 			})
 
 			router.post('/updateSensorData', async (req, res) => {
-				const sensor = sensorMap.get(req.body.mac_address)
+				const reqMac = normMac(req.body.mac_address)
+				const sensor = sensorMap.get(reqMac)
+				if (!sensor) {
+					res.status(404).json({message: "Sensor not found"})
+					return
+				}
 				sensor.prepareConfig(req.body)
-				const i = deviceConfigs.findIndex((p)=>p.mac_address==req.body.mac_address) 
+				const i = deviceConfigs.findIndex((p)=>normMac(p.mac_address)==reqMac)
 				if (i<0){
 					if (!options.peripherals){
 						if (!options.hasOwnProperty("peripherals"))
 							options.peripherals=[]
-			
+
 						options.peripherals=[]
 					}
 					options.peripherals.push(req.body)
@@ -280,27 +318,32 @@ module.exports =   function (app) {
 								removeSensorFromList(sensor)
 							}
 						}
-						initConfiguredDevice(req.body)
+						if (sensor && sensor.device instanceof BLEApiDevice)
+							//BLE-API-backed device: re-init from the existing
+							//virtual device -- there is no adapter to scan
+							initConfiguredDeviceWithDevice(sensor.device, req.body)
+						else if (useLocalAdapter)
+							initConfiguredDevice(req.body)
 					}
 				)
-				
+
 			});
 			router.post('/removeSensorData', async (req, res) => {
-				const sensor = sensorMap.get(req.body.mac_address)
+				const sensor = sensorMap.get(normMac(req.body.mac_address))
 				if (!sensor) {
 					res.status(404).json({message: "Sensor not found"})
 					return
 				}
-				const i = deviceConfigs.findIndex((p)=>p.mac_address==req.body.mac_address) 
+				const i = deviceConfigs.findIndex((p)=>normMac(p.mac_address)==normMac(req.body.mac_address))
 				if (i>=0){
 					deviceConfigs.splice(i,1)
 				}
 
-				if (sensor.isActive()) 
+				if (sensor.isActive())
 					await sensor.stopListening()
-				
-				if (sensorMap.has(req.body.mac_address))
-					sensorMap.delete(req.body.mac_address)
+
+				if (sensorMap.has(normMac(req.body.mac_address)))
+					sensorMap.delete(normMac(req.body.mac_address))
 				app.savePluginOptions(
 					options, () => {
 						res.status(200).json({message: "Sensor updated"})
@@ -434,7 +477,21 @@ module.exports =   function (app) {
 			
 		}		
 		function updateSensor(sensor){
-			channel.broadcast(getSensorInfo(sensor), "sensorchanged")			
+			channel.broadcast(getSensorInfo(sensor), "sensorchanged")
+		}
+
+		function normMac(mac){
+			return (mac??"").toUpperCase()
+		}
+
+		//Precedence when the same MAC is reachable through several sources
+		//(hybrid mode): a locally connected device beats a BLE-API-fed one,
+		//and both beat the out-of-range/missing placeholders.
+		function sensorRank(sensor){
+			if (sensor instanceof MissingSensor) return 0
+			if (sensor.device instanceof OutOfRangeDevice) return 0
+			if (sensor.device instanceof BLEApiDevice) return 1
+			return 2 //backed by a real local (node-ble) device
 		}
 
 		function removeSensorFromList(sensor){
@@ -444,12 +501,33 @@ module.exports =   function (app) {
 			sensor.removeAllListeners("debug")
 			sensor.removeAllListeners("RSSI")
 
-			sensorMap.delete(sensor.getMacAddress())
-			channel.broadcast({mac:sensor.getMacAddress()},"removesensor")
+			const mac = normMac(sensor.getMacAddress())
+			//only drop the map entry if it is actually this sensor --
+			//the entry may already belong to a replacement
+			if (sensorMap.get(mac)===sensor){
+				sensorMap.delete(mac)
+				channel.broadcast({mac:sensor.getMacAddress()},"removesensor")
+			}
 		}
-		
+
 		function addSensorToList(sensor){
-			sensorMap.set(sensor.getMacAddress(),sensor)
+			const mac = normMac(sensor.getMacAddress())
+			const existing = sensorMap.get(mac)
+			if (existing && existing!==sensor){
+				if (sensorRank(existing) > sensorRank(sensor)){
+					//a better-sourced sensor already covers this MAC --
+					//discard the newcomer
+					plugin.debug(`Keeping existing sensor for ${mac}; discarding lower-priority duplicate`)
+					Promise.resolve(sensor.stopListening()).catch(()=>{})
+					return false
+				}
+				Promise.resolve(existing.stopListening()).catch(()=>{})
+				removeSensorFromList(existing)
+			}
+			sensorMap.set(mac,sensor)
+			if (sensor instanceof BLACKLISTED)
+				//kept in the map as an identification cache, not shown in the UI
+				return true
 			sensor.on("_state", (state)=>{
 				updateSensor(sensor)
 			})
@@ -476,6 +554,7 @@ module.exports =   function (app) {
 
 			}))
 			channel.broadcast(sensorToJSON(sensor),"newsensor");
+			return true
 		}
 		function deviceNameAndAddress(config){
 			return `${config?.name??""}${config.name?" at ":""}${config.mac_address}`
@@ -543,7 +622,8 @@ module.exports =   function (app) {
 			})})
 		}
 		function getDeviceConfig(mac){
-			return deviceConfigs.find((p)=>p.mac_address==mac) 
+			const m = normMac(mac)
+			return deviceConfigs.find((p)=>normMac(p.mac_address)==m)
 		}
 		async function getClassFor(device,config){
 			
@@ -574,7 +654,7 @@ module.exports =   function (app) {
 				const sensor = new c(device, config?.params, config?.gattParams)
 				sensor._paths=config.paths //this might be a good candidate for refactoring
 				sensor._app=app
-				sensor._adapter=adapter //HACK!
+				sensor._adapter=(device instanceof BLEApiDevice)?null:adapter //HACK!
 				await sensor.init()				
 				return sensor
 			}
@@ -592,6 +672,40 @@ module.exports =   function (app) {
 		}	
 		function activeDevices(){
 			return Array.from(sensorMap.values()).filter(s=>s.isActive()).length
+		}
+		//Initialize a sensor directly from a device object (BLE API mode --
+		//there is no adapter to wait on, the advertisement IS the discovery)
+		async function initConfiguredDeviceWithDevice(device, deviceConfig){
+			const startNumber=starts
+			if (!deviceConfig.discoveryTimeout)
+				deviceConfig.discoveryTimeout = options?.discoveryTimeout??30
+			try {
+				const sensor = await instantiateSensor(device, deviceConfig)
+				if (!sensor) return
+				if (startNumber!==starts){
+					//plugin restarted while we were instantiating
+					Promise.resolve(sensor.stopListening()).catch(()=>{})
+					return
+				}
+				//BLACKLISTED sensors go into the map too (hidden from the UI):
+				//later advertisements then hit the update path instead of
+				//re-identifying the device on every advertisement
+				if (!addSensorToList(sensor)) return
+				if (!deviceConfig.unconfigured)
+					++foundConfiguredDevices
+				//no sensor.listen() here: instantiateSensor -> init() ->
+				//initListen() already attached the PropertiesChanged handler
+				if (deviceConfig.active && !(sensor instanceof BLACKLISTED)){
+					try {
+						await sensor.activate(deviceConfig, plugin)
+						plugin.setStatusText(`Listening to ${activeDevices()} sensors.`)
+					} catch (e){
+						sensor.setError(`Unable to activate sensor. Reason: ${e.message}`)
+					}
+				}
+			} catch (e){
+				plugin.debug(`BLE API device init error: ${e.message}`)
+			}
 		}
 		function initConfiguredDevice(deviceConfig){
 			const startNumber=starts
@@ -639,9 +753,9 @@ module.exports =   function (app) {
 				if (startNumber != starts ) {
 					return
 				}
-				for (const mac of macs) {	
+				for (const mac of macs) {
 					var deviceConfig = getDeviceConfig(mac)
-					const sensor = sensorMap.get(mac)
+					const sensor = sensorMap.get(normMac(mac))
 
 					if (sensor) {
 						if (sensor instanceof MissingSensor){
@@ -670,34 +784,6 @@ module.exports =   function (app) {
 
 		channel.broadcast({state:"started"},"pluginstate")
 
-
-		if (!adapterID || adapterID=="")
-			adapterID = "hci0"
-
-		// Populate adapter dropdown first so the admin UI can show current hardware
-		// even when the configured adapter can't be resolved (missing or unknown hci).
-		try{
-			const activeAdapters = await bluetooth.activeAdapters()
-			if (activeAdapters.length==0){
-				plugin.setError("No active Bluetooth adapters found.")
-			}
-			const adapterInfo = await Promise.all(activeAdapters.map(async (a) => {
-				const [addr, name] = await Promise.all([a.getAddress(), a.getName()])
-				return { hci: a.adapter, addr, name }
-			}))
-			plugin.schema.properties.adapter.enum=[]
-			plugin.schema.properties.adapter.enumNames=[]
-			for (const { hci, addr, name } of adapterInfo) {
-				plugin.schema.properties.adapter.enum.push(hci)
-				plugin.schema.properties.adapter.enumNames.push(`${hci} @ ${addr} (${name})`)
-				plugin.schema.properties.adapter.enum.push(addr)
-				plugin.schema.properties.adapter.enumNames.push(`${hci} @ ${addr} (${name}) [by MAC]`)
-			}
-		}
-		catch(e){
-			plugin.setError(`Unable to get adapters: ${e.message}`)
-		}
-
 		function installMissingAdapter(message){
 			plugin.debug(message)
 			plugin.setError(message)
@@ -706,68 +792,136 @@ module.exports =   function (app) {
 			adapter = new MissingAdapter(adapterID)
 		}
 
-		// On Victron devices adapter names are not consistent.
-		// If adapterID looks like a MAC address, resolve it to hciX name
-		if (/^([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}$/.test(adapterID)) {
-			const wantMac = adapterID.toLowerCase()
-			let resolved = null
-			try {
-				const adapterNames = await bluetooth.adapters()
-				for (const name of adapterNames) {
-					const a = await bluetooth.getAdapter(name)
-					const mac = await a.getAddress()
-					if (mac.toLowerCase() === wantMac) {
-						resolved = name
-						break
-					}
+		//Acquire and prepare the local Bluetooth adapter.
+		//Returns "ready" when the adapter is usable, "abort" when start() must
+		//end (legacy behavior: MissingAdapter placeholder installed or plugin
+		//stopped), or "unavailable" when no local adapter could be acquired
+		//and the caller may degrade to BLE-API-only operation.
+		async function setupLocalAdapter(){
+
+			if (!bluetooth){
+				//node-ble/D-Bus could not even be loaded
+				if (!useBleApi){
+					installMissingAdapter(`Bluetooth stack (BlueZ/D-Bus) unavailable: ${bleLoadError}`)
+					return "abort"
 				}
-			} catch (e) {
-				installMissingAdapter(`Unable to enumerate adapters while resolving MAC ${adapterID}: ${e.message}`)
-				return
+				plugin.debug(`Bluetooth stack (BlueZ/D-Bus) unavailable: ${bleLoadError}`)
+				return "unavailable"
 			}
-			if (!resolved) {
-				installMissingAdapter(`No adapter found with MAC address ${adapterID}.`)
-				return
+
+			if (!adapterID || adapterID=="")
+				adapterID = "hci0"
+
+			// Populate adapter dropdown first so the admin UI can show current hardware
+			// even when the configured adapter can't be resolved (missing or unknown hci).
+			try{
+				const activeAdapters = await bluetooth.activeAdapters()
+				if (activeAdapters.length==0){
+					//in hybrid mode this is expected on boxes without local BT --
+					//the plugin degrades to BLE-API-only, so no error banner
+					if (useBleApi)
+						plugin.debug("No active Bluetooth adapters found.")
+					else
+						plugin.setError("No active Bluetooth adapters found.")
+				}
+				const adapterInfo = await Promise.all(activeAdapters.map(async (a) => {
+					const [addr, name] = await Promise.all([a.getAddress(), a.getName()])
+					return { hci: a.adapter, addr, name }
+				}))
+				plugin.schema.properties.adapter.enum=[]
+				plugin.schema.properties.adapter.enumNames=[]
+				for (const { hci, addr, name } of adapterInfo) {
+					plugin.schema.properties.adapter.enum.push(hci)
+					plugin.schema.properties.adapter.enumNames.push(`${hci} @ ${addr} (${name})`)
+					plugin.schema.properties.adapter.enum.push(addr)
+					plugin.schema.properties.adapter.enumNames.push(`${hci} @ ${addr} (${name}) [by MAC]`)
+				}
 			}
-			plugin.debug(`Resolved adapter MAC ${adapterID} to ${resolved}`)
-			adapterID = resolved
-		}
-
-		//Check if Adapter has changed since last start(), or if the previous
-		//start left a placeholder MissingAdapter that should be re-acquired.
-		if (adapter) {
-			if (adapter.adapter!=adapterID || adapter instanceof MissingAdapter) {
-				adapter.helper._propsProxy.removeAllListeners()
-				adapter=null
+			catch(e){
+				if (useBleApi)
+					plugin.debug(`Unable to get adapters: ${e.message}`)
+				else
+					plugin.setError(`Unable to get adapters: ${e.message}`)
 			}
-		}
-		//Connect to adapter
 
-		if (!adapter){
-			plugin.debug(`Connecting to bluetooth adapter ${adapterID}`);
-
-			const maxAttempts = 5
-			const retryDelay = 3000
-			for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+			// On Victron devices adapter names are not consistent.
+			// If adapterID looks like a MAC address, resolve it to hciX name
+			if (/^([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}$/.test(adapterID)) {
+				const wantMac = adapterID.toLowerCase()
+				let resolved = null
 				try {
-					adapter = await bluetooth.getAdapter(adapterID)
-					break
+					const adapterNames = await bluetooth.adapters()
+					for (const name of adapterNames) {
+						const a = await bluetooth.getAdapter(name)
+						const mac = await a.getAddress()
+						if (mac.toLowerCase() === wantMac) {
+							resolved = name
+							break
+						}
+					}
 				} catch (e) {
-					if (attempt < maxAttempts) {
-						const msg = `Bluetooth adapter ${adapterID} not ready (attempt ${attempt}/${maxAttempts}), retrying in ${retryDelay/1000}s...`
-						plugin.debug(msg)
-						plugin.setStatusText(msg)
-						await new Promise(resolve => setTimeout(resolve, retryDelay))
-					} else {
-						installMissingAdapter(`Bluetooth Adapter ${adapterID} not found: ${e.message}`)
-						return
+					if (useBleApi){
+						plugin.debug(`Unable to enumerate adapters while resolving MAC ${adapterID}: ${e.message}`)
+						return "unavailable"
+					}
+					installMissingAdapter(`Unable to enumerate adapters while resolving MAC ${adapterID}: ${e.message}`)
+					return "abort"
+				}
+				if (!resolved) {
+					if (useBleApi){
+						plugin.debug(`No adapter found with MAC address ${adapterID}.`)
+						return "unavailable"
+					}
+					installMissingAdapter(`No adapter found with MAC address ${adapterID}.`)
+					return "abort"
+				}
+				plugin.debug(`Resolved adapter MAC ${adapterID} to ${resolved}`)
+				adapterID = resolved
+			}
+
+			//Check if Adapter has changed since last start(), or if the previous
+			//start left a placeholder MissingAdapter that should be re-acquired.
+			if (adapter) {
+				if (adapter.adapter!=adapterID || adapter instanceof MissingAdapter) {
+					adapter.helper._propsProxy.removeAllListeners()
+					adapter=null
+				}
+			}
+			//Connect to adapter
+
+			if (!adapter){
+				plugin.debug(`Connecting to bluetooth adapter ${adapterID}`);
+
+				const maxAttempts = 5
+				const retryDelay = 3000
+				for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+					try {
+						adapter = await bluetooth.getAdapter(adapterID)
+						break
+					} catch (e) {
+						if (attempt < maxAttempts) {
+							const msg = `Bluetooth adapter ${adapterID} not ready (attempt ${attempt}/${maxAttempts}), retrying in ${retryDelay/1000}s...`
+							plugin.debug(msg)
+							plugin.setStatusText(msg)
+							await new Promise(resolve => setTimeout(resolve, retryDelay))
+						} else {
+							if (useBleApi){
+								plugin.debug(`Bluetooth Adapter ${adapterID} not found: ${e.message}`)
+								return "unavailable"
+							}
+							installMissingAdapter(`Bluetooth Adapter ${adapterID} not found: ${e.message}`)
+							return "abort"
+						}
 					}
 				}
 			}
 
-			//Set up DBUS listener to monitor Powered status of current adapter
+			//(Re-)register the DBUS listener that monitors the adapter's
+			//Powered status -- plugin.stop() removes all listeners from the
+			//props proxy, so a reused adapter needs it registered again.
 
 			await adapter.helper._prepare()
+			adapter.helper._propsProxy.removeAllListeners()
 			adapter.helper._propsProxy.on('PropertiesChanged', async (iface,changedProps,invalidated) => {
 				if (Object.hasOwn(changedProps,"Powered")){
 					if (changedProps.Powered.value==false) {
@@ -782,10 +936,30 @@ module.exports =   function (app) {
 			})
 			if (!await adapter.isPowered()) {
 				plugin.debug(`Bluetooth Adapter ${adapterID} not powered on.`)
+				if (useBleApi)
+					//keep the adapter and its Powered listener: powering
+					//the adapter back on restarts the plugin into hybrid
+					return "poweredOff"
 				plugin.setError(`Bluetooth Adapter ${adapterID} not powered on.`)
 				await plugin.stop()
-				return
+				return "abort"
 			}
+			return "ready"
+		}
+
+		if (useLocalAdapter){
+			const adapterState = await setupLocalAdapter()
+			if (adapterState=="abort")
+				return
+			if (adapterState!="ready"){
+				plugin.debug("Local Bluetooth unavailable -- continuing with the server BLE API only")
+				plugin.setStatusText("Local Bluetooth unavailable -- using server BLE API")
+				useLocalAdapter=false
+				if (adapterState!="poweredOff")
+					adapter=null
+			}
+		} else {
+			adapter=null
 		}
 
 		sensorMap.clear()
@@ -793,6 +967,61 @@ module.exports =   function (app) {
 			channel.broadcast({state:"started"},"pluginstate")
 		}
 		deviceConfigs=options?.peripherals??[]
+
+		//Consume the server's BLE API advertisement stream: local-provider
+		//advertisements when the server manages the adapter, remote-gateway
+		//advertisements always.
+		if (useBleApi){
+			if (bleApiUnsubscribe)
+				bleApiUnsubscribe()
+			const pendingApiInit = new Set()
+			bleApiUnsubscribe = app.bleApi.onAdvertisement(plugin.id, (adv)=>{
+				const mac = normMac(adv.mac)
+				const sensor = sensorMap.get(mac)
+				//stubs (missing/out-of-range) get replaced by a live
+				//BLE-API-backed sensor on their first advertisement
+				const isStub = sensor && sensorRank(sensor)==0
+
+				if (sensor && !isStub){
+					//update existing sensor's device with new advertisement data.
+					//Locally backed (node-ble) devices have no updateAdvertisement
+					//and are deliberately left alone -- local data wins.
+					if (sensor.device && typeof sensor.device.updateAdvertisement === 'function'){
+						const mfrData = {}
+						if (adv.manufacturerData){
+							for (const [id, hex] of Object.entries(adv.manufacturerData)){
+								mfrData[id] = Buffer.from(hex, 'hex')
+							}
+						}
+						sensor.device.updateAdvertisement({
+							rssi: adv.rssi,
+							name: adv.name,
+							manufacturer_data: mfrData
+						})
+					}
+				} else if (!pendingApiInit.has(mac)){
+					pendingApiInit.add(mac)
+					const mfrData = {}
+					if (adv.manufacturerData){
+						for (const [id, hex] of Object.entries(adv.manufacturerData)){
+							mfrData[id] = Buffer.from(hex, 'hex')
+						}
+					}
+					const device = new BLEApiDevice(mac, adv.name, {
+						rssi: adv.rssi,
+						manufacturer_data: mfrData
+					})
+					const config = getDeviceConfig(mac) || {
+						mac_address: mac,
+						discoveryTimeout: options?.discoveryTimeout??30,
+						active: false,
+						unconfigured: true
+					}
+					initConfiguredDeviceWithDevice(device, config)
+						.finally(()=>pendingApiInit.delete(mac))
+				}
+			})
+		}
 
 		if (plugin.stopped) {
 			plugin.stopped=false
@@ -806,7 +1035,7 @@ module.exports =   function (app) {
 
 		}
 		starts++
-		if (!await adapter.isDiscovering())
+		if (useLocalAdapter && !await adapter.isDiscovering())
 			try{
 				await startScanner(options)
 			} catch (e){
@@ -837,8 +1066,18 @@ module.exports =   function (app) {
 				} 
 			}, (maxTimeout+1)*1000);
 
-			for (const config of deviceConfigs) {
-				initConfiguredDevice(config)
+			if (useLocalAdapter){
+				for (const config of deviceConfigs) {
+					initConfiguredDevice(config)
+				}
+			} else {
+				//no local adapter: configured devices attach on their first
+				//advertisement from the BLE API. Seed placeholders so the UI
+				//shows them as unavailable until then -- the advertisement
+				//handler upgrades a MissingSensor to a live sensor.
+				for (const config of deviceConfigs) {
+					addSensorToList(new MissingSensor(config))
+				}
 			}
 		}
 		const minTimeout=Math.min(...deviceConfigs.map((dc)=>dc?.discoveryTimeout??options.discoveryTimeout))
@@ -850,7 +1089,9 @@ module.exports =   function (app) {
 				const config = getDeviceConfig(sensor.getMacAddress())
 				const dt = config?.discoveryTimeout??options.discoveryTimeout
 				const lc=sensor.elapsedTimeSinceLastContact()
-				if (lc<lastContactDelta) //get min last contact delta
+				//min last contact delta over locally backed sensors only --
+				//BLE-API traffic must not mask a dead local adapter
+				if (sensorRank(sensor)==2 && lc<lastContactDelta)
 					lastContactDelta=lc
 				if (lc > dt) { 
 					updateSensor(sensor)
@@ -866,10 +1107,10 @@ module.exports =   function (app) {
 					}
 				}
 			})
-			if (sensorMap.size && options.inactivityTimeout && Number.isFinite(lastContactDelta) && lastContactDelta > options.inactivityTimeout)
+			if (useLocalAdapter && sensorMap.size && options.inactivityTimeout && Number.isFinite(lastContactDelta) && lastContactDelta > options.inactivityTimeout)
 			{
-				
-				plugin.debug(`No contact with any sensors for ${lastContactDelta} seconds. Recycling Bluetooth adapter.`)	
+
+				plugin.debug(`No contact with any sensors for ${lastContactDelta} seconds. Recycling Bluetooth adapter.`)
 				await adapter.setPowered(false)
 				await adapter.setPowered(true)
 			}
@@ -879,14 +1120,22 @@ module.exports =   function (app) {
 		if (!options.hasOwnProperty("discoveryInterval" )) //no config -- first run
 			options.discoveryInterval = plugin.schema.properties.discoveryInterval.default
 
-		if (options.discoveryInterval && !discoveryIntervalID) 
-			findDeviceLoop(options?.discoveryTimeout??plugin.schema.properties.discoveryTimeout.default, 
+		if (useLocalAdapter && options.discoveryInterval && !discoveryIntervalID)
+			findDeviceLoop(options?.discoveryTimeout??plugin.schema.properties.discoveryTimeout.default,
 						   options.discoveryInterval)
-	} 
+	}
 	plugin.stop =  async function () {
 		plugin.debug("Stopping plugin")
 		plugin.stopped=true
 		plugin.started=false
+		if (bleApiUnsubscribe) {
+			try { bleApiUnsubscribe() } catch (e) { /* server may already be tearing down */ }
+			bleApiUnsubscribe=null
+		}
+		if (bleSettingsWatchID) {
+			clearInterval(bleSettingsWatchID)
+			bleSettingsWatchID=null
+		}
 		channel.broadcast({state:"stopped"},"pluginstate")
 		if (discoveryIntervalID) {
 			clearInterval(discoveryIntervalID)
@@ -921,12 +1170,19 @@ module.exports =   function (app) {
 
 		if (adapter) {
 			adapter.helper._propsProxy.removeAllListeners()
-			if( await adapter.isDiscovering())
 			try{
-				await adapter.stopDiscovery()
-				plugin.debug('Scan stopped')
+				if( await adapter.isDiscovering()){
+					await adapter.stopDiscovery()
+					plugin.debug('Scan stopped')
+				}
 			} catch (e){
-				plugin.setError(`Error stopping scan: ${e.message}`)
+				const msg = e?.message ?? String(e)
+				if (/InProgress|No discovery started/i.test(msg))
+					//benign: BlueZ discovery is owned by another client
+					//(e.g. the server's BLE manager) or already stopped
+					plugin.debug(`Scan already stopped: ${msg}`)
+				else
+					plugin.setError(`Error stopping scan: ${msg}`)
 			}
 		}
 		plugin.debug('BT Sensors plugin stopped')

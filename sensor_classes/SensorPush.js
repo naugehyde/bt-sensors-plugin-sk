@@ -105,7 +105,50 @@ class SensorPush extends BTSensor{
     }
 
     
-    async initGATTConnection(isReconnecting){ 
+    // BLE API descriptor mode
+    getGATTDescriptor() {
+        const C = this.constructor.Characteristics
+        const svc = this.constructor.ServiceUUID.toLowerCase()
+        const pollMs = (this.pollFreq ?? 30) * 1000
+        const initWrites = []
+        if (this.tx) {
+            const buf = Buffer.alloc(1)
+            buf.writeInt8(this.tx)
+            initWrites.push({ uuid: C.tx.toLowerCase(), data: buf.toString('hex') })
+        }
+        if (this.LED) {
+            const buf = Buffer.alloc(1)
+            buf.writeUInt8(this.LED)
+            initWrites.push({ uuid: C.LED.toLowerCase(), data: buf.toString('hex') })
+        }
+        if (this.adv) {
+            const buf = Buffer.alloc(2)
+            buf.writeUInt16LE(Math.round((this.adv / 625) * 1000))
+            initWrites.push({ uuid: C.adv.toLowerCase(), data: buf.toString('hex') })
+        }
+        return {
+            mac: this.getMacAddress(),
+            service: svc,
+            poll: [
+                { uuid: C.temp.toLowerCase(), intervalMs: pollMs, writeBeforeRead: '01000000' },
+                { uuid: C.hum.toLowerCase(), intervalMs: pollMs, writeBeforeRead: '01000000' },
+                { uuid: C.batt.toLowerCase(), intervalMs: pollMs },
+                { uuid: C.bar.toLowerCase(), intervalMs: pollMs, writeBeforeRead: '01000000' }
+            ],
+            init: initWrites.length > 0 ? initWrites : undefined
+        }
+    }
+
+    handleGATTData(charUuid, data) {
+        const C = this.constructor.Characteristics
+        const uuid = charUuid.toLowerCase()
+        if (uuid === C.temp.toLowerCase()) this.emitData('temp', data)
+        else if (uuid === C.hum.toLowerCase()) this.emitData('humidity', data)
+        else if (uuid === C.batt.toLowerCase()) this.emitData('batt', data)
+        else if (uuid === C.bar.toLowerCase()) this.emitData('pressure', data)
+    }
+
+    async initGATTConnection(isReconnecting){
         async function writeUInt8(characteristic, val ){
             const buffer = Buffer.alloc(1)
             buffer.writeUInt8(val)

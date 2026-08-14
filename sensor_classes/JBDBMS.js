@@ -319,6 +319,28 @@ class JBDBMS extends BTSensor {
     });
   }
 
+  // Raw GATT needed for write-command/read-response protocol
+  needsRawGATT() { return true }
+
+  async initRawGATTConnection(conn) {
+    this._rawConn = conn
+    // Set up RX notifications
+    await conn.startNotifications(
+      this.constructor.TX_RX_SERVICE,
+      this.constructor.NOTIFY_CHAR_UUID,
+      (data) => {
+        // Process incoming data through the existing response handler
+        if (this.rxChar && this.rxChar.listeners) {
+          this.rxChar.emit('valuechanged', data)
+        }
+      }
+    )
+    conn.onDisconnect(() => {
+      this.setConnected(false)
+    })
+    this.setConnected(true)
+  }
+
   async initGATTConnection(isReconnecting = false) {
 
     if (this.rxChar)

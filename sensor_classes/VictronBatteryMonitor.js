@@ -209,12 +209,44 @@ class VictronBatteryMonitor extends VictronSensor{
         return `${super.getDescription()}.<p><p>After setting the encryption key, Save and reselect to configure the value of the Aux field (Secondary Battery, Midpoint or Battery Temperature)`
     }
 
+    // BLE API descriptor mode
+    getGATTDescriptor() {
+        const notifyUuids = []
+        const paths = this.getPaths()
+        for (const tag of Object.keys(paths)) {
+            if (paths[tag].gatt) {
+                notifyUuids.push(paths[tag].gatt)
+            }
+        }
+        if (notifyUuids.length === 0) return null
+        return {
+            mac: this.getMacAddress(),
+            service: '65970000-4bda-4c1e-af4b-551c4cf74769',
+            notify: notifyUuids,
+            init: [{ uuid: '6597ffff-4bda-4c1e-af4b-551c4cf74769', data: 'ffff' }]
+        }
+    }
+
+    handleGATTData(charUuid, data) {
+        const paths = this.getPaths()
+        for (const tag of Object.keys(paths)) {
+            if (paths[tag].gatt && paths[tag].gatt.toLowerCase() === charUuid.toLowerCase()) {
+                this.emitData(tag, data)
+                return
+            }
+        }
+    }
+
     async stopListening(){
         super.stopListening()
+        if (this._gattHandle) {
+            // BLE API mode — handle is closed by deactivateGATT()
+            return
+        }
         for (var c of this.characteristics){
             await c.stopNotifications()
         }
-        if (await this.device.isConnected()){
+        if (this.device && typeof this.device.isConnected === 'function' && await this.device.isConnected()){
             await this.device.disconnect()
             this.debug(`Disconnected`)
         }

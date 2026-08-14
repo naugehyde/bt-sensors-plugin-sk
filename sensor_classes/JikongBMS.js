@@ -541,6 +541,26 @@ class JikongBMS extends BTSensor {
     await super.deactivateGATT();
   }
 
+  // Raw GATT needed for write-command/read-response protocol
+  needsRawGATT() { return true }
+
+  async initRawGATTConnection(conn) {
+    this._rawConn = conn
+    await conn.startNotifications(
+      this.constructor.RX_SERVICE,
+      this.constructor.RX_CHAR_UUID,
+      (data) => {
+        if (this.rxChar && this.rxChar.listeners) {
+          this.rxChar.emit('valuechanged', data)
+        }
+      }
+    )
+    conn.onDisconnect(() => {
+      this.setConnected(false)
+    })
+    this.setConnected(true)
+  }
+
   async initGATTConnection(isReconnecting = false) {
     this.debug(`${this.getName()}::initGATTConnection`);
 

@@ -1132,6 +1132,11 @@ module.exports =   function (app) {
 			try { bleApiUnsubscribe() } catch (e) { /* server may already be tearing down */ }
 			bleApiUnsubscribe=null
 		}
+		if (app.bleApi?.unRegister) {
+			//releases the server-side registration and any GATT claims
+			//still held by this plugin
+			try { app.bleApi.unRegister(plugin.id) } catch (e) { /* server may already be tearing down */ }
+		}
 		if (bleSettingsWatchID) {
 			clearInterval(bleSettingsWatchID)
 			bleSettingsWatchID=null

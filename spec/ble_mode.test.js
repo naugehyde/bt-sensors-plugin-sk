@@ -31,3 +31,14 @@ test('localBluetoothManaged is read as a live value, not cached', () => {
 	managed = false
 	assert.strictEqual(resolveBleMode(app).useLocalAdapter, true)
 })
+
+test('plugin.stop releases the server-side BLE registration', () => {
+	//the server's unRegister() closes GATT claims and drops the provider
+	//entry; skipping it leaks the registration across plugin restarts
+	const fs = require('node:fs')
+	const path = require('node:path')
+	const src = fs.readFileSync(path.join(__dirname, '..', 'index.js'), 'utf8')
+	const stopBody = src.slice(src.indexOf('plugin.stop ='))
+	assert.match(stopBody, /app\.bleApi\?\.unRegister/,
+		'plugin.stop() must call app.bleApi.unRegister(plugin.id)')
+})

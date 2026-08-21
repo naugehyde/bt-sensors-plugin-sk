@@ -1,4 +1,5 @@
 const BTSensor = require("../BTSensor");
+const RawGATTCharacteristic = require("../RawGATTCharacteristic.js");
 
 function sumByteArray(byteArray) {
   let sum = 0;
@@ -324,13 +325,27 @@ class JBDBMS extends BTSensor {
 
   async initRawGATTConnection(conn) {
     this._rawConn = conn
+    // See JikongBMS. JBD splits the two directions across separate
+    // characteristics -- notifications arrive on rxChar (ff01) and commands go
+    // out on txChar (ff02) -- so mirror the legacy path's pair rather than
+    // collapsing them. Writes are without-response, as sendCommand() does.
+    this.rxChar = new RawGATTCharacteristic(
+      conn,
+      this.constructor.TX_RX_SERVICE,
+      this.constructor.NOTIFY_CHAR_UUID
+    )
+    this.txChar = new RawGATTCharacteristic(
+      conn,
+      this.constructor.TX_RX_SERVICE,
+      this.constructor.WRITE_CHAR_UUID
+    )
     // Set up RX notifications
     await conn.startNotifications(
       this.constructor.TX_RX_SERVICE,
       this.constructor.NOTIFY_CHAR_UUID,
       (data) => {
         // Process incoming data through the existing response handler
-        if (this.rxChar && this.rxChar.listeners) {
+        if (this.rxChar) {
           this.rxChar.emit('valuechanged', data)
         }
       }

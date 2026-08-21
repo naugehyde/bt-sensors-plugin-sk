@@ -1,4 +1,5 @@
 const BTSensor = require("../BTSensor");
+const RawGATTCharacteristic = require("../RawGATTCharacteristic.js");
 let FakeDevice,FakeGATTService,FakeGATTCharacteristic;
 
 // Dynamically import FakeBTDevice.js for node<= 20 
@@ -546,11 +547,20 @@ class JikongBMS extends BTSensor {
 
   async initRawGATTConnection(conn) {
     this._rawConn = conn
+    // The command path writes through this.rxChar; in BLE-API mode there is no
+    // node-ble characteristic behind it, so present the connection as one.
+    // Without this, sendReadFunctionRequest() throws on an undefined rxChar and
+    // the notification handler below drops every frame on its rxChar guard.
+    this.rxChar = new RawGATTCharacteristic(
+      conn,
+      this.constructor.RX_SERVICE,
+      this.constructor.RX_CHAR_UUID
+    )
     await conn.startNotifications(
       this.constructor.RX_SERVICE,
       this.constructor.RX_CHAR_UUID,
       (data) => {
-        if (this.rxChar && this.rxChar.listeners) {
+        if (this.rxChar) {
           this.rxChar.emit('valuechanged', data)
         }
       }

@@ -39,6 +39,48 @@ test('writeValue still asks for write-with-response', async () => {
   assert.strictEqual(conn.calls[0].withResponse, true)
 })
 
+test('write mode maps from the node-ble options form', async () => {
+  const conn = fakeConn()
+  const c = new RawGATTCharacteristic(conn, 'svc', 'chr')
+  // node-ble spells without-response as type 'command'.
+  await c.writeValue(Buffer.from([1]), { type: 'command' })
+  assert.strictEqual(conn.calls[0].withResponse, false)
+  await c.writeValue(Buffer.from([1]), { type: 'request' })
+  assert.strictEqual(conn.calls[1].withResponse, true)
+  // Bare offset form, as RenogySensor uses.
+  await c.writeValue(Buffer.from([1]), 0)
+  assert.strictEqual(conn.calls[2].withResponse, true)
+})
+
+test('writeValueWithResponse exists and asks for a response', async () => {
+  const conn = fakeConn()
+  const c = new RawGATTCharacteristic(conn, 'svc', 'chr')
+  await c.writeValueWithResponse(Buffer.from([1]))
+  assert.strictEqual(conn.calls[0].withResponse, true)
+})
+
+/* The BLE API writes whole values. Silently dropping a non-zero offset would
+ * write a command frame to the wrong place. */
+test('a non-zero offset is rejected rather than ignored', async () => {
+  const conn = fakeConn()
+  const c = new RawGATTCharacteristic(conn, 'svc', 'chr')
+  await assert.rejects(() => c.writeValueWithoutResponse(Buffer.from([1]), 4), /offset/)
+  assert.strictEqual(conn.calls.length, 0)
+})
+
+test('a non-buffer value is rejected, as node-ble does', async () => {
+  const conn = fakeConn()
+  const c = new RawGATTCharacteristic(conn, 'svc', 'chr')
+  await assert.rejects(() => c.writeValue('nope'), /buffer/i)
+  assert.strictEqual(conn.calls.length, 0)
+})
+
+test('getUUID matches the node-ble async accessor', async () => {
+  const c = new RawGATTCharacteristic(fakeConn(), 'svc', 'chr')
+  assert.strictEqual(await c.getUUID(), 'chr')
+  assert.strictEqual(c.uuid, 'chr')
+})
+
 test('notifications reach valuechanged listeners', async () => {
   const conn = fakeConn()
   const c = new RawGATTCharacteristic(conn, 'svc', 'chr')
@@ -83,4 +125,28 @@ test('JBDBMS raw GATT init wires rxChar and txChar to their own characteristics'
   await sensor.txChar.writeValueWithoutResponse(Buffer.from([0xdd]))
   assert.strictEqual(conn.calls[0].char, JBDBMS.WRITE_CHAR_UUID)
   assert.strictEqual(conn.calls[0].withResponse, false)
+})
+
+/* deactivateGATT() released the connection but left the characteristic shims
+ * in place, so a reconnect built new ones while the old objects kept any
+ * listeners still attached and could still write to a reclaimed connection. */
+test('deactivateGATT clears the characteristic shims', async () => {
+  const BTSensor = require('../BTSensor.js')
+  const sensor = Object.create(BTSensor.prototype)
+  const conn = fakeConn()
+
+  sensor._rawConn = conn
+  sensor.rxChar = new RawGATTCharacteristic(conn, 'svc', 'rx')
+  sensor.txChar = new RawGATTCharacteristic(conn, 'svc', 'tx')
+  sensor.rxChar.on('valuechanged', () => {})
+  sensor.debug = () => {}
+  sensor.setConnected = () => {}
+  sensor.getMacAddress = () => 'AA:BB:CC:DD:EE:FF'
+  sensor._app = { bleApi: { releaseGATTDevice: async () => {} } }
+
+  await BTSensor.prototype.deactivateGATT.call(sensor)
+
+  assert.strictEqual(sensor._rawConn, null)
+  assert.strictEqual(sensor.rxChar, null, 'rxChar must not outlive the connection')
+  assert.strictEqual(sensor.txChar, null, 'txChar must not outlive the connection')
 })

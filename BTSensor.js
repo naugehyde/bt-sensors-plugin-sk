@@ -1,6 +1,7 @@
 const { Variant } = require('@jellybrick/dbus-next');
 const { log } = require('node:console');
 const EventEmitter = require('node:events');
+const RawGATTCharacteristic = require('./RawGATTCharacteristic.js');
 const AutoQueue =  require("./Queue.js")
 const DistanceManager = require("./DistanceManager")
 const OutOfRangeDevice = require("./OutOfRangeDevice.js")
@@ -592,6 +593,18 @@ class BTSensor extends EventEmitter {
                 this.debug(`Error releasing raw GATT connection: ${e.message}`)
             }
             this._rawConn = null
+            // Drop the characteristic shims bound to the released connection.
+            // initRawGATTConnection() builds fresh ones on reconnect, and a
+            // stale object would otherwise keep any listeners still attached to
+            // it and quietly write to a connection the server has reclaimed.
+            if (this.rxChar instanceof RawGATTCharacteristic) {
+                this.rxChar.removeAllListeners()
+                this.rxChar = null
+            }
+            if (this.txChar instanceof RawGATTCharacteristic) {
+                this.txChar.removeAllListeners()
+                this.txChar = null
+            }
             this.setConnected(false)
             return
         }

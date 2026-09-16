@@ -1161,12 +1161,27 @@ class BTSensor extends EventEmitter {
             const pathMeta=this.getPath(tag)
             const path = config.paths[tag]
             if (!(path===undefined)) {
-                const preparedPath  =
-                this._app.handleMessage(id, 
-                {
-                updates: 
-                    [{ meta: [{path:  this.preparePath(path), value: { units: pathMeta?.unit, zones:pathMeta?.zones, renderer:pathMeta?.renderer } }]}] 
-                })
+                const preparedPath = this.preparePath(path)
+                const metaValue = { units: pathMeta?.unit, zones:pathMeta?.zones, renderer:pathMeta?.renderer }
+                // setDefaultMetadata (server plugin API) only persists fields
+                // the user hasn't already set in baseDeltas.json, and is
+                // idempotent across restarts -- unlike a raw handleMessage meta
+                // delta, which unconditionally overwrites whatever's already
+                // there. That used to mean any zones/units a user configured
+                // through the server's own meta editor (or an API PUT to
+                // vessels/self/<path>/meta) got wiped out again on every single
+                // plugin activation, i.e. every server restart, not just a
+                // fresh install. Falls back to the old behaviour on servers too
+                // old to have the method.
+                if (typeof this._app.setDefaultMetadata === 'function') {
+                    this._app.setDefaultMetadata(preparedPath, metaValue)
+                } else {
+                    this._app.handleMessage(id,
+                    {
+                    updates:
+                        [{ meta: [{path: preparedPath, value: metaValue }]}]
+                    })
+                }
             }
         })
 	}

@@ -1324,10 +1324,9 @@ class BTSensor extends EventEmitter {
 
   emitNotification(path, state, message, method = ["visual", "sound"]){
     if (!this._app) return
-    const msg = this.preparePath(message)
     const value = state == null
         ? null
-        : { state, method, msg }
+        : { state, method, message: this.preparePath(message) }
     this._app.handleMessage('bt-sensors-plugin-sk', {
         updates: [{
             $source: this.getName(),

@@ -3,7 +3,6 @@ const packageInfo = require("./package.json")
 
 const {createBluetooth} = require('@naugehyde/node-ble')
 const {Variant} = require('@jellybrick/dbus-next')
-const {bluetooth, destroy} = createBluetooth()
 
 const BTSensor = require('./BTSensor.js')
 const BLACKLISTED = require('./sensor_classes/BlackListedDevice.js')
@@ -196,9 +195,82 @@ module.exports =   function (app) {
 
 	
 	plugin.started=false
-	
+
 	var discoveryIntervalID, progressID, progressTimeoutID, deviceHealthID
-	var adapter 
+	var adapter
+
+	// Rebuilt after a bus error instead of staying dead for the life of the process.
+	var btSession = null
+	var btReconnectTimeoutID = null
+	const BT_RECONNECT_BASE_DELAY_MS = 3000
+	const BT_RECONNECT_MAX_DELAY_MS = 60000
+	var btReconnectAttempt = 0
+	var lastStartOptions = {}
+	var lastRestartPlugin = null
+
+	function getBluetoothSession(){
+		if (btSession) return btSession
+
+		const { bluetooth, destroy } = createBluetooth()
+		const session = { bluetooth, destroy }
+		btSession = session
+
+		// An unhandled 'error' event on the bus crashes the process.
+		bluetooth.dbus.on('error', (err) => {
+			// A dying bus emits one error per queued write; only the current session may reconnect.
+			if (btSession !== session) return
+
+			console.error(`bt-sensors-plugin-sk: D-Bus connection error: ${err?.message ?? err}`)
+			plugin.debug(`D-Bus connection error: ${err?.message ?? err}`)
+			btSession = null
+			adapter = null
+			try { destroy() } catch (e) { /* already dead */ }
+			// Later errors from the dead bus must not throw.
+			bluetooth.dbus.removeAllListeners('error')
+			bluetooth.dbus.on('error', () => {})
+			scheduleBluetoothReconnect()
+		})
+
+		return session
+	}
+
+	function scheduleBluetoothReconnect(){
+		if (btReconnectTimeoutID || plugin.stopped) return
+		const delay = Math.min(
+			BT_RECONNECT_BASE_DELAY_MS * (2 ** btReconnectAttempt),
+			BT_RECONNECT_MAX_DELAY_MS
+		)
+		btReconnectAttempt++
+		const attempt = btReconnectAttempt
+		console.error(`bt-sensors-plugin-sk: Bluetooth D-Bus connection lost, reconnecting in ${delay/1000}s (attempt ${attempt})...`)
+		plugin.setStatusText(`Bluetooth D-Bus connection lost, reconnecting in ${delay/1000}s...`)
+		btReconnectTimeoutID = setTimeout(async () => {
+			btReconnectTimeoutID = null
+			try {
+				// start() doesn't clear the timers stop() does; without this, discovery never restarts.
+				// stop() can hang on a dead bus, so it's bounded.
+				try {
+					await Promise.race([
+						plugin.stop(),
+						new Promise(resolve => setTimeout(resolve, 10000))
+					])
+				} catch (e) {
+					console.error(`bt-sensors-plugin-sk: teardown before reconnect failed, continuing: ${e.message}`)
+				}
+				// A connect left in flight on the dead bus never settles and would block the queue forever.
+				BTSensor.resetConnectQueue()
+				await plugin.start(lastStartOptions, lastRestartPlugin)
+				btReconnectAttempt = 0
+				console.error(`bt-sensors-plugin-sk: Bluetooth D-Bus reconnected after ${attempt} attempt(s)`)
+			} catch (e) {
+				console.error(`bt-sensors-plugin-sk: Error reconnecting to Bluetooth (attempt ${attempt}): ${e.message}`)
+				plugin.setError(`Error reconnecting to Bluetooth: ${e.message}`)
+				// stop() set plugin.stopped; left set, this would be the last attempt.
+				plugin.stopped = false
+				scheduleBluetoothReconnect()
+			}
+		}, delay)
+	}
 	const channel = createChannel()
 	
 	plugin.debug(`Loading plugin ${packageInfo.version}`)
@@ -209,6 +281,10 @@ module.exports =   function (app) {
 	const classMap = loadClassMap(app)
 
 		plugin.started=true
+		plugin.stopped=false
+		lastStartOptions = options
+		lastRestartPlugin = restartPlugin
+		const { bluetooth } = getBluetoothSession()
 		var adapterID=options.adapter
 		var foundConfiguredDevices=0
 
@@ -887,6 +963,10 @@ module.exports =   function (app) {
 		plugin.debug("Stopping plugin")
 		plugin.stopped=true
 		plugin.started=false
+		if (btReconnectTimeoutID) {
+			clearTimeout(btReconnectTimeoutID)
+			btReconnectTimeoutID=null
+		}
 		channel.broadcast({state:"stopped"},"pluginstate")
 		if (discoveryIntervalID) {
 			clearInterval(discoveryIntervalID)
@@ -906,17 +986,15 @@ module.exports =   function (app) {
 			deviceHealthID=null
 		}
 
-		if ((sensorMap)){
-				for await (const sensorEntry of sensorMap.entries()) {
-				try{
-					await sensorEntry[1].stopListening()
-					plugin.debug(`No longer listening to ${sensorEntry[0]}`)
-				}
-				catch (e){
-					plugin.setError(`Error stopping listening to ${sensorEntry[0]}: ${e.message}`)
-				}
+		// Concurrently, so one sensor hanging on a dead bus doesn't leave the others polling.
+		await Promise.allSettled(Array.from(sensorMap.entries()).map(async ([mac, sensor]) => {
+			try {
+				await sensor.stopListening()
+				plugin.debug(`No longer listening to ${mac}`)
+			} catch (e) {
+				plugin.setError(`Error stopping listening to ${mac}: ${e.message}`)
 			}
-		}
+		}))
 		sensorMap.clear()
 
 		if (adapter) {

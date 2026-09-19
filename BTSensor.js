@@ -15,7 +15,8 @@ const OutOfRangeDevice = require("./OutOfRangeDevice.js")
 
 const BTCompanies = require('./bt_co.json');
 
-const connectQueue = new AutoQueue()
+// `let`: replaced after a D-Bus reconnect, see resetConnectQueue().
+let connectQueue = new AutoQueue()
 
 /**
  * @global A map of company names keyed by their Bluetooth ID
@@ -73,6 +74,16 @@ function signalQualityPercentQuad(rssi, perfect_rssi=-20, worst_rssi=-85) {
  */
 
 class BTSensor extends EventEmitter {
+
+    /**
+     // A connect in flight when the bus died never settles and would block the old queue forever.
+     * Replace the shared connect queue. The plugin calls this after a D-Bus
+     * reconnect so sensors created on the new bus are not queued behind a
+     * connect that was in flight on the old one and can never complete.
+     */
+    static resetConnectQueue(){
+        connectQueue = new AutoQueue()
+    }
  
     static DEFAULTS = require('./plugin_defaults.json');
     static DistanceManagerSingleton= new DistanceManager({DISTANCE_FIND_LAST_FEW_SAMPLE_TIME_FRAME_MILLIS:60000}) 
@@ -627,16 +638,17 @@ class BTSensor extends EventEmitter {
                     this.setConnected(true)
                 })    
             }
-            const connectTimeoutID = setTimeout(
-                ()=>{
+            // Must reject: a throw inside the timer is an uncaught exception and the queue never moves on.
+            let connectTimeoutID
+            const connectTimeout = new Promise((_, reject) => {
+                connectTimeoutID = setTimeout(() => {
                     const e = `Connect timed out. Unable to connect after ${timeout}ms.`
                     this.setError(e)
-                    throw new Error(e)
-                }
-                ,timeout
-            ) 
+                    reject(new Error(e))
+                }, timeout)
+            })
             try {
-                await this.device.helper.callMethod('Connect')
+                await Promise.race([this.device.helper.callMethod('Connect'), connectTimeout])
                 await new Promise(resolve => setTimeout(resolve, 2000));
             } catch (e) {
                 this.debug(e)

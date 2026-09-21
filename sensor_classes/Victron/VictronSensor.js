@@ -42,10 +42,6 @@ const VictronIdentifier = require('./VictronIdentifier.js');
         })
     }
     
-    static getModelID(md) {
-        return md[this.ManufacturerID]?.value.readUInt16LE(2)??-1
-    }
-
     static async identify(device){
 
         var md = await this.getDeviceProp(device,'ManufacturerData')
@@ -53,7 +49,9 @@ const VictronIdentifier = require('./VictronIdentifier.js');
             return null
         const data=await this.getDataPacket(device,md)
         if (data) {
-            device.modelID=this.getModelID(md)
+            // from data, not md: getDataPacket() may have waited for a 0x10
+            // record, in which case md still holds the one that caused the wait
+            device.modelID=data.readUInt16LE(2)
             return VictronIdentifier.identify(data)
         } 
         return null
@@ -159,10 +157,15 @@ const VictronIdentifier = require('./VictronIdentifier.js');
         
     }
     getModelID(){
-        if (!this.modelID ||this.modelID==-1)
-            this.modelID=this.getManufacturerData(this.constructor.ManufacturerID)?.readUInt16LE(2)??-1
-
-        return this.modelID
+        // Victron devices emit several manufacturer-data records and only the
+        // 0x10 one carries the model id. Without this check the first record
+        // to arrive wins and a wrong id is cached for the session.
+        if (!this.modelID ||this.modelID==-1){
+            const md = this.getManufacturerData(this.constructor.ManufacturerID)
+            if (md && md.length>3 && md[0]==0x10)
+                this.modelID = md.readUInt16LE(2)
+        }
+        return this.modelID ?? -1
     }
 
     getName(){
@@ -206,6 +209,7 @@ const VictronIdentifier = require('./VictronIdentifier.js');
                     if (delta === 0) return
                 }
                 this._lastIV = iv
+                this.getModelID()   // latch while a 0x10 record is current
                 const decData=this.decrypt(md)
                 if (!this.isDecryptedValid(decData)) return
                 this.emitValuesFrom(decData)

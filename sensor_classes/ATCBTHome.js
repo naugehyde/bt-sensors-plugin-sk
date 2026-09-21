@@ -2,19 +2,12 @@ const BTHomeServiceData = require("./BTHome/BTHomeServiceData");
 const AbstractBTHomeSensor = require("./BTHome/AbstractBTHomeSensor");
 
 /**
- * Xiaomi LYWSD03MMC (and relatives) running pvvx's ATC_MiThermometer firmware
- * with its advertising type set to BTHome.
+ * Class for Xiaomi LYWSD03MMC (and relatives) running pvvx's ATC_MiThermometer 
+ * firmware https://github.com/pvvx/ATC_MiThermometer with its advertising type 
+ * set to BTHome.
  *
- * The existing ATC sensor class only understands the two 0x181A layouts
- * (atc1441 and pvvx "Custom"), which it decodes at fixed byte offsets. On
- * BTHome those offsets land on tag bytes rather than values, which silently
- * produces plausible-looking nonsense -- a status advertisement's binary
- * sensor tags read as a temperature, humidity above 100%, and battery reads
- * running past the end of the buffer. This class routes the same devices
- * through the real BTHome parser instead.
+ * This class routes the devices through the BTHome parser.
  *
- * pvvx has announced that from firmware 6.0 only BTHome v2 will be supported,
- * so this is the path these sensors are moving to, not a special case.
  */
 class ATCBTHome extends AbstractBTHomeSensor {
 	static Domain = this.SensorDomains.environmental

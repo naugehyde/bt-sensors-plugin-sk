@@ -30,6 +30,11 @@ class VictronSolarCharger extends VictronSensor{
             (buff)=>{return this.NaNif(buff.readInt16LE(4),0x7FFF)/10})
             .default="electrical.solar.{id}.dc.current"
 
+        this.addMetadatum('outputPower','W', 'charger battery power',
+            (buff)=>{return (this.NaNif(buff.readInt16LE(2),0x7FFF)/100)
+                          * (this.NaNif(buff.readInt16LE(4),0x7FFF)/10)})
+            .default="electrical.solar.{id}.dc.power"
+
         this.addMetadatum('yield','Wh', 'yield today in Watt-hours', 
             (buff)=>{return this.NaNif(buff.readUInt16LE(6),0xFFFF)*10})
             .default="electrical.solar.{id}.yieldToday"
@@ -42,6 +47,12 @@ class VictronSolarCharger extends VictronSensor{
             (buff)=>{return this.NaNif(buff.readUInt16LE(10)&0x1FF,0x1FF)/10})
             .default="electrical.solar.{id}.loadCurrent" 
   
+        // Load terminals share the battery bus, so battery voltage is the factor.
+        this.addMetadatum('loadPower','W', 'load output power',
+            (buff)=>{return (this.NaNif(buff.readInt16LE(2),0x7FFF)/100)
+                          * (this.NaNif(buff.readUInt16LE(10)&0x1FF,0x1FF)/10)})
+            .default="electrical.solar.{id}.loadPower"
+
     }
 
 }

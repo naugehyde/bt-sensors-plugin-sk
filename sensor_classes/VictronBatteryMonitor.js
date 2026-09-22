@@ -143,6 +143,9 @@ class VictronBatteryMonitor extends VictronSensor{
             break
         }
         this.emit("current", (this.NaNif(int24.readInt24LE(decData,  8)>>2,0x1FFFFF))/1000)  
+        // The 'power' metadatum above is GATT-only; adding it for advertisement readers as well.
+        this.emit("power", (this.NaNif(decData.readInt16LE(2),0x7FFF)/100)
+                         * (this.NaNif(int24.readInt24LE(decData,  8)>>2,0x1FFFFF)/1000))
         this.emit("consumed",(this.NaNif(int24.readInt24LE(decData, 11)&0xFFFFF,0xFFFFF)) / 10) ; 
         this.emit("soc", this.NaNif(((decData.readUInt16LE(13)& 0x3FFF)>>4),0x3FF)/1000)
         

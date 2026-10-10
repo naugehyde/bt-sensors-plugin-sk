@@ -329,6 +329,7 @@ class BTSensor extends EventEmitter {
             title: this.getName(),
             properties:{
                 active: {title: "Active", type: "boolean", default: true },
+                disableUnreachableNotifications: {title: "Disable uncontactable notifications for this device", type: "boolean", default: false },
                 discoveryTimeout: {title: "Device discovery timeout (in seconds)", 
                     type: "integer", default:30,
                     minimum: 10,
@@ -969,6 +970,9 @@ class BTSensor extends EventEmitter {
     isActive(){
         return this?._active??false
     }
+    hasUnreachableNotificationsDisabled(){
+        return this?.currentProperties?.disableUnreachableNotifications ?? false
+    }
     getBars(){
         const ss =  this.getSignalStrength()
         var bars = ""
@@ -1266,23 +1270,25 @@ class BTSensor extends EventEmitter {
 
   notifyUnableToCommunicate(){
         this.clearAllPaths()
-    	this._app.handleMessage('bt-sensors-plugin-sk',
-            {
-                updates: [{
-                    $source: this.getName(),
-                    timestamp: (new Date()).toISOString(),
-                    values: [{
-                            path: `notifications.sensors.${this.macAndName()}`,
-                            value: {
-                            state: "warn",
-                            message: `Unable to communicate with BT sensor: ${this.macAndName()}` ,
-                            method: ["visual", "sound"]
-                        }
-                        }]
-                }]
-            }
-        
-        );
+        if (!this.hasUnreachableNotificationsDisabled()) {
+    	    this._app.handleMessage('bt-sensors-plugin-sk',
+                {
+                    updates: [{
+                        $source: this.getName(),
+                        timestamp: (new Date()).toISOString(),
+                        values: [{
+                                path: `notifications.sensors.${this.macAndName()}`,
+                                value: {
+                                state: "warn",
+                                message: `Unable to communicate with BT sensor: ${this.macAndName()}` ,
+                                method: ["visual", "sound"]
+                            }
+                            }]
+                    }]
+                }
+            
+            );
+        }
   }
 
   clearUnableToCommunicate(){
@@ -1301,25 +1307,27 @@ class BTSensor extends EventEmitter {
         );
   }
  notifyNoContact(){
-	 	this.setReachable(false)
+ 	 	this.setReachable(false)
         this.clearAllPaths()
-    	this._app.handleMessage('bt-sensors-plugin-sk',
-            {
-                updates: [{
-                    $source: this.getName(),
-                    timestamp: (new Date()).toISOString(),
-                    values: [{
-                            path: `notifications.sensors.${this.macAndName()}`,
-                            value: {
-                            state: "warn",
-                            message: `No contact with BT sensor ${this.macAndName()} for ${this.elapsedTimeSinceLastContact()} seconds`,
-                            method: ["visual", "sound"]
-                        }
-                        }]
-                }]
-            }
-        
-        );
+        if (!this.hasUnreachableNotificationsDisabled()) {
+    	    this._app.handleMessage('bt-sensors-plugin-sk',
+                {
+                    updates: [{
+                        $source: this.getName(),
+                        timestamp: (new Date()).toISOString(),
+                        values: [{
+                                path: `notifications.sensors.${this.macAndName()}`,
+                                value: {
+                                state: "warn",
+                                message: `No contact with BT sensor ${this.macAndName()} for ${this.elapsedTimeSinceLastContact()} seconds`,
+                                method: ["visual", "sound"]
+                            }
+                            }]
+                    }]
+                }
+            
+            );
+        }
   }
    clearNoContact(){
 	    this.setReachable(true)

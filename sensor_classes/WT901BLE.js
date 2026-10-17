@@ -192,9 +192,12 @@ class WT901BLE extends   WT901Sensor {
        * Setup connection
       */
       async initGATTConnection(isReconnecting = false) {
-        this.debug('in initGATTConnection')
-        // base class connects to device
-        await super.initGATTConnection(isReconnecting);
+        this.debug(`in initGATTConnection (reconnecting: ${isReconnecting})`)
+        // Connect with the base class's auto-reconnect: when the WT901 drops the link (it does,
+        // and it never comes back by itself), deviceConnect's disconnect handler re-runs
+        // activateGATT(true) -- this method, then the notifications. That handler is registered
+        // on the first connect only, so reconnecting does not stack listeners.
+        await this.connectDevice(isReconnecting, 5, 5, true);
 
         // Set up GATT characteristics
         const gattServer = await this.device.gatt();

@@ -596,13 +596,13 @@ class BTSensor extends EventEmitter {
     isConnected(){
         return this?._connected??false
     }
-    async connectDevice( isReconnecting, retries=5, retryInterval=3){
+    async connectDevice( isReconnecting, retries=5, retryInterval=3, autoReconnect=false){
         let lastError;
         for (let attempts = 0; attempts<retries; attempts++) {
             try
             {
                 this.debug( `Trying to connect (attempt # ${attempts +1}) to Bluetooth device.` );
-                await this.deviceConnect(isReconnecting);
+                await this.deviceConnect(isReconnecting, autoReconnect);
                 return this.device
             }
 

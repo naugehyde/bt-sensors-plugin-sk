@@ -11,6 +11,7 @@ const MissingAdapter = require("./MissingAdapter.js")
 const { createChannel, createSession } = require("better-sse");
 const { clearTimeout } = require('timers')
 const loadClassMap = require('./classLoader.js')
+const DeviceTracker = require('./DeviceTracker.js')
 class MissingSensor  {
 
 	constructor(config){
@@ -276,6 +277,7 @@ module.exports =   function (app) {
 	plugin.debug(`Loading plugin ${packageInfo.version}`)
 
 	const sensorMap=new Map()
+	const deviceTracker=new DeviceTracker()
 
 	plugin.start = async function (options, restartPlugin) {
 	const classMap = loadClassMap(app)
@@ -516,8 +518,9 @@ module.exports =   function (app) {
 		function removeSensorFromList(sensor){
 			sensor.removeAllListeners("_state")
 			sensor.removeAllListeners("connected")
-			sensor.removeAllListeners("error")
+			sensor.removeAllListeners("errorDetected")
 			sensor.removeAllListeners("debug")
+			sensor.removeAllListeners(sensor.constructor.batteryStrengthTag)
 			sensor.removeAllListeners("RSSI")
 
 			sensorMap.delete(sensor.getMacAddress())
@@ -715,6 +718,17 @@ module.exports =   function (app) {
 				if (startNumber != starts ) {
 					return
 				}
+				const unconfigured = [...sensorMap.keys()].filter((mac)=>!getDeviceConfig(mac))
+				const {promote, expire} = deviceTracker.scan(macs, Date.now(),
+					(mac)=>!!getDeviceConfig(mac), unconfigured)
+				for (const mac of expire) {
+					const sensor = sensorMap.get(mac)
+					if (!sensor) continue
+					removeSensorFromList(sensor)
+					Promise.resolve().then(()=>sensor.stopListening()).catch((e)=>
+						plugin.debug(`Unable to stop listening to ${mac}: ${e?.message??e}`))
+				}
+				const promoted = new Set(promote)
 				for (const mac of macs) {	
 					var deviceConfig = getDeviceConfig(mac)
 					const sensor = sensorMap.get(mac)
@@ -726,7 +740,7 @@ module.exports =   function (app) {
 						}
 					} else {
 
-						if (!deviceConfig) {
+						if (!deviceConfig && promoted.has(mac)) {
 							deviceConfig = {mac_address: mac, 
 											discoveryTimeout: discoveryTimeout, 
 											active: false, unconfigured: true}
